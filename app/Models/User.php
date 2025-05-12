@@ -41,4 +41,12 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
         'password' => 'hashed',
     ];
+    
+    /**
+     * Get the files for the user.
+     */
+    public function files()
+    {
+        return $this->hasMany(File::class);
+    }
 }

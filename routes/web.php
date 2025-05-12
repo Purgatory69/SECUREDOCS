@@ -14,14 +14,20 @@ Route::get('/register', [UserController::class, 'create'])->name('register.form'
 
 Route::get('/table', [UserController::class, 'showTable'])->name('table');
 
+Route::post('/webhook/{uuid}/chat', function ($uuid) {
+    // Validate UUID and handle webhook
+    return response()->json(['status' => 'received']);
+});
 
 Route::middleware(['auth'])->group(function () {
+    
     Route::get('/dashboard', function () {
         return view('dashboard');
     });
+    
+    // File routes
+    Route::post('/files', [App\Http\Controllers\FileController::class, 'store'])->name('files.store');
+    Route::get('/files', [App\Http\Controllers\FileController::class, 'index'])->name('files.index');
+    Route::get('/files/{id}', [App\Http\Controllers\FileController::class, 'show'])->name('files.show');
+    Route::delete('/files/{id}', [App\Http\Controllers\FileController::class, 'destroy'])->name('files.destroy');
 });
-
-
-
-
-

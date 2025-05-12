@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Dashboard - Securedocs</title>
     <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -28,6 +30,13 @@
     
 </head>
 <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
+    
+    <script>
+        window.userId = @json(auth()->id()); 
+        window.supabaseUrl = "{{ config('services.supabase.url') }}";
+        window.supabaseKey = "{{ config('services.supabase.key') }}";
+    </script>
+    
     <header class="col-span-2 flex items-center px-4 bg-white border-b border-border-color z-10">
         <div class="flex items-center mr-10">
             <div class="w-8 h-8 bg-primary rounded-lg mr-3 flex items-center justify-center text-white font-bold text-lg">S</div>
@@ -206,7 +215,7 @@
             <div class="text-xs text-text-secondary mt-2">3.5 GB of 10 GB used</div>
         </div>
     </div>
-    
+
     <main class="bg-white p-6 overflow-y-auto">
         <h1 class="text-2xl font-normal mb-6">My Documents</h1>
         
@@ -227,171 +236,200 @@
             </div>
         </div>
         
-        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            <!-- Document Card 1 -->
-            <div class="border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md">
-                <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
-                    <span class="text-3xl">📄</span>
-                    <div class="absolute top-2 right-2 bg-[#e8f0fe] text-primary px-1.5 py-0.5 rounded text-xs font-medium">Secured</div>
-                </div>
-                <div class="p-3">
-                    <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">Financial Report Q1 2025.pdf</div>
-                    <div class="text-xs text-text-secondary">Modified: Apr 18, 2025</div>
-                </div>
-            </div>
-            
-            <!-- Document Card 2 -->
-            <div class="border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md">
-                <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
-                    <span class="text-3xl">📝</span>
-                    <div class="absolute top-2 right-2 bg-[#e8f0fe] text-primary px-1.5 py-0.5 rounded text-xs font-medium">Blockchain</div>
-                </div>
-                <div class="p-3">
-                    <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">Contract Agreement.docx</div>
-                    <div class="text-xs text-text-secondary">Modified: Apr 15, 2025</div>
-                </div>
-            </div>
-            
-            <!-- Document Card 3 -->
-            <div class="border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md">
-                <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
-                    <span class="text-3xl">📊</span>
-                </div>
-                <div class="p-3">
-                    <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">Sales Analysis.xlsx</div>
-                    <div class="text-xs text-text-secondary">Modified: Apr 10, 2025</div>
-                </div>
-            </div>
-            
-            <!-- Document Card 4 -->
-            <div class="border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md">
-                <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
-                    <span class="text-3xl">🖼️</span>
-                </div>
-                <div class="p-3">
-                    <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">Project Mockup.png</div>
-                    <div class="text-xs text-text-secondary">Modified: Apr 5, 2025</div>
-                </div>
-            </div>
-            
-            <!-- Document Card 5 -->
-            <div class="border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md">
-                <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
-                    <span class="text-3xl">📊</span>
-                    <div class="absolute top-2 right-2 bg-[#e8f0fe] text-primary px-1.5 py-0.5 rounded text-xs font-medium">AI-Enhanced</div>
-                </div>
-                <div class="p-3">
-                    <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">Budget 2025.xlsx</div>
-                    <div class="text-xs text-text-secondary">Modified: Apr 2, 2025</div>
-                </div>
-            </div>
-            
-            <!-- Document Card 6 -->
-            <div class="border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md">
-                <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
-                    <span class="text-3xl">📝</span>
-                </div>
-                <div class="p-3">
-                    <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">Meeting Notes.docx</div>
-                    <div class="text-xs text-text-secondary">Modified: Mar 28, 2025</div>
-                </div>
-            </div>
-            
-            <!-- Document Card 7 -->
-            <div class="border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md">
-                <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
-                    <span class="text-3xl">📄</span>
-                    <div class="absolute top-2 right-2 bg-[#e8f0fe] text-primary px-1.5 py-0.5 rounded text-xs font-medium">Blockchain</div>
-                </div>
-                <div class="p-3">
-                    <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">Legal Document.pdf</div>
-                    <div class="text-xs text-text-secondary">Modified: Mar 25, 2025</div>
-                </div>
-            </div>
-            
-            <!-- Document Card 8 -->
-            <div class="border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md">
-                <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
-                    <span class="text-3xl">🎬</span>
-                </div>
-                <div class="p-3">
-                    <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">Presentation.pptx</div>
-                    <div class="text-xs text-text-secondary">Modified: Mar 20, 2025</div>
-                </div>
-            </div>
+        <!-- User's Files Container -->
+        <div id="filesContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            <!-- Files will be loaded here dynamically -->
+            <div class="p-4 text-center text-text-secondary col-span-full">Loading files...</div>
         </div>
     </main>
+    
+    @vite(['resources/js/app.js'])
+
     <script>
-        import { createClient } from '@supabase/supabase-js';
-
-        // Initialize Supabase (replace with your actual keys, loaded securely)
-        const supabaseUrl = 'https://fywmgiuvdbsjfchfzixc.supabase.co';
-        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d21naXV2ZGJzamZjaGZ6aXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNjExNzAsImV4cCI6MjA2MDczNzE3MH0.wrupHgjfdyERpLDzD5uP9ZsYNnsUOICuwOTunCGmfG4';
-        const supabase = createClient(supabaseUrl, supabaseKey);
-
-        // Assuming you have a way to get the user ID from Laravel and pass it to your JavaScript
-        const userId = Auth::user()->id /* Get the user ID from Laravel, e.g., via a data attribute or a global variable */;
-
-        // ... (existing code for modal functionality)
-
-        uploadBtn.addEventListener('click', async function() { // Make the function async
-            const files = fileInput.files;
-            if (files.length === 0) return;
-
-            // Show progress bar
-            uploadProgress.classList.remove('hidden');
-            uploadBtn.disabled = true;
-
-            const file = files[0]; // Assuming only one file for simplicity
-
-            try {
-                const { data, error } = await supabase
-                    .storage
-                    .from('files') // Replace with your bucket name
-                    .upload(`user_${userId}/${file.name}`, file, { // Use userId variable
-                        cacheControl: '3600',
-                        upsert: false,
-                        onProgress: (event) => {
-                            const percent = (event.loaded / event.total) * 100;
-                            progressBar.style.width = `${percent}%`;
-                            progressPercentage.textContent = `${Math.round(percent)}%`;
+        // Function to load user's files from the database
+        function loadUserFiles() {
+            console.log('Fetching files from /files endpoint...');
+            fetch('/files')
+                .then(response => {
+                    console.log('Response status:', response.status);
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Response data:', data);
+                    const filesContainer = document.getElementById('filesContainer');
+                    
+                    if (!filesContainer) {
+                        console.error('Files container not found');
+                        return;
+                    }
+                    
+                    // Clear existing files
+                    filesContainer.innerHTML = '';
+                    
+                    const files = data.files || [];
+                    console.log('Files to display:', files);
+                    
+                    if (files.length === 0) {
+                        filesContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">No files uploaded yet.</div>';
+                        return;
+                    }
+                    
+                    // Add each file to the container as a card
+                    files.forEach(file => {
+                        const fileElement = document.createElement('div');
+                        fileElement.className = 'border border-border-color rounded-lg overflow-hidden transition-shadow cursor-pointer hover:shadow-md';
+                        
+                        const fileIcon = getFileIcon(file.file_name);
+                        const fileDate = new Date(file.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+                        const fileType = file.file_type ? file.file_type.toUpperCase() : '';
+                        
+                        // Determine if we should show a special badge based on file type
+                        let badgeHtml = '';
+                        if (['pdf', 'docx', 'xlsx', 'pptx'].includes(file.file_type?.toLowerCase())) {
+                            badgeHtml = `<div class="absolute top-2 right-2 bg-[#e8f0fe] text-primary px-1.5 py-0.5 rounded text-xs font-medium">${fileType}</div>`;
                         }
+                        
+                        fileElement.innerHTML = `
+                            <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
+                                <span class="text-3xl">${fileIcon}</span>
+                                ${badgeHtml}
+                            </div>
+                            <div class="p-3 relative">
+                                <div class="text-sm whitespace-nowrap overflow-hidden text-ellipsis mb-1">${file.file_name}</div>
+                                <div class="text-xs text-text-secondary">Modified: ${fileDate}</div>
+                                <button class="delete-file-btn absolute top-3 right-3 text-text-secondary hover:text-danger" data-file-id="${file.id}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                </button>
+                            </div>
+                        `;
+                        
+                        filesContainer.appendChild(fileElement);
                     });
-
-                if (error) {
-                    console.error('Upload error:', error.message);
-                    alert('Upload failed: ' + error.message);
-                } else {
-                    console.log('Upload successful:', data);
-                    alert('Files uploaded successfully!');
-                    // Here you might want to save file metadata (like data.path) to your database
-                }
-            } catch (error) {
-                console.error('Unexpected error during upload:', error);
-                alert('An unexpected error occurred during upload.');
-            } finally {
-                // Hide progress bar and reset modal
-                hideUploadModal();
-            }
+                    
+                    // Add event listeners for delete buttons
+                    document.querySelectorAll('.delete-file-btn').forEach(btn => {
+                        btn.addEventListener('click', function(e) {
+                            e.stopPropagation();
+                            const fileId = this.getAttribute('data-file-id');
+                            if (confirm('Are you sure you want to delete this file?')) {
+                                deleteFile(fileId);
+                            }
+                        });
+                    });
+                    
+                    // Add event listeners for file cards (for future preview functionality)
+                    document.querySelectorAll('.border.border-border-color.rounded-lg').forEach(card => {
+                        card.addEventListener('click', function(e) {
+                            // Prevent clicking if the delete button was clicked
+                            if (e.target.closest('.delete-file-btn')) return;
+                            
+                            // Future functionality: preview or download file
+                            console.log('File card clicked');
+                        });
+                    });
+                })
+                .catch(error => {
+                    console.error('Error loading files:', error);
+                });
+        }
+        
+        // Function to delete a file
+        function deleteFile(fileId) {
+            // First get the file details to know the path in storage
+            fetch(`/files/${fileId}`)
+                .then(response => response.json())
+                .then(async fileData => {
+                    console.log('File to delete:', fileData);
+                    
+                    try {
+                        // First delete from Supabase storage
+                        console.log('Deleting from Supabase storage:', fileData.file_path);
+                        const { error } = await supabase.storage
+                            .from('files')
+                            .remove([fileData.file_path]);
+                            
+                        if (error) {
+                            console.error('Error deleting from storage:', error);
+                            alert('Error deleting file from storage');
+                            return;
+                        }
+                        
+                        console.log('File deleted from storage successfully');
+                        
+                        // Then delete from database
+                        return fetch(`/files/${fileId}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error in deletion process:', error);
+                        throw error;
+                    }
+                })
+                .then(response => response ? response.json() : null)
+                .then(result => {
+                    if (result) {
+                        console.log('File record deleted:', result);
+                        loadUserFiles(); // Refresh the file list
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting file:', error);
+                    alert('Error deleting file. Please try again.');
+                });
+        }
+        
+        // Load files when the page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            loadUserFiles();
         });
     </script>
     <script>
-        // User Profile Dropdown Functionality
-        const userProfileBtn = document.getElementById('userProfileBtn');
-        const profileDropdown = document.getElementById('profileDropdown');
-        const overlay = document.getElementById('overlay');
-
-        userProfileBtn.addEventListener('click', function() {
-            profileDropdown.classList.toggle('opacity-0');
-            profileDropdown.classList.toggle('invisible');
-            profileDropdown.classList.toggle('translate-y-[-10px]');
-            overlay.classList.toggle('hidden');
+        // Initialize Supabase client
+        console.log('Initializing Supabase with:', {
+            url: window.supabaseUrl,
+            key: window.supabaseKey
         });
+        // Use the global Supabase object from CDN
+        const supabase = window.supabase.createClient(window.supabaseUrl, window.supabaseKey);
+        
+        // User Profile Dropdown Functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const userProfileBtn = document.getElementById('userProfileBtn');
+            const profileDropdown = document.getElementById('profileDropdown');
+            const overlay = document.getElementById('overlay');
+            
+            if (userProfileBtn && profileDropdown && overlay) {
+                console.log('Profile dropdown elements found');
+                
+                userProfileBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    profileDropdown.classList.toggle('opacity-0');
+                    profileDropdown.classList.toggle('invisible');
+                    profileDropdown.classList.toggle('translate-y-[-10px]');
+                    overlay.classList.toggle('hidden');
+                    console.log('Profile button clicked');
+                });
 
-        overlay.addEventListener('click', function() {
-            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
-            overlay.classList.add('hidden');
-            hideUploadModal();
+                overlay.addEventListener('click', function() {
+                    profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+                    overlay.classList.add('hidden');
+                });
+            } else {
+                console.error('Profile dropdown elements not found:', { 
+                    userProfileBtn: !!userProfileBtn, 
+                    profileDropdown: !!profileDropdown, 
+                    overlay: !!overlay 
+                });
+            }
         });
 
         // Close dropdown when clicking outside
@@ -408,17 +446,11 @@
         // Upload Modal Functionality
         const newBtn = document.getElementById('newBtn');
         const uploadModal = document.getElementById('uploadModal');
-        const modalBackdrop = document.getElementById('modalBackdrop');
         const closeModalBtn = document.getElementById('closeModalBtn');
         const cancelUploadBtn = document.getElementById('cancelUploadBtn');
-        const dropZone = document.getElementById('dropZone');
-        const fileInput = document.getElementById('fileInput');
-        const fileList = document.getElementById('fileList');
-        const uploadBtn = document.getElementById('uploadBtn');
-        const uploadProgress = document.getElementById('uploadProgress');
-        const progressBar = document.getElementById('progressBar');
-        const progressPercentage = document.getElementById('progressPercentage');
+        const modalBackdrop = document.getElementById('modalBackdrop');
 
+        // Modal control functions
         function showUploadModal() {
             uploadModal.classList.remove('hidden');
             document.body.classList.add('overflow-hidden');
@@ -427,31 +459,53 @@
         function hideUploadModal() {
             uploadModal.classList.add('hidden');
             document.body.classList.remove('overflow-hidden');
-            
-            // Reset modal state
             fileInput.value = '';
-            fileList.classList.add('hidden');
-            fileList.innerHTML = '<div class="text-sm font-medium">Selected Files:</div>';
-            uploadBtn.disabled = true;
             uploadProgress.classList.add('hidden');
-            progressBar.style.width = '0%';
-            progressPercentage.textContent = '0%';
+            uploadBtn.disabled = false;
         }
 
-        // Open modal
+        // Event listeners
         newBtn.addEventListener('click', showUploadModal);
-
-        // Close modal
         closeModalBtn.addEventListener('click', hideUploadModal);
         cancelUploadBtn.addEventListener('click', hideUploadModal);
         modalBackdrop.addEventListener('click', hideUploadModal);
 
-        // Prevent modal closing when clicking inside the modal
-        uploadModal.querySelector('.bg-white').addEventListener('click', function(event) {
-            event.stopPropagation();
+        // Prevent modal closure when clicking inside content
+        uploadModal.querySelector('.bg-white').addEventListener('click', (e) => {
+            e.stopPropagation();
         });
 
+        // File input change handler
+        const fileInput = document.getElementById('fileInput');
+        
+        // Define the missing handleFileSelect function
+        function handleFileSelect(e) {
+            const files = e.target.files;
+            if (files.length > 0) {
+                const fileName = document.getElementById('fileName');
+                if (fileName) {
+                    fileName.textContent = files[0].name;
+                }
+                console.log('File selected:', files[0].name);
+            }
+        }
+        
+        fileInput.addEventListener('change', handleFileSelect);
+
+        // Modal show/hide functions
+        const uploadProgress = document.getElementById('uploadProgress');
+        const uploadBtn = document.getElementById('uploadBtn');
+
+        // New button click handler
+        newBtn.addEventListener('click', () => {
+            uploadModal.classList.remove('hidden');
+        });
+
+        // Close modal on backdrop click
+        modalBackdrop.addEventListener('click', hideUploadModal);
+
         // Handle file selection
+        const dropZone = document.getElementById('dropZone');
         dropZone.addEventListener('click', function() {
             fileInput.click();
         });
@@ -483,6 +537,7 @@
         function handleFiles(files) {
             if (files.length === 0) return;
             
+            const fileList = document.getElementById('fileList');
             fileList.classList.remove('hidden');
             fileList.innerHTML = '<div class="text-sm font-medium">Selected Files:</div>';
             uploadBtn.disabled = false;
@@ -517,47 +572,125 @@
             return '📄';
         }
 
-        // Upload button functionality
-        uploadBtn.addEventListener('click', function() {
-            // Show progress bar
-            uploadProgress.classList.remove('hidden');
+        // Upload button functionality - REAL UPLOAD
+        uploadBtn.addEventListener('click', async function(e) {
+            e.preventDefault();
             
-            // Disable upload button
+            if (fileInput.files.length === 0) {
+                alert('Please select a file first');
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const userId = window.userId;
+            
+            uploadProgress.classList.remove('hidden');
             uploadBtn.disabled = true;
             
-            // Simulate upload progress
-            let progress = 0;
-            const interval = setInterval(() => {
-                progress += Math.random() * 10;
-                if (progress >= 100) {
-                    progress = 100;
-                    clearInterval(interval);
-                    
-                    // Simulate a small delay before completing
-                    setTimeout(() => {
-                        // Show success message
-                        alert('Files uploaded successfully!');
-                        
-                        // Close the modal
-                        hideUploadModal();
-                    }, 500);
+            try {
+                console.log('Uploading to Supabase storage...');
+                
+                // First upload to Supabase storage
+                const { data, error } = await supabase.storage
+                    .from('files')
+                    .upload(`user_${userId}/${file.name}`, file, {
+                        cacheControl: '3600',
+                        upsert: false,
+                        onUploadProgress: (event) => {
+                            const percent = (event.loaded / event.total) * 100;
+                            if (progressBar) progressBar.style.width = `${percent}%`;
+                            if (progressPercentage) progressPercentage.textContent = `${Math.round(percent)}%`;
+                        }
+                    });
+                
+                if (error) {
+                    console.error('Supabase upload error:', error);
+                    alert(`Upload failed: ${error.message}`);
+                    return;
                 }
                 
-                // Update progress bar
-                progressBar.style.width = `${progress}%`;
-                progressPercentage.textContent = `${Math.round(progress)}%`;
-            }, 300);
+                console.log('Supabase upload successful:', data);
+                
+                // Then save metadata to Laravel database
+                try {
+                    const metadataPayload = {
+                        file_name: file.name,
+                        file_path: `user_${userId}/${file.name}`,
+                        file_size: file.size,
+                        file_type: file.type,
+                        mime_type: file.type
+                    };
+                    
+                    console.log('Saving metadata to Laravel...', metadataPayload);
+                    console.log('CSRF Token:', document.querySelector('meta[name="csrf-token"]').content);
+                    
+                    const response = await fetch('/files', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                        },
+                        body: JSON.stringify(metadataPayload)
+                    });
+                    
+                    const result = await response.json();
+                    console.log('Metadata save response:', result);
+                    
+                    if (!response.ok) throw new Error('Failed to save file metadata');
+                    
+                    alert('File uploaded successfully!');
+                    loadUserFiles();
+                } catch (error) {
+                    console.error('Metadata save error:', error);
+                    alert(`Failed to save file metadata: ${error.message}`);
+                }
+            } catch (error) {
+                console.error('Upload error:', error);
+                alert(`An unexpected error occurred: ${error.message}`);
+            } finally {
+                hideUploadModal();
+                uploadProgress.classList.add('hidden');
+                uploadBtn.disabled = false;
+                fileInput.value = '';
+            }
         });
     </script>
-    
-    <div id="n8n-chat-container"></div>
-<script type="module">
-    import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+    <script>
+        // Profile dropdown toggle
+        (function() {
+            const profileBtn = document.getElementById('userProfileBtn');
+            const dropdown = document.getElementById('profileDropdown');
+            if (profileBtn && dropdown) {
+                profileBtn.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    const isOpen = dropdown.classList.contains('opacity-100');
+                    if (isOpen) {
+                        dropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+                        dropdown.classList.add('opacity-0', 'invisible', '-translate-y-2');
+                    } else {
+                        dropdown.classList.remove('opacity-0', 'invisible', '-translate-y-2');
+                        dropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
+                    }
+                });
 
-    createChat({
-        webhookUrl: 'http://localhost:5678/webhook/5dd17da4-fc5c-4f8b-876b-b5718ea0716a/chat',
-        container: '#n8n-chat-container' // Specify the container to render the chat in
-    });
-</script>
+                // Hide dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!dropdown.contains(e.target) && !profileBtn.contains(e.target)) {
+                        dropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+                        dropdown.classList.add('opacity-0', 'invisible', '-translate-y-2');
+                    }
+                });
+            }
+        })();
+    </script>
+
+    <!-- <script type="module">
+        import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+        createChat({
+            webhookUrl: 'http://localhost:5678/webhook/0a216509-e55c-4a43-8d4a-581dffe09d18/chat',
+            container: '#n8n-chat-container' // Specify the container to render the chat in
+        });
+    </script> -->
 </body>
 </html>

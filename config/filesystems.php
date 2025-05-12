@@ -30,6 +30,17 @@ return [
 
     'disks' => [
 
+        'supabase' => [
+            'driver' => 's3',
+            'key' => env('SUPABASE_PROJECT_ID'),
+            'secret' => env('SUPABASE_API_KEY'),
+            'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
+            'bucket' => env('SUPABASE_BUCKET'),
+            'url' => env('SUPABASE_URL'),
+            'endpoint' => env('SUPABASE_ENDPOINT', 'https://' . env('SUPABASE_PROJECT_ID') . '.supabase.co/storage/v1/s3'),
+            'use_path_style_endpoint' => true,
+        ],
+
         'local' => [
             'driver' => 'local',
             'root' => storage_path('app/private'),

@@ -16,7 +16,7 @@ return [
     |
     */
 
-    'default' => env('DB_CONNECTION', 'sqlite'),
+    'default' => env('DB_CONNECTION', 'supabase'),
 
     /*
     |--------------------------------------------------------------------------
@@ -30,6 +30,21 @@ return [
     */
 
     'connections' => [
+
+        'supabase' => [
+            'driver' => 'pgsql',
+            'url' => env('DATABASE_URL'),
+            'host' => env('SUPABASE_HOST', '127.0.0.1'),
+            'port' => env('SUPABASE_PORT', '5432'),
+            'database' => env('SUPABASE_DATABASE', 'postgres'),
+            'username' => env('SUPABASE_USERNAME', 'postgres'),
+            'password' => env('SUPABASE_PASSWORD', ''),
+            'charset' => 'utf8',
+            'prefix' => '',
+            'prefix_indexes' => true,
+            'search_path' => 'public',
+            'sslmode' => 'require',
+        ],
 
         'sqlite' => [
             'driver' => 'sqlite',
