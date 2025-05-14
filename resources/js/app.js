@@ -4,6 +4,7 @@ import { createClient } from '@supabase/supabase-js';
 const supabaseUrl = window.SUPABASE_URL;
 const supabaseKey = window.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
+window.supabase = supabase;
 
 supabase.auth.onAuthStateChange((_event, session) => {
     if (session?.user) {
@@ -176,6 +177,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
 
                         if (!response.ok) throw new Error('Failed to save file metadata');
+                        // Refresh the file list so the new upload appears immediately
+                        await loadUserFiles();
                     } catch (error) {
                         console.error('Metadata save error:', error);
                     }
@@ -255,11 +258,19 @@ async function loadUserFiles() {
                 }
             });
         });
-        // Card click events (future preview)
+        // Card click events for download
         document.querySelectorAll('.border.border-border-color.rounded-lg').forEach(card => {
             card.addEventListener('click', function(e) {
                 if (e.target.closest('.delete-file-btn')) return;
-                // Future: preview/download
+                
+                // Find the file ID from the delete button within this card
+                const deleteBtn = this.querySelector('.delete-file-btn');
+                if (deleteBtn) {
+                    const fileId = deleteBtn.getAttribute('data-file-id');
+                    if (fileId) {
+                        downloadFile(fileId);
+                    }
+                }
             });
         });
     } catch (error) {
@@ -267,15 +278,88 @@ async function loadUserFiles() {
     }
 }
 
+async function downloadFile(fileId) {
+    try {
+        // First get the file details to know the path in storage
+        const response = await fetch(`/files/${fileId}`);
+        if (!response.ok) {
+            alert('Failed to fetch file details.');
+            console.error('Failed to fetch file details:', response.status, response.statusText);
+            return;
+        }
+        
+        const fileData = await response.json();
+        const filePath = fileData.file_path;
+        const fileName = fileData.file_name;
+        
+        if (!filePath) {
+            alert('File path missing in file data. Cannot download file.');
+            console.error('File data missing file_path:', fileData);
+            return;
+        }
+        
+        console.log('Downloading file from Supabase Storage:', filePath);
+        
+        // Generate the public URL for the file
+        const { data, error } = supabase.storage.from('files').getPublicUrl(filePath);
+        
+        if (error) {
+            alert('Error generating download URL: ' + error.message);
+            console.error('Supabase Storage getPublicUrl error:', error);
+            return;
+        }
+        
+        if (!data?.publicUrl) {
+            alert('Could not generate download URL.');
+            return;
+        }
+        
+        // Create a temporary link element to trigger the download
+        const downloadLink = document.createElement('a');
+        downloadLink.href = data.publicUrl;
+        downloadLink.download = fileName || 'download';
+        downloadLink.target = '_blank';
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        console.log('Download initiated for file:', fileName);
+    } catch (error) {
+        console.error('Error downloading file:', error);
+        alert('Error downloading file. Please try again.');
+    }
+}
+
 async function deleteFile(fileId) {
-    // First get the file details to know the path in storage
     try {
         const response = await fetch(`/files/${fileId}`);
+        if (!response.ok) {
+            alert('Failed to fetch file details.');
+            console.error('Failed to fetch file details:', response.status, response.statusText);
+            return;
+        }
         const fileData = await response.json();
-        // Delete from Supabase storage
-        const { error } = await supabase.storage.from('files').remove([fileData.file_path]);
-        if (error) {
-            alert('Error deleting file from storage');
+        const deletePath = fileData.file_path;
+        if (!deletePath) {
+            alert('File path missing in file data. Cannot delete from storage.');
+            console.error('File data missing file_path:', fileData);
+            return;
+        }
+        console.log('Attempting to delete from Supabase Storage (relative path):', deletePath);
+        try {
+            const result = await supabase.storage.from('files').remove([deletePath]);
+            console.log('Supabase remove result:', result);
+            if (result.error) {
+                alert('Error deleting file from storage: ' + result.error.message);
+                console.error('Supabase Storage remove error:', result.error);
+                return;
+            }
+            if (result.data && result.data.length > 0) {
+                console.log('Supabase Storage remove response:', result.data);
+            }
+        } catch (removeErr) {
+            console.error('Exception during Supabase remove:', removeErr);
+            alert('Exception during Supabase remove: ' + (removeErr.message || removeErr));
             return;
         }
         // Then delete from database
@@ -287,6 +371,9 @@ async function deleteFile(fileId) {
         });
         if (dbResponse.ok) {
             loadUserFiles();
+        } else {
+            alert('Failed to delete file record from database.');
+            console.error('Failed to delete file record from database:', dbResponse.status, dbResponse.statusText);
         }
     } catch (error) {
         console.error('Error deleting file:', error);

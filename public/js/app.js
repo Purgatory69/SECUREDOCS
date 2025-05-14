@@ -10945,6 +10945,7 @@ function _asyncToGenerator(n) { return function () { var t = this, e = arguments
 var supabaseUrl = window.SUPABASE_URL;
 var supabaseKey = window.SUPABASE_KEY;
 var supabase = (0,_supabase_supabase_js__WEBPACK_IMPORTED_MODULE_0__.createClient)(supabaseUrl, supabaseKey);
+window.supabase = supabase;
 supabase.auth.onAuthStateChange(function (_event, session) {
   if (session !== null && session !== void 0 && session.user) {
     window.userId = session.user.id;
@@ -11110,7 +11111,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             console.error('Upload error:', error);
             alert("Upload failed: ".concat(error.message));
-            _context.next = 32;
+            _context.next = 34;
             break;
           case 19:
             console.log('Upload successful:', data);
@@ -11140,29 +11141,32 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             throw new Error('Failed to save file metadata');
           case 27:
-            _context.next = 32;
-            break;
+            _context.next = 29;
+            return loadUserFiles();
           case 29:
-            _context.prev = 29;
+            _context.next = 34;
+            break;
+          case 31:
+            _context.prev = 31;
             _context.t0 = _context["catch"](21);
             console.error('Metadata save error:', _context.t0);
-          case 32:
-            _context.next = 38;
-            break;
           case 34:
-            _context.prev = 34;
+            _context.next = 40;
+            break;
+          case 36:
+            _context.prev = 36;
             _context.t1 = _context["catch"](7);
             console.error('Unexpected error:', _context.t1);
             alert("An unexpected error occurred: ".concat(_context.t1.message));
-          case 38:
-            _context.prev = 38;
+          case 40:
+            _context.prev = 40;
             hideUploadModal();
-            return _context.finish(38);
-          case 41:
+            return _context.finish(40);
+          case 43:
           case "end":
             return _context.stop();
         }
-      }, _callee, null, [[7, 34, 38, 41], [21, 29]]);
+      }, _callee, null, [[7, 36, 40, 43], [21, 31]]);
     })));
   }
 
@@ -11269,11 +11273,19 @@ function _loadUserFiles() {
               }
             });
           });
-          // Card click events (future preview)
+          // Card click events for download
           document.querySelectorAll('.border.border-border-color.rounded-lg').forEach(function (card) {
             card.addEventListener('click', function (e) {
               if (e.target.closest('.delete-file-btn')) return;
-              // Future: preview/download
+
+              // Find the file ID from the delete button within this card
+              var deleteBtn = this.querySelector('.delete-file-btn');
+              if (deleteBtn) {
+                var fileId = deleteBtn.getAttribute('data-file-id');
+                if (fileId) {
+                  downloadFile(fileId);
+                }
+              }
             });
           });
           _context3.next = 26;
@@ -11290,12 +11302,12 @@ function _loadUserFiles() {
   }));
   return _loadUserFiles.apply(this, arguments);
 }
-function deleteFile(_x2) {
-  return _deleteFile.apply(this, arguments);
+function downloadFile(_x2) {
+  return _downloadFile.apply(this, arguments);
 }
-function _deleteFile() {
-  _deleteFile = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(fileId) {
-    var response, fileData, _yield$supabase$stora2, error, dbResponse;
+function _downloadFile() {
+  _downloadFile = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee4(fileId) {
+    var response, fileData, filePath, fileName, _supabase$storage$fro, data, error, downloadLink;
     return _regeneratorRuntime().wrap(function _callee4$(_context4) {
       while (1) switch (_context4.prev = _context4.next) {
         case 0:
@@ -11304,46 +11316,160 @@ function _deleteFile() {
           return fetch("/files/".concat(fileId));
         case 3:
           response = _context4.sent;
-          _context4.next = 6;
-          return response.json();
-        case 6:
-          fileData = _context4.sent;
-          _context4.next = 9;
-          return supabase.storage.from('files').remove([fileData.file_path]);
-        case 9:
-          _yield$supabase$stora2 = _context4.sent;
-          error = _yield$supabase$stora2.error;
-          if (!error) {
-            _context4.next = 14;
+          if (response.ok) {
+            _context4.next = 8;
             break;
           }
-          alert('Error deleting file from storage');
+          alert('Failed to fetch file details.');
+          console.error('Failed to fetch file details:', response.status, response.statusText);
           return _context4.abrupt("return");
-        case 14:
-          _context4.next = 16;
+        case 8:
+          _context4.next = 10;
+          return response.json();
+        case 10:
+          fileData = _context4.sent;
+          filePath = fileData.file_path;
+          fileName = fileData.file_name;
+          if (filePath) {
+            _context4.next = 17;
+            break;
+          }
+          alert('File path missing in file data. Cannot download file.');
+          console.error('File data missing file_path:', fileData);
+          return _context4.abrupt("return");
+        case 17:
+          console.log('Downloading file from Supabase Storage:', filePath);
+
+          // Generate the public URL for the file
+          _supabase$storage$fro = supabase.storage.from('files').getPublicUrl(filePath), data = _supabase$storage$fro.data, error = _supabase$storage$fro.error;
+          if (!error) {
+            _context4.next = 23;
+            break;
+          }
+          alert('Error generating download URL: ' + error.message);
+          console.error('Supabase Storage getPublicUrl error:', error);
+          return _context4.abrupt("return");
+        case 23:
+          if (data !== null && data !== void 0 && data.publicUrl) {
+            _context4.next = 26;
+            break;
+          }
+          alert('Could not generate download URL.');
+          return _context4.abrupt("return");
+        case 26:
+          // Create a temporary link element to trigger the download
+          downloadLink = document.createElement('a');
+          downloadLink.href = data.publicUrl;
+          downloadLink.download = fileName || 'download';
+          downloadLink.target = '_blank';
+          document.body.appendChild(downloadLink);
+          downloadLink.click();
+          document.body.removeChild(downloadLink);
+          console.log('Download initiated for file:', fileName);
+          _context4.next = 40;
+          break;
+        case 36:
+          _context4.prev = 36;
+          _context4.t0 = _context4["catch"](0);
+          console.error('Error downloading file:', _context4.t0);
+          alert('Error downloading file. Please try again.');
+        case 40:
+        case "end":
+          return _context4.stop();
+      }
+    }, _callee4, null, [[0, 36]]);
+  }));
+  return _downloadFile.apply(this, arguments);
+}
+function deleteFile(_x3) {
+  return _deleteFile.apply(this, arguments);
+}
+function _deleteFile() {
+  _deleteFile = _asyncToGenerator(/*#__PURE__*/_regeneratorRuntime().mark(function _callee5(fileId) {
+    var response, fileData, deletePath, result, dbResponse;
+    return _regeneratorRuntime().wrap(function _callee5$(_context5) {
+      while (1) switch (_context5.prev = _context5.next) {
+        case 0:
+          _context5.prev = 0;
+          _context5.next = 3;
+          return fetch("/files/".concat(fileId));
+        case 3:
+          response = _context5.sent;
+          if (response.ok) {
+            _context5.next = 8;
+            break;
+          }
+          alert('Failed to fetch file details.');
+          console.error('Failed to fetch file details:', response.status, response.statusText);
+          return _context5.abrupt("return");
+        case 8:
+          _context5.next = 10;
+          return response.json();
+        case 10:
+          fileData = _context5.sent;
+          deletePath = fileData.file_path;
+          if (deletePath) {
+            _context5.next = 16;
+            break;
+          }
+          alert('File path missing in file data. Cannot delete from storage.');
+          console.error('File data missing file_path:', fileData);
+          return _context5.abrupt("return");
+        case 16:
+          console.log('Attempting to delete from Supabase Storage (relative path):', deletePath);
+          _context5.prev = 17;
+          _context5.next = 20;
+          return supabase.storage.from('files').remove([deletePath]);
+        case 20:
+          result = _context5.sent;
+          console.log('Supabase remove result:', result);
+          if (!result.error) {
+            _context5.next = 26;
+            break;
+          }
+          alert('Error deleting file from storage: ' + result.error.message);
+          console.error('Supabase Storage remove error:', result.error);
+          return _context5.abrupt("return");
+        case 26:
+          if (result.data && result.data.length > 0) {
+            console.log('Supabase Storage remove response:', result.data);
+          }
+          _context5.next = 34;
+          break;
+        case 29:
+          _context5.prev = 29;
+          _context5.t0 = _context5["catch"](17);
+          console.error('Exception during Supabase remove:', _context5.t0);
+          alert('Exception during Supabase remove: ' + (_context5.t0.message || _context5.t0));
+          return _context5.abrupt("return");
+        case 34:
+          _context5.next = 36;
           return fetch("/files/".concat(fileId), {
             method: 'DELETE',
             headers: {
               'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             }
           });
-        case 16:
-          dbResponse = _context4.sent;
+        case 36:
+          dbResponse = _context5.sent;
           if (dbResponse.ok) {
             loadUserFiles();
+          } else {
+            alert('Failed to delete file record from database.');
+            console.error('Failed to delete file record from database:', dbResponse.status, dbResponse.statusText);
           }
-          _context4.next = 24;
+          _context5.next = 44;
           break;
-        case 20:
-          _context4.prev = 20;
-          _context4.t0 = _context4["catch"](0);
-          console.error('Error deleting file:', _context4.t0);
+        case 40:
+          _context5.prev = 40;
+          _context5.t1 = _context5["catch"](0);
+          console.error('Error deleting file:', _context5.t1);
           alert('Error deleting file. Please try again.');
-        case 24:
+        case 44:
         case "end":
-          return _context4.stop();
+          return _context5.stop();
       }
-    }, _callee4, null, [[0, 20]]);
+    }, _callee5, null, [[0, 40], [17, 29]]);
   }));
   return _deleteFile.apply(this, arguments);
 }
