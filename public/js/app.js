@@ -11092,7 +11092,7 @@ document.addEventListener('DOMContentLoaded', function () {
             console.log('Using user ID for upload:', window.userId);
             // Try to upload
             _context.next = 11;
-            return supabase.storage.from('files').upload("user_".concat(userId, "/").concat(file.name), file, {
+            return supabase.storage.from('docs').upload("user_".concat(userId, "/").concat(file.name), file, {
               cacheControl: '3600',
               upsert: false,
               onProgress: function onProgress(event) {
@@ -11341,7 +11341,7 @@ function _downloadFile() {
           console.log('Downloading file from Supabase Storage:', filePath);
 
           // Generate the public URL for the file
-          _supabase$storage$fro = supabase.storage.from('files').getPublicUrl(filePath), data = _supabase$storage$fro.data, error = _supabase$storage$fro.error;
+          _supabase$storage$fro = supabase.storage.from('docs').getPublicUrl(filePath), data = _supabase$storage$fro.data, error = _supabase$storage$fro.error;
           if (!error) {
             _context4.next = 23;
             break;
@@ -11419,7 +11419,7 @@ function _deleteFile() {
           console.log('Attempting to delete from Supabase Storage (relative path):', deletePath);
           _context5.prev = 17;
           _context5.next = 20;
-          return supabase.storage.from('files').remove([deletePath]);
+          return supabase.storage.from('docs').remove([deletePath]);
         case 20:
           result = _context5.sent;
           console.log('Supabase remove result:', result);

@@ -143,7 +143,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 // Try to upload
                 const { data, error } = await supabase
                     .storage
-                    .from('files')
+                    .from('docs')
                     .upload(`user_${userId}/${file.name}`, file, {
                         cacheControl: '3600',
                         upsert: false,
@@ -301,7 +301,7 @@ async function downloadFile(fileId) {
         console.log('Downloading file from Supabase Storage:', filePath);
         
         // Generate the public URL for the file
-        const { data, error } = supabase.storage.from('files').getPublicUrl(filePath);
+        const { data, error } = supabase.storage.from('docs').getPublicUrl(filePath);
         
         if (error) {
             alert('Error generating download URL: ' + error.message);
@@ -347,7 +347,7 @@ async function deleteFile(fileId) {
         }
         console.log('Attempting to delete from Supabase Storage (relative path):', deletePath);
         try {
-            const result = await supabase.storage.from('files').remove([deletePath]);
+            const result = await supabase.storage.from('docs').remove([deletePath]);
             console.log('Supabase remove result:', result);
             if (result.error) {
                 alert('Error deleting file from storage: ' + result.error.message);

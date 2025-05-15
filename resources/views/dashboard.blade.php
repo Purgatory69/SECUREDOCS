@@ -222,5 +222,14 @@
             <div class="p-4 text-center text-text-secondary col-span-full">Loading files...</div>
         </div>
     </main>
+    <!-- <div id="n8n-chat-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;"></div>
+     <script type="module">
+        import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+
+        createChat({
+            webhookUrl: 'http://localhost:5678/webhook/0a216509-e55c-4a43-8d4a-581dffe09d18/chat',
+            container: '#n8n-chat-container' // Specify the container to render the chat in
+        });
+    </script> -->
 </body>
 </html>
