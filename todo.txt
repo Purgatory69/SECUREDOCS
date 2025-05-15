@@ -1,0 +1,14 @@
+# TODO List for SecureDocs
+
+1. Add file preview system (PDF, images, text)
+2. Implement global search bar (AI-powered search)
+3. Add dark mode toggle
+4. Support file organization with folders
+5. Add notification/toast system for actions
+6. Enhance mobile responsiveness
+7. Show storage usage and analytics dashboard
+8. Add file sharing via links/permissions
+9. Progressive enhancement: upload progress, recently viewed, etc.
+
+---
+(Feel free to edit or reorder as needed!)

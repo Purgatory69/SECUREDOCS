@@ -25,6 +25,11 @@ Route::middleware(['auth'])->group(function () {
         return view('dashboard');
     });
     
+    // Bucket test route
+    Route::get('/bucket-test', function () {
+        return view('bucket-test');
+    })->name('bucket.test');
+    
     // File routes
     Route::post('/files', [App\Http\Controllers\FileController::class, 'store'])->name('files.store');
     Route::get('/files', [App\Http\Controllers\FileController::class, 'index'])->name('files.index');
