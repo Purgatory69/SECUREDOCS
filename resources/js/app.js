@@ -48,6 +48,43 @@ function getFileIcon(fileName) {
     return '📄';
 }
 
+// --- Live Search Dropdown Implementation ---
+let searchTimeout = null;
+let lastSearchQuery = '';
+let searchResults = [];
+
+function createSearchDropdown() {
+    let dropdown = document.getElementById('searchDropdown');
+    if (!dropdown) {
+        dropdown = document.createElement('div');
+        dropdown.id = 'searchDropdown';
+        dropdown.className = 'absolute left-0 right-0 top-full bg-white border border-border-color rounded-lg shadow-lg z-30 mt-2 max-h-64 overflow-y-auto hidden';
+        dropdown.style.minWidth = '200px';
+        const searchInput = document.querySelector('input[placeholder*="Search"]');
+        if (searchInput && searchInput.parentElement) {
+            searchInput.parentElement.appendChild(dropdown);
+        }
+    }
+    return dropdown;
+}
+
+function showSearchDropdown(results) {
+    const dropdown = createSearchDropdown();
+    if (!results.length) {
+        dropdown.innerHTML = '<div class="p-3 text-text-secondary text-sm">No files found</div>';
+    } else {
+        dropdown.innerHTML = results.map(file =>
+            `<div class="p-3 cursor-pointer hover:bg-bg-light text-sm truncate" data-file-id="${file.id}">${file.file_name}</div>`
+        ).join('');
+    }
+    dropdown.classList.remove('hidden');
+}
+
+function hideSearchDropdown() {
+    const dropdown = document.getElementById('searchDropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // Supabase client already initialized above
 
@@ -202,12 +239,89 @@ document.addEventListener('DOMContentLoaded', () => {
             if (confirm('Are you sure?')) await deleteFile(fileId);
         }
     });
+
+    const searchInput = document.querySelector('input[placeholder*="Search"]');
+    const filesContainer = document.getElementById('filesContainer');
+    let currentPage = 1;
+    let lastMainSearch = '';
+
+    // --- Live Search Handler ---
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            const query = this.value.trim();
+            lastSearchQuery = query;
+            if (searchTimeout) clearTimeout(searchTimeout);
+            if (!query) {
+                hideSearchDropdown();
+                return;
+            }
+            searchTimeout = setTimeout(async () => {
+                // Live search (limit 10)
+                const resp = await fetch(`/files?q=${encodeURIComponent(query)}&page=1`);
+                if (!resp.ok) return;
+                const data = await resp.json();
+                searchResults = (data.files || []).slice(0, 10);
+                showSearchDropdown(searchResults);
+            }, 300);
+        });
+        // Hide dropdown on blur (with slight delay for click)
+        searchInput.addEventListener('blur', () => setTimeout(hideSearchDropdown, 200));
+        // Show dropdown on focus if there are results
+        searchInput.addEventListener('focus', () => {
+            if (searchResults.length) showSearchDropdown(searchResults);
+        });
+        // Handle Enter key for main search
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                lastMainSearch = this.value.trim();
+                currentPage = 1;
+                loadUserFiles(lastMainSearch, currentPage);
+                hideSearchDropdown();
+            }
+        });
+    }
+    // Handle click on search icon (if present)
+    const searchIcon = searchInput?.parentElement?.querySelector('span');
+    if (searchIcon) {
+        searchIcon.addEventListener('click', function() {
+            if (searchInput) {
+                lastMainSearch = searchInput.value.trim();
+                currentPage = 1;
+                loadUserFiles(lastMainSearch, currentPage);
+                hideSearchDropdown();
+            }
+        });
+    }
+    // Handle click on dropdown result
+    document.body.addEventListener('mousedown', function(e) {
+        const dropdown = document.getElementById('searchDropdown');
+        if (dropdown && !dropdown.classList.contains('hidden') && e.target.closest('#searchDropdown')) {
+            const fileId = e.target.getAttribute('data-file-id');
+            if (fileId) {
+                downloadFile(fileId);
+                hideSearchDropdown();
+            }
+        }
+    });
+    // --- Pagination controls ---
+    window.addEventListener('click', function(e) {
+        if (e.target.classList.contains('pagination-btn')) {
+            const page = parseInt(e.target.getAttribute('data-page'));
+            if (!isNaN(page)) {
+                currentPage = page;
+                loadUserFiles(lastMainSearch, currentPage);
+            }
+        }
+    });
 });
 
-// Load and render user's files
-async function loadUserFiles() {
+// Update loadUserFiles to support search and pagination
+async function loadUserFiles(query = '', page = 1) {
     try {
-        const response = await fetch('/files');
+        let url = `/files?page=${page}`;
+        if (query) url += `&q=${encodeURIComponent(query)}`;
+        const response = await fetch(url);
         if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
         const data = await response.json();
         const filesContainer = document.getElementById('filesContainer');
@@ -218,7 +332,7 @@ async function loadUserFiles() {
         filesContainer.innerHTML = '';
         const files = data.files || [];
         if (files.length === 0) {
-            filesContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">No files uploaded yet.</div>';
+            filesContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">No files found.</div>';
             return;
         }
         files.forEach(file => {
@@ -248,6 +362,15 @@ async function loadUserFiles() {
             `;
             filesContainer.appendChild(fileElement);
         });
+        // Pagination controls
+        if (data.last_page > 1) {
+            let paginationHtml = '<div class="col-span-full flex justify-center mt-4 gap-2">';
+            for (let i = 1; i <= data.last_page; i++) {
+                paginationHtml += `<button class="pagination-btn px-3 py-1 rounded ${i === data.current_page ? 'bg-primary text-white' : 'bg-bg-light text-text-secondary'}" data-page="${i}">${i}</button>`;
+            }
+            paginationHtml += '</div>';
+            filesContainer.insertAdjacentHTML('beforeend', paginationHtml);
+        }
         // Delete button events
         document.querySelectorAll('.delete-file-btn').forEach(btn => {
             btn.addEventListener('click', function(e) {
