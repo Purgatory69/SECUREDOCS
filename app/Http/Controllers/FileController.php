@@ -54,14 +54,25 @@ class FileController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         try {
-            $files = auth()->user()->files()->latest()->get();
-            
+            $query = auth()->user()->files();
+            // Search by file name if 'q' is provided
+            if ($request->has('q') && trim($request->q) !== '') {
+                $q = $request->q;
+                $query->where('file_name', 'ILIKE', "%$q%");
+            }
+            // Sort by file_name, then most recent
+            $query->orderBy('file_name')->orderByDesc('created_at');
+            // Pagination: 20 per page
+            $files = $query->paginate(20);
             return response()->json([
                 'status' => 'success',
-                'files' => $files
+                'files' => $files->items(),
+                'total' => $files->total(),
+                'current_page' => $files->currentPage(),
+                'last_page' => $files->lastPage(),
             ]);
         } catch (\Exception $e) {
             \Log::error('Error fetching files: ' . $e->getMessage());
