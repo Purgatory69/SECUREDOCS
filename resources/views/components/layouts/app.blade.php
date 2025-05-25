@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="csrf-token" content="{{ csrf_token() }}">
+        <title>Dashboard - Securedocs</title>
+        
+        <!-- Styles -->
+        <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        
+        <!-- Scripts -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+        <script>
+            window.userId = @json(auth()->id());
+            window.userEmail = @json(Auth::user()->email);
+            window.username = @json(Auth::user()->name);
+            window.SUPABASE_URL = "{{ config('services.supabase.url') }}";
+            window.SUPABASE_KEY = "{{ config('services.supabase.key') }}";
+        </script>
+    </head>
+    <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
+        @yield('content')
+    </body>
+</html>
