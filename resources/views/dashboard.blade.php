@@ -54,7 +54,7 @@
 
             <div class="flex-grow max-w-[720px] relative">
                 <span class="absolute left-4 top-1/2 -translate-y-1/2 text-text-secondary">🔍</span>
-                <input type="text" placeholder="Search with AI-powered search" class="w-full py-3 pl-12 pr-4 rounded-lg border-none bg-bg-light text-base focus:outline-none focus:shadow-md">
+                <input type="text" id="searchInput" placeholder="Search files..." class="w-full py-3 pl-12 pr-4 rounded-lg border-none bg-bg-light text-base focus:outline-none focus:shadow-md">
             </div>
 
             <div class="flex items-center ml-auto gap-4">
@@ -134,9 +134,7 @@
                         <input type="file" id="fileInput" class="hidden" multiple>
                     </div>
 
-                    <div id="fileList" class="space-y-2 max-h-40 overflow-y-auto hidden">
-                        <div class="text-sm font-medium">Selected Files:</div>
-                    </div>
+                    <div id="fileList"></div>
 
                     <div class="space-y-3">
                         <div class="text-sm font-medium">Security Options:</div>
@@ -382,42 +380,144 @@
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
         }
 
-        // Simulate loading files
-        setTimeout(() => {
+        // Load files from the backend
+        function loadFiles(searchQuery = '') {
             const filesContainer = document.getElementById('filesContainer');
-            filesContainer.innerHTML = '';
+            filesContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">Loading files...</div>';
             
-            // This is just a placeholder. In a real app, you would fetch files from your backend
-            const demoFiles = [
-                { name: 'Document1.pdf', type: 'pdf', modified: 'May 23, 2025' },
-                { name: 'Spreadsheet.xlsx', type: 'spreadsheet', modified: 'May 22, 2025' },
-                { name: 'Report.docx', type: 'word', modified: 'May 19, 2025' }
-            ];
+            // Build the URL with search query if provided
+            let url = '/files';
+            if (searchQuery) {
+                url += `?q=${encodeURIComponent(searchQuery)}`;
+            }
             
-            if (demoFiles.length === 0) {
-                filesContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">No files found</div>';
-            } else {
-                demoFiles.forEach(file => {
-                    const fileCard = document.createElement('div');
-                    fileCard.className = 'bg-white border border-border-color rounded-lg overflow-hidden hover:shadow-md transition-shadow';
+            // Fetch files from the backend
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(errorData => {
+                            console.error('Server error details:', errorData);
+                            throw new Error(`Server error: ${errorData.message || errorData.error || 'Unknown error'}`);
+                        }).catch(err => {
+                            if (err instanceof SyntaxError) {
+                                // If the response is not valid JSON
+                                throw new Error(`Network response error (${response.status}): ${response.statusText}`);
+                            }
+                            throw err;
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    console.log('Files data received:', data);
+                    filesContainer.innerHTML = '';
+                    const files = data.files;
                     
-                    let icon = '📄';
-                    if (file.type === 'pdf') icon = '📕';
-                    if (file.type === 'word') icon = '📘';
-                    if (file.type === 'spreadsheet') icon = '📊';
-                    if (file.type === 'image') icon = '🖼️';
-                    
-                    fileCard.innerHTML = `
-                        <div class="p-4 flex flex-col items-center">
-                            <div class="text-4xl mb-3">${icon}</div>
-                            <div class="text-sm font-medium text-center truncate w-full">${file.name}</div>
-                            <div class="text-xs text-text-secondary mt-1">Modified: ${file.modified}</div>
+                    if (!files || files.length === 0) {
+                        filesContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">No files found</div>';
+                    } else {
+                        files.forEach(file => {
+                            const fileCard = document.createElement('div');
+                            fileCard.className = 'bg-white border border-border-color rounded-lg overflow-hidden hover:shadow-md transition-shadow cursor-pointer';
+                            fileCard.dataset.fileId = file.id;
+                            
+                            // Determine file icon based on file_type or mime_type
+                            let icon = '📄'; // Default icon
+                            const fileType = file.file_type.toLowerCase();
+                            const mimeType = file.mime_type.toLowerCase();
+                            
+                            if (fileType.includes('pdf') || mimeType.includes('pdf')) icon = '📕';
+                            else if (fileType.includes('doc') || mimeType.includes('word') || mimeType.includes('msword') || mimeType.includes('officedocument.wordprocessingml')) icon = '📘';
+                            else if (fileType.includes('xls') || fileType.includes('spreadsheet') || mimeType.includes('excel') || mimeType.includes('officedocument.spreadsheetml')) icon = '📊';
+                            else if (fileType.includes('jpg') || fileType.includes('jpeg') || fileType.includes('png') || fileType.includes('gif') || 
+                                    mimeType.includes('image')) icon = '🖼️';
+                            
+                            // Format the date
+                            const modifiedDate = new Date(file.updated_at || file.created_at);
+                            const formattedDate = modifiedDate.toLocaleDateString('en-US', { 
+                                year: 'numeric', 
+                                month: 'short', 
+                                day: 'numeric' 
+                            });
+                            
+                            fileCard.innerHTML = `
+                                <div class="p-4 flex flex-col items-center">
+                                    <div class="text-4xl mb-3">${icon}</div>
+                                    <div class="text-sm font-medium text-center truncate w-full">${file.file_name}</div>
+                                    <div class="text-xs text-text-secondary mt-1">Modified: ${formattedDate}</div>
+                                </div>
+                            `;
+                            
+                            // Add click event to view file details
+                            fileCard.addEventListener('click', () => {
+                                viewFileDetails(file);
+                            });
+                            
+                            filesContainer.appendChild(fileCard);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error fetching files:', error);
+                    // Show more detailed error message to help with debugging
+                    filesContainer.innerHTML = `
+                        <div class="p-4 text-center text-text-secondary col-span-full">
+                            <p class="mb-2">Error loading files. Please try again.</p>
+                            <p class="text-xs text-red-500">${error.message}</p>
                         </div>
                     `;
-                    filesContainer.appendChild(fileCard);
+                });
+        }
+        
+        // Function to view file details
+        function viewFileDetails(file) {
+            // You can implement this to show file details or download the file
+            console.log('Viewing file:', file);
+            // For example, you could open a modal with file details
+            // or redirect to a file viewer page
+        }
+        
+        // Function to delete a file
+        function deleteFile(fileId) {
+            if (confirm('Are you sure you want to delete this file?')) {
+                fetch(`/files/${fileId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                        'Accept': 'application/json'
+                    }
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        // Reload the files list
+                        loadFiles();
+                    }
+                })
+                .catch(error => {
+                    console.error('Error deleting file:', error);
+                    alert('Failed to delete file. Please try again.');
                 });
             }
-        }, 1500);
+        }
+        
+        // Add event listener for search input
+        document.getElementById('searchInput').addEventListener('input', function(e) {
+            const searchQuery = e.target.value.trim();
+            // Debounce the search to avoid too many requests
+            clearTimeout(this.searchTimeout);
+            this.searchTimeout = setTimeout(() => {
+                loadFiles(searchQuery);
+            }, 300);
+        });
+        
+        // Load files when the page loads
+        loadFiles();
     </script>
 </body>
 </html>

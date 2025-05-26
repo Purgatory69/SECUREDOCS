@@ -8,10 +8,10 @@ const supabaseKey = window.SUPABASE_KEY;
 const supabase = createClient(supabaseUrl, supabaseKey);
 window.supabase = supabase;
 
-// --- Dashboard Logic from old app.js ---
+// --- Supabase-powered Dashboard Logic ---
 
-// Handle file display
-function handleFiles(files) {
+// Load files on dashboard
+async function loadUserFiles() {
     const fileList = document.getElementById('fileList');
     const uploadBtn = document.getElementById('uploadBtn');
     if (!fileList || files.length === 0) return;

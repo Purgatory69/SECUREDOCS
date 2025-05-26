@@ -28,6 +28,25 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Custom login redirect based on user role
+        app()->singleton(
+            \Laravel\Fortify\Contracts\LoginResponse::class,
+            function () {
+                return new class implements \Laravel\Fortify\Contracts\LoginResponse {
+                    public function toResponse($request)
+                    {
+                        $user = $request->user();
+                        if ($user->isAdmin()) {
+                            return redirect()->intended('/admin/dashboard');
+                        } elseif ($user->isRecordAdmin()) {
+                            return redirect()->intended('/record-admin/dashboard');
+                        } else {
+                            return redirect()->intended('/user/dashboard');
+                        }
+                    }
+                };
+            }
+        );
         Fortify::createUsersUsing(CreateNewUser::class);
         Fortify::updateUserProfileInformationUsing(UpdateUserProfileInformation::class);
         Fortify::updateUserPasswordsUsing(UpdateUserPassword::class);

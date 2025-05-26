@@ -18,6 +18,22 @@ Route::middleware([
     Route::get('/dashboard', function () {
         return view('dashboard');
     });
+
+    // Admin dashboard
+    Route::get('/admin/dashboard', function () {
+        return view('admin-dashboard');
+    })->name('admin.dashboard');
+
+    // Record Admin dashboard
+    Route::get('/record-admin/dashboard', function () {
+        return view('record-admin-dashboard');
+    })->name('record-admin.dashboard');
+
+    // User dashboard
+    Route::get('/user/dashboard', function () {
+        return view('user-dashboard');
+    })->name('user.dashboard');
+
     // Bucket test route
     Route::get('/bucket-test', function () {
         return view('bucket-test');
