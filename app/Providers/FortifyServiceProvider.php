@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Str;
 use Laravel\Fortify\Fortify;
+use Asbiin\LaravelWebauthn\Services\Webauthn;
 
 class FortifyServiceProvider extends ServiceProvider
 {
@@ -42,9 +43,13 @@ class FortifyServiceProvider extends ServiceProvider
                 return null; // User is locked out, do not authenticate
             }
 
+            // Standard password authentication
             if ($user && \Illuminate\Support\Facades\Hash::check($request->input('password'), $user->password)) {
                 return $user;
             }
+            
+            // WebAuthn authentication is handled separately via AJAX
+            // in the WebAuthnController, not here
 
             return null;
         });

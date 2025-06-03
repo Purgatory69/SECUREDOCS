@@ -31,5 +31,7 @@
     </head>
     <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
         @yield('content')
+        
+        @stack('scripts')
     </body>
 </html>

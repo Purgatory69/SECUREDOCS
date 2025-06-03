@@ -8,6 +8,10 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// WebAuthn authentication routes
+Route::post('/webauthn/login/options', [App\Http\Controllers\WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
+Route::post('/webauthn/login/verify', [App\Http\Controllers\WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
+
 
 
 Route::middleware([
@@ -48,4 +52,24 @@ Route::middleware([
     Route::get('/files', [App\Http\Controllers\FileController::class, 'index'])->name('files.index');
     Route::get('/files/{id}', [App\Http\Controllers\FileController::class, 'show'])->name('files.show');
     Route::delete('/files/{id}', [App\Http\Controllers\FileController::class, 'destroy'])->name('files.destroy');
+    
+    // WebAuthn routes
+    Route::get('/webauthn', [App\Http\Controllers\WebAuthnController::class, 'index'])->name('webauthn.index');
+    Route::delete('/webauthn/keys/{id}', [App\Http\Controllers\WebAuthnController::class, 'destroy'])->name('webauthn.keys.destroy');
+
+    // WebAuthn registration routes
+    Route::get('/webauthn/register', [App\Http\Controllers\WebAuthnController::class, 'registerShow'])->name('webauthn.register');
+    Route::post('/webauthn/register/options', [App\Http\Controllers\WebAuthnController::class, 'registerOptions'])->name('webauthn.register.options');
+    Route::post('/webauthn/register/verify', [App\Http\Controllers\WebAuthnController::class, 'registerVerify'])->name('webauthn.register.verify');
+
+    // WebAuthn login routes
+    Route::post('/webauthn/login/options', [App\Http\Controllers\WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
+    Route::post('/webauthn/login/verify', [App\Http\Controllers\WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
+
+    // WebAuthn-protected routes
+    Route::middleware(['auth', 'auth.webauthn'])->group(function () {
+        Route::get('/secure-area', function () {
+            return view('secure-area');
+        })->name('secure-area');
+    });
 });

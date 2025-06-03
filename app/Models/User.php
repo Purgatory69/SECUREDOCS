@@ -9,6 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
+use Asbiin\LaravelWebauthn\Models\WebauthnKey;
 
 class User extends Authenticatable
 {
@@ -129,5 +130,13 @@ class User extends Authenticatable
     public function files()
     {
         return $this->hasMany(File::class);
+    }
+
+    /**
+     * Get the WebAuthn keys for the user.
+     */
+    public function webauthnKeys()
+    {
+        return $this->hasMany(WebauthnKey::class);
     }
 }
