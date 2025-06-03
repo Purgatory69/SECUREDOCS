@@ -28,6 +28,27 @@ class FortifyServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Manual lockout notification in Fortify authentication pipeline
+        \Laravel\Fortify\Fortify::authenticateUsing(function ($request) {
+            $email = $request->input('email');
+            $user = \App\Models\User::where('email', $email)->first();
+
+            // Use same key as in RateLimiter
+            $key = $email . $request->ip();
+            if (\Illuminate\Support\Facades\RateLimiter::tooManyAttempts($key, 5)) {
+                if ($user) {
+                    $user->notify(new \App\Notifications\TooManyLoginAttempts());
+                }
+                return null; // User is locked out, do not authenticate
+            }
+
+            if ($user && \Illuminate\Support\Facades\Hash::check($request->input('password'), $user->password)) {
+                return $user;
+            }
+
+            return null;
+        });
+
         // Custom login redirect based on user role
         app()->singleton(
             \Laravel\Fortify\Contracts\LoginResponse::class,
@@ -53,9 +74,11 @@ class FortifyServiceProvider extends ServiceProvider
         Fortify::resetUserPasswordsUsing(ResetUserPassword::class);
 
         RateLimiter::for('login', function (Request $request) {
-            $throttleKey = Str::transliterate(Str::lower($request->input(Fortify::username())).'|'.$request->ip());
+            return Limit::perMinute(1)->by($request->email.$request->ip());
+        });
 
-            return Limit::perMinute(5)->by($throttleKey);
+        RateLimiter::for('custom-login', function ($request) {
+            return Limit::perMinute(1)->by($request->email.$request->ip());
         });
 
         RateLimiter::for('two-factor', function (Request $request) {

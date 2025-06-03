@@ -4,6 +4,35 @@
             <x-authentication-card-logo />
         </x-slot>
 
+        {{-- Custom lockout error message with countdown --}}
+        @if ($errors->has('email'))
+            @php
+                $lockoutMessage = $errors->first('email');
+                preg_match('/(\d+) seconds?/', $lockoutMessage, $matches);
+                $seconds = $matches[1] ?? 0;
+            @endphp
+            @if ($seconds > 0)
+                <div class="mb-4 font-medium text-sm text-red-600">
+                    You have been locked out due to too many failed login attempts.<br>
+                    Please try again in <span id="lockout-countdown">{{ $seconds }}</span> seconds.
+                </div>
+                <script>
+                    let lockoutSeconds = {{ $seconds }};
+                    let countdownElem = document.getElementById('lockout-countdown');
+                    let interval = setInterval(function() {
+                        if (lockoutSeconds > 0) {
+                            lockoutSeconds--;
+                            countdownElem.textContent = lockoutSeconds;
+                        }
+                        if (lockoutSeconds <= 0) {
+                            clearInterval(interval);
+                            location.reload();
+                        }
+                    }, 1000);
+                </script>
+            @endif
+        @endif
+
         <x-validation-errors class="mb-4" />
 
         @session('status')

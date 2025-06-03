@@ -15,6 +15,10 @@ Route::middleware([
     config('jetstream.auth_session'),
     'verified',
 ])->group(function () {
+    // Role-based redirect after login
+    Route::get('/redirect-after-login', function () {
+        // Middleware will handle the redirect
+    })->middleware(['auth', 'redirect.role']);
     Route::get('/dashboard', function () {
         return view('dashboard');
     });
