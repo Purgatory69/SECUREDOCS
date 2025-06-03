@@ -15,6 +15,14 @@
                     <x-nav-link href="{{ route('dashboard') }}" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link href="{{ route('webauthn.index') }}" :active="request()->routeIs('webauthn.index')">
+                        {{ __('Biometric Login') }}
+                    </x-nav-link>
+                    @if(Auth::user()->webauthnKeys()->count() > 0)
+                    <x-nav-link href="{{ route('secure-area') }}" :active="request()->routeIs('secure-area')">
+                        {{ __('Secure Area') }}
+                    </x-nav-link>
+                    @endif
                 </div>
             </div>
 
@@ -102,6 +110,16 @@
                                 {{ __('Profile') }}
                             </x-dropdown-link>
 
+                            <x-dropdown-link href="{{ route('webauthn.index') }}">
+                                {{ __('Biometric Login') }}
+                            </x-dropdown-link>
+                            
+                            @if(Auth::user()->webauthnKeys()->count() > 0)
+                            <x-dropdown-link href="{{ route('secure-area') }}">
+                                {{ __('Secure Area') }}
+                            </x-dropdown-link>
+                            @endif
+
                             @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                                 <x-dropdown-link href="{{ route('api-tokens.index') }}">
                                     {{ __('API Tokens') }}
@@ -164,6 +182,16 @@
                 <x-responsive-nav-link href="{{ route('profile.show') }}" :active="request()->routeIs('profile.show')">
                     {{ __('Profile') }}
                 </x-responsive-nav-link>
+
+                <x-responsive-nav-link href="{{ route('webauthn.index') }}" :active="request()->routeIs('webauthn.index')">
+                    {{ __('Biometric Login') }}
+                </x-responsive-nav-link>
+                
+                @if(Auth::user()->webauthnKeys()->count() > 0)
+                <x-responsive-nav-link href="{{ route('secure-area') }}" :active="request()->routeIs('secure-area')">
+                    {{ __('Secure Area') }}
+                </x-responsive-nav-link>
+                @endif
 
                 @if (Laravel\Jetstream\Jetstream::hasApiFeatures())
                     <x-responsive-nav-link href="{{ route('api-tokens.index') }}" :active="request()->routeIs('api-tokens.index')">

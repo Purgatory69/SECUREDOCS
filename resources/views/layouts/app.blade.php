@@ -5,22 +5,33 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Dashboard - Securedocs</title>
-        
+        <script type="module">
+            import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+            window.createChat = createChat;
+        </script>
         <!-- Styles -->
         <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/dashboard.js'])
         
         <!-- Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
         <script>
-            window.userId = @json(auth()->id());
-            window.userEmail = @json(Auth::user()->email);
-            window.username = @json(Auth::user()->name);
+            @if(Auth::check())
+                window.userId = @json(Auth::user()->id);
+                window.userEmail = @json(Auth::user()->email);
+                window.username = @json(Auth::user()->name);
+            @else
+                window.userId = null;
+                window.userEmail = null;
+                window.username = null;
+            @endif
             window.SUPABASE_URL = "{{ config('services.supabase.url') }}";
             window.SUPABASE_KEY = "{{ config('services.supabase.key') }}";
         </script>
     </head>
     <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
         @yield('content')
+        
+        @stack('scripts')
     </body>
 </html>

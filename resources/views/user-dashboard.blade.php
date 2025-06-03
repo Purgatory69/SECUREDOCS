@@ -37,6 +37,10 @@
                                 <span class="mr-4 text-lg w-6 text-center">🔑</span>
                                 <span class="text-sm">Encryption Keys</span>
                             </li>
+                            <li class="p-3 flex items-center cursor-pointer hover:bg-bg-light">
+                                <span class="mr-4 text-lg w-6 text-center">👆</span>
+                                <a href="{{ route('webauthn.index') }}" class="text-sm">Biometric Login</a>
+                            </li>
                             <li class="h-px bg-border-color my-1"></li>
                             <li class="p-3 flex items-center cursor-pointer hover:bg-bg-light">
                                 <span class="mr-4 text-lg w-6 text-center">⚙️</span>

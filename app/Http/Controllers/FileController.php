@@ -57,16 +57,32 @@ class FileController extends Controller
     public function index(Request $request)
     {
         try {
+            // Log the request
+            \Log::info('File index request received', [
+                'user_id' => auth()->id(),
+                'search_query' => $request->q ?? null
+            ]);
+            
             $query = auth()->user()->files();
+            
             // Search by file name if 'q' is provided
             if ($request->has('q') && trim($request->q) !== '') {
                 $q = $request->q;
                 $query->where('file_name', 'ILIKE', "%$q%");
             }
+            
             // Sort by file_name, then most recent
             $query->orderBy('file_name')->orderByDesc('created_at');
+            
             // Pagination: 20 per page
             $files = $query->paginate(20);
+            
+            // Log success
+            \Log::info('Files retrieved successfully', [
+                'user_id' => auth()->id(),
+                'count' => count($files->items())
+            ]);
+            
             return response()->json([
                 'status' => 'success',
                 'files' => $files->items(),
@@ -75,7 +91,13 @@ class FileController extends Controller
                 'last_page' => $files->lastPage(),
             ]);
         } catch (\Exception $e) {
-            \Log::error('Error fetching files: ' . $e->getMessage());
+            // Detailed error logging
+            \Log::error('Error fetching files', [
+                'user_id' => auth()->id() ?? 'unauthenticated',
+                'exception' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
             return response()->json([
                 'status' => 'error',
                 'message' => 'Failed to retrieve files',
