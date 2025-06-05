@@ -22,43 +22,43 @@ function initializeN8nChat() {
     const currentUserId = window.userId;
     const currentUsername = window.username;
 
-    if (window.createChat) {
-        window.createChat({
-            webhookUrl: 'https://fool1.app.n8n.cloud/webhook/0a216509-e55c-4a43-8d4a-581dffe09d18/chat',
-            webhookConfig: {
-                method: 'POST',
-                headers: {}
-            },
-            target: '#n8n-chat-container',
-            mode: 'window',
-            chatInputKey: 'chatInput',
-            chatSessionKey: 'sessionId',
-            metadata: {
-                userId: currentUserId,
-                userEmail: currentUserEmail,
-                userName: currentUsername
-            },
-            showWelcomeScreen: false,
-            defaultLanguage: 'en',
-            initialMessages: [
-                'Hello!',
-                'My Name is Tubby. How can I assist you today?'
-            ],
-            i18n: {
-                en: {
-                    title: 'Welcome!',
-                    subtitle: "Ask me anything.",
-                    getStarted: 'Start Chatting',
-                    inputPlaceholder: 'Enter your message here...'
-                }
-            },
-            theme: {
-                colors: {
-                    primary: '#4285f4'
-                }
-            }
-        });
-    }
+    // if (window.createChat) {
+    //     window.createChat({
+    //         webhookUrl: 'https://fool1.app.n8n.cloud/webhook/0a216509-e55c-4a43-8d4a-581dffe09d18/chat',
+    //         webhookConfig: {
+    //             method: 'POST',
+    //             headers: {}
+    //         },
+    //         target: '#n8n-chat-container',
+    //         mode: 'window',
+    //         chatInputKey: 'chatInput',
+    //         chatSessionKey: 'sessionId',
+    //         metadata: {
+    //             userId: currentUserId,
+    //             userEmail: currentUserEmail,
+    //             userName: currentUsername
+    //         },
+    //         showWelcomeScreen: false,
+    //         defaultLanguage: 'en',
+    //         initialMessages: [
+    //             'Hello!',
+    //             'My Name is Tubby. How can I assist you today?'
+    //         ],
+    //         i18n: {
+    //             en: {
+    //                 title: 'Welcome!',
+    //                 subtitle: "Ask me anything.",
+    //                 getStarted: 'Start Chatting',
+    //                 inputPlaceholder: 'Enter your message here...'
+    //             }
+    //         },
+    //         theme: {
+    //             colors: {
+    //                 primary: '#4285f4'
+    //             }
+    //         }
+    //     });
+    // }
 }
 
 // --- User Profile Dropdown ---

@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use Asbiin\LaravelWebauthn\Services\Webauthn;
-use Asbiin\LaravelWebauthn\Models\WebauthnKey;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use LaravelWebauthn\Models\WebauthnKey;
+use LaravelWebauthn\Services\Webauthn as WebauthnService;
+use LaravelWebauthn\Facades\Webauthn;
 use Illuminate\Validation\ValidationException;
 
 class WebAuthnController extends Controller
@@ -16,10 +18,10 @@ class WebAuthnController extends Controller
     /**
      * Create a new controller instance.
      */
-    public function __construct(Webauthn $webauthn)
+    public function __construct(WebauthnService $webauthn)
     {
-        $this->middleware('auth', ['except' => ['loginOptions', 'loginVerify']]);
         $this->webauthn = $webauthn;
+        $this->middleware('auth', ['except' => ['loginOptions', 'loginVerify']]);
     }
 
     /**
@@ -73,7 +75,7 @@ class WebAuthnController extends Controller
         ]);
         
         try {
-            $options = $this->webauthn->getRegisterOptions(Auth::user(), $request->input('name'));
+            $options = Webauthn::prepareAttestation(Auth::user());
             return response()->json($options);
         } catch (\Exception $e) {
             Log::error('WebAuthn registration options error: ' . $e->getMessage());
@@ -124,12 +126,22 @@ class WebAuthnController extends Controller
     public function loginOptions(Request $request)
     {
         try {
-            // Get the options for WebAuthn login
-            $options = $this->webauthn->getLoginOptions();
+            $request->validate(['email' => 'required|email']);
+            $email = $request->input('email');
+
+            $user = User::where('email', $email)->first();
+
+            if (! $user) {
+                return response()->json(['error' => 'User not found.'], 404);
+            }
+
+            $options = Webauthn::prepareAssertion($user);
             return response()->json($options);
+        } catch (ValidationException $e) {
+            return response()->json(['error' => 'Validation failed', 'messages' => $e->errors()], 422);
         } catch (\Exception $e) {
             Log::error('WebAuthn login options error: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to create login options'], 500);
+            return response()->json(['error' => 'Failed to create login options: ' . $e->getMessage()], 500);
         }
     }
     
@@ -143,11 +155,9 @@ class WebAuthnController extends Controller
         ]);
         
         try {
-            // Verify the WebAuthn login
             $user = $this->webauthn->doLogin($request->input('data'));
             
             if ($user) {
-                // Log the user in
                 Auth::login($user);
                 
                 return response()->json([

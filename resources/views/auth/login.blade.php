@@ -85,11 +85,37 @@
                     {{ __('Login with Biometrics') }}
                 </button>
             </div>
+            <p id="biometric-login-status" class="text-sm text-red-600 mt-2 text-center"></p>
         </div>
     </x-authentication-card>
 </x-guest-layout>
 
-@push('scripts')
-<script src="{{ asset('vendor/webauthn/webauthn.js') }}"></script>
-<script src="{{ asset('js/webauthn-handler.js') }}"></script>
-@endpush
+<script src="{{ asset('vendor/webauthn/webauthn.js') }}" defer></script>
+@vite(['resources/css/app.css', 'resources/js/app.js'])
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const emailInput = document.getElementById('email');
+        const biometricButton = document.getElementById('biometric-login-button');
+        const statusDisplay = document.getElementById('biometric-login-status');
+
+        if (biometricButton) {
+            biometricButton.addEventListener('click', async function() {
+                if (!emailInput.value.trim()) {
+                    statusDisplay.textContent = 'Please enter your email address first.';
+                    statusDisplay.className = 'text-sm text-red-600 mt-2';
+                    return;
+                }
+
+                if (window.handleBiometricLogin) {
+                    // Pass the button and status display element for UI updates
+                    window.handleBiometricLogin(emailInput.value, biometricButton, statusDisplay);
+                } else {
+                    console.error('WebAuthn handler (handleBiometricLogin) not found.');
+                    statusDisplay.textContent = 'Biometric login script not loaded correctly.';
+                    statusDisplay.className = 'text-sm text-red-600 mt-2';
+                }
+            });
+        }
+    });
+</script>

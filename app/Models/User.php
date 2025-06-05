@@ -9,7 +9,7 @@ use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
-use Asbiin\LaravelWebauthn\Models\WebauthnKey;
+use LaravelWebauthn\Models\WebauthnKey;
 
 class User extends Authenticatable
 {

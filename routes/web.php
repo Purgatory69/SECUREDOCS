@@ -58,13 +58,9 @@ Route::middleware([
     Route::delete('/webauthn/keys/{id}', [App\Http\Controllers\WebAuthnController::class, 'destroy'])->name('webauthn.keys.destroy');
 
     // WebAuthn registration routes
-    Route::get('/webauthn/register', [App\Http\Controllers\WebAuthnController::class, 'registerShow'])->name('webauthn.register');
+    // Route::get('/webauthn/register', [App\Http\Controllers\WebAuthnController::class, 'registerShow'])->name('webauthn.register'); // Removed as manage.blade.php handles this
     Route::post('/webauthn/register/options', [App\Http\Controllers\WebAuthnController::class, 'registerOptions'])->name('webauthn.register.options');
     Route::post('/webauthn/register/verify', [App\Http\Controllers\WebAuthnController::class, 'registerVerify'])->name('webauthn.register.verify');
-
-    // WebAuthn login routes
-    Route::post('/webauthn/login/options', [App\Http\Controllers\WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
-    Route::post('/webauthn/login/verify', [App\Http\Controllers\WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
 
     // WebAuthn-protected routes
     Route::middleware(['auth', 'auth.webauthn'])->group(function () {
