@@ -3,6 +3,8 @@
 use Illuminate\Support\Facades\Route;
 use App\Livewire\Dashboard;
 use App\Http\Controllers\UserController;
+use App\Http\Controllers\AdminController;
+
 
 Route::get('/', function () {
     return view('welcome');
@@ -11,8 +13,6 @@ Route::get('/', function () {
 // WebAuthn authentication routes
 Route::post('/webauthn/login/options', [App\Http\Controllers\WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
 Route::post('/webauthn/login/verify', [App\Http\Controllers\WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
-
-
 
 Route::middleware([
     'auth:sanctum',
@@ -23,14 +23,15 @@ Route::middleware([
     Route::get('/redirect-after-login', function () {
         // Middleware will handle the redirect
     })->middleware(['auth', 'redirect.role']);
+    
     Route::get('/dashboard', function () {
         return view('dashboard');
     });
 
     // Admin dashboard
-    Route::get('/admin/dashboard', function () {
-        return view('admin-dashboard');
-    })->name('admin.dashboard');
+    Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
+    Route::post('/admin/approve/{id}', [AdminController::class, 'approve'])->name('admin.approve');
+    Route::post('/admin/revoke/{id}', [AdminController::class, 'revoke'])->name('admin.revoke');
 
     // Record Admin dashboard
     Route::get('/record-admin/dashboard', function () {

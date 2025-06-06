@@ -32,15 +32,23 @@
         SECURE<span class="text-[#FF9B00]">DOCS</span>
       </h1>
     </div>
+ {{-- Add this anchor tag around the button --}}
+ <a href="{{ route('login') }}">
     <button
       class="bg-[#FF9B00] text-black font-bold text-xs rounded-full px-5 py-2 hover:brightness-110 transition"
-      type="button"
+        type="button"
     >
       LOGIN
     </button>
+ </a>
   </header>
   <main
-    class="flex flex-col md:flex-row items-center justify-between max-w-7xl mx-auto px-6 flex-grow w-full"
+    class="
+      flex
+      flex-col
+      md:flex-row
+      items-center
+      justify-between max-w-7xl mx-auto px-6 flex-grow w-full"
   >
     <section class="text-white max-w-lg md:max-w-md lg:max-w-lg">
       <h2 class="font-extrabold text-3xl leading-tight mb-3">
@@ -51,13 +59,16 @@
         Time to fortify your files.<br />
         The future of document trust is here!
       </p>
-      <button
-        class="bg-[#FF9B00] text-black font-bold text-sm rounded-full px-6 py-2 hover:brightness-110 transition"
-        type="button"
-      >
-        Try for <span class="uppercase">FREE!</span>
-      </button>
+      <a href="{{ route('register') }}">
+        <button
+          class="bg-[#FF9B00] text-black font-bold text-sm rounded-full px-6 py-2 hover:brightness-110 transition"
+          type="button"
+        >
+          Try for <span class="uppercase">FREE!</span>
+        </button>
+      </a>
     </section>
+    
     <section class="mt-10 md:mt-0 md:ml-10 flex-shrink-0">
       <img
         alt="Illustration of people interacting with a secure login screen on a large laptop with security icons and cloud"
@@ -66,6 +77,11 @@
         src="https://storage.googleapis.com/a1aa/image/764e6443-4fb9-495c-81b0-99e1614c11ab.jpg"
         width="480"
       />
+      {{-- Add a login link --}}
+      <p class="mt-4 text-sm text-gray-600">
+        Already have an account? <a href="{{ route('login') }}" class="underline text-gray-900">Log in</a>
+      </p>
+
     </section>
   </main>
   <footer

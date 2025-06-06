@@ -26,7 +26,7 @@ class RedirectIfHasRole
                     return redirect('/record-admin/dashboard');
                 case 'user':
                 default:
-                    return redirect('/dashboard');
+                    return redirect('user/dashboard');
             }
         }
         return $next($request);

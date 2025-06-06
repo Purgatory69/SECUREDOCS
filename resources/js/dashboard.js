@@ -3,6 +3,11 @@
 let currentPage = 1;
 let lastMainSearch = '';
 
+// Check if WebAuthn is available
+if (typeof WebAuthn === 'undefined') {
+    console.warn('WebAuthn not loaded - some features may be limited');
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
@@ -14,6 +19,17 @@ function initializeApp() {
     initializeFileManagement();
     initializeSearch();
     loadUserFiles();
+    initializeWebAuthnForDashboard();
+}
+
+// Add this new function to handle WebAuthn initialization
+function initializeWebAuthnForDashboard() {
+    // Only initialize if WebAuthn is available and we have the webauthn object
+    if (typeof WebAuthn !== 'undefined' && window.webauthn) {
+        console.log('WebAuthn is available for dashboard features');
+        // Add any WebAuthn-related dashboard functionality here
+        // For example, you might want to add event listeners for secure actions
+    }
 }
 
 // --- N8N Chat Widget Initialization ---
