@@ -26,16 +26,12 @@ class User extends Authenticatable
      *
      * @var array<int, string>
      */
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var array<int, string>
-     */
     protected $fillable = [
         'name',
         'email',
         'password',
         'role',
+        'is_approved',
     ];
 
     /**
@@ -59,6 +55,17 @@ class User extends Authenticatable
         'remember_token',
         'two_factor_recovery_codes',
         'two_factor_secret',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'email_verified_at' => 'datetime',
+        'password' => 'hashed',
+        'is_approved' => 'boolean',
     ];
 
     /**
@@ -111,19 +118,6 @@ class User extends Authenticatable
         return $this->hasRole('user');
     }
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-        ];
-    }
-    
     /**
      * Get the files for the user.
      */

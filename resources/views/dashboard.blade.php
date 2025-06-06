@@ -201,6 +201,9 @@
 @endsection
 
 @push('scripts')
+    <!-- Load WebAuthn library first -->
+    <script src="{{ asset('vendor/webauthn/webauthn.js') }}" defer></script>
+    <!-- Then load your dashboard JS -->
     @vite(['resources/js/dashboard.js'])
 @endpush
 
