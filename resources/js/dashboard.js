@@ -1,3 +1,10 @@
+// Initialize Supabase client
+let supabase;
+if (window.supabase && window.SUPABASE_URL && window.SUPABASE_KEY) {
+    supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_KEY);
+} else {
+    console.error('Supabase credentials not found or Supabase client not loaded. Ensure SUPABASE_URL, SUPABASE_KEY are set in your .env and app.blade.php, and the Supabase JS client is loaded.');
+}
 
 // Global variables for pagination and search
 let currentPage = 1;
@@ -38,43 +45,59 @@ function initializeN8nChat() {
     const currentUserId = window.userId;
     const currentUsername = window.username;
 
-    // if (window.createChat) {
-    //     window.createChat({
-    //         webhookUrl: 'https://fool1.app.n8n.cloud/webhook/0a216509-e55c-4a43-8d4a-581dffe09d18/chat',
-    //         webhookConfig: {
-    //             method: 'POST',
-    //             headers: {}
-    //         },
-    //         target: '#n8n-chat-container',
-    //         mode: 'window',
-    //         chatInputKey: 'chatInput',
-    //         chatSessionKey: 'sessionId',
-    //         metadata: {
-    //             userId: currentUserId,
-    //             userEmail: currentUserEmail,
-    //             userName: currentUsername
-    //         },
-    //         showWelcomeScreen: false,
-    //         defaultLanguage: 'en',
-    //         initialMessages: [
-    //             'Hello!',
-    //             'My Name is Tubby. How can I assist you today?'
-    //         ],
-    //         i18n: {
-    //             en: {
-    //                 title: 'Welcome!',
-    //                 subtitle: "Ask me anything.",
-    //                 getStarted: 'Start Chatting',
-    //                 inputPlaceholder: 'Enter your message here...'
-    //             }
-    //         },
-    //         theme: {
-    //             colors: {
-    //                 primary: '#4285f4'
-    //             }
-    //         }
-    //     });
-    // }
+    // Determine the correct N8N webhook URL
+    let n8nWebhookUrlToUse = window.DEFAULT_N8N_WEBHOOK_URL;
+    if (window.userIsPremium && window.userN8nWebhookUrl) {
+        n8nWebhookUrlToUse = window.userN8nWebhookUrl;
+    }
+
+    // Customize initial messages based on premium status
+    const initialMessages = window.userIsPremium 
+        ? [
+            'Hello, valued premium member!',
+            'My name is Tubby, your premium assistant. How can I help you today?',
+            'You have access to our premium support features.'
+          ]
+        : [
+            'Hello!',
+            'My name is Tubby. How can I assist you today?',
+            'Upgrade to premium for personalized support and advanced features.'
+          ];
+
+    if (window.createChat) {
+        window.createChat({
+            webhookUrl: n8nWebhookUrlToUse, // Use the dynamically determined URL
+            webhookConfig: {
+                method: 'POST',
+                headers: {}
+            },
+            target: '#n8n-chat-container',
+            mode: 'window',
+            chatInputKey: 'chatInput',
+            chatSessionKey: 'sessionId',
+            metadata: {
+                userId: currentUserId,
+                userEmail: currentUserEmail,
+                userName: currentUsername
+            },
+            showWelcomeScreen: false,
+            defaultLanguage: 'en',
+            initialMessages: initialMessages,
+            i18n: {
+                en: {
+                    title: 'Welcome!',
+                    subtitle: "Ask me anything.",
+                    getStarted: 'Start Chatting',
+                    inputPlaceholder: 'Enter your message here...'
+                }
+            },
+            theme: {
+                colors: {
+                    primary: '#4285f4'
+                }
+            }
+        });
+    }
 }
 
 // --- User Profile Dropdown ---
@@ -426,6 +449,11 @@ function hideSearchDropdown() {
 
 // --- Main File Loading Function ---
 async function loadUserFiles(query = '', page = 1) {
+    const filesContainer = document.getElementById('filesContainer');
+    if (!filesContainer) {
+        console.error('Files container not found');
+        return;
+    }
     try {
         let url = `/files?page=${page}`;
         if (query) {

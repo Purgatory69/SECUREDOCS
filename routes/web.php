@@ -32,6 +32,7 @@ Route::middleware([
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
     Route::post('/admin/approve/{id}', [AdminController::class, 'approve'])->name('admin.approve');
     Route::post('/admin/revoke/{id}', [AdminController::class, 'revoke'])->name('admin.revoke');
+    Route::post('/admin/users/{user}/premium-settings', [AdminController::class, 'updateUserPremiumSettings'])->name('admin.user.premium_settings');
 
     // Record Admin dashboard
     Route::get('/record-admin/dashboard', function () {

@@ -20,13 +20,18 @@
                 window.userId = @json(Auth::user()->id);
                 window.userEmail = @json(Auth::user()->email);
                 window.username = @json(Auth::user()->name);
+                window.userIsPremium = @json(Auth::user()->is_premium ?? false);
+                window.userN8nWebhookUrl = @json(Auth::user()->n8n_webhook_url);
             @else
                 window.userId = null;
                 window.userEmail = null;
                 window.username = null;
+                window.userIsPremium = false;
+                window.userN8nWebhookUrl = null;
             @endif
             window.SUPABASE_URL = "{{ config('services.supabase.url') }}";
             window.SUPABASE_KEY = "{{ config('services.supabase.key') }}";
+            window.DEFAULT_N8N_WEBHOOK_URL = 'YOUR_DEFAULT_N8N_WEBHOOK_URL_HERE'; // <-- IMPORTANT: Replace with your actual default URL
         </script>
     </head>
     <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
