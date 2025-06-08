@@ -4,7 +4,7 @@
  */
 
 // Import WebAuthn if using as a module
-// import './vendor/webauthn';
+import './vendor/webauthn';
 
 // Helper function to convert base64url string to ArrayBuffer
 function base64urlToArrayBuffer(base64url) {
@@ -278,7 +278,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         'X-CSRF-TOKEN': csrfToken,
                         'Accept': 'application/json',
                     },
-                    body: JSON.stringify(attestationResponseForServer),
+                    body: JSON.stringify({
+                        name: deviceName,
+                        data: attestationResponseForServer
+                    }),
                 });
             })
             .then(response => {
@@ -288,11 +291,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 return response.json();
             })
             .then(data => {
-                if (data.verified) {
-                    showSuccess(registerDeviceButton, data.message || 'Device registered successfully!'); // No statusDisplay for this context yet
-                    // Optionally redirect or update UI further
+                if (data.verified) { // Ensure your backend returns 'verified' or adjust key accordingly
+                    showSuccess(registerDeviceButton, data.message || 'Device registered successfully!');
+                    // Optionally redirect or update UI further, e.g., reload to show the new key
+                    setTimeout(() => window.location.reload(), 2000);
                 } else {
-                    showError(registerDeviceButton, data.message || 'Device registration failed.'); // No statusDisplay for this context yet
+                    showError(registerDeviceButton, data.message || 'Device registration failed.');
                 }
             })
             .catch(error => {
@@ -304,15 +308,19 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (error.name === 'SecurityError') {
                     displayErrorMessage = 'Device registration failed due to a security policy. Ensure you\'re on a secure connection (HTTPS or localhost).';
                 } else if (error.message) {
-                    displayErrorMessage = 'Device registration failed: ' + error.message;
+                    // Check if it's a server-generated error message from our throw statements
+                    if (error.message.includes('Failed to get registration options') || error.message.includes('Failed to verify registration')) {
+                        displayErrorMessage = error.message;
+                    } else {
+                        displayErrorMessage = 'Device registration failed: ' + error.message;
+                    }
                 }
-                showError(registerDeviceButton, displayErrorMessage); // No statusDisplay for this context yet
+                showError(registerDeviceButton, displayErrorMessage);
             })
             .finally(() => {
-                registerDeviceButton.disabled = false;
-                registerDeviceButton.classList.remove('opacity-75', 'cursor-not-allowed');
-                // Only restore original content if no success/error message was shown by showError/showSuccess
+                // Re-enable button and restore original content if not showing success/error message
                 if (!registerDeviceButton.classList.contains('bg-green-600') && !registerDeviceButton.classList.contains('bg-red-600')) {
+                    registerDeviceButton.disabled = false;
                     registerDeviceButton.innerHTML = originalRegisterButtonContent;
                 }
             });

@@ -94,7 +94,7 @@ return [
 
     'relying_party' => [
         'name' => env('APP_NAME', 'Laravel'),
-        'id'   => env('WEBAUTHN_RP_ID', parse_url(env('APP_URL', 'http://localhost'), PHP_URL_HOST)),
+        'id' => env('WEBAUTHN_RP_ID', parse_url(config('app.url'), PHP_URL_HOST)),
         // 'icon' => env('WEBAUTHN_ICON_URL'), // Optional: Add a URL to your app's icon if you have one
     ],
 
