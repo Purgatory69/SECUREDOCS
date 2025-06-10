@@ -7,9 +7,14 @@
 
         <title>{{ config('app.name', 'Laravel') }}</title>
 
-        <!-- Fonts -->
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <!-- Fonts - Fixed Poppins with proper weights -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+        <style>
+            body {
+                font-family: "Poppins", sans-serif;
+            }
+        </style>
 
         <!-- WebAuthn Library -->
         <script src="{{ asset('vendor/webauthn/webauthn.js') }}" defer></script>
@@ -20,8 +25,8 @@
         <!-- Styles -->
         @livewireStyles
     </head>
-    <body>
-        <div class="font-sans text-gray-900 antialiased">
+    <body class="bg-[#141326]">
+        <div class="bg-[#141326] min-h-screen flex flex-col justify-center items-center px-4">
             {{ $slot }}
         </div>
 
