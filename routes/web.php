@@ -10,6 +10,18 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/test-google-drive-upload', function () {
+    try {
+        Storage::disk('google')->put('test.txt', 'Hello Google Drive from Laravel!');
+        return 'File uploaded to Google Drive successfully!';
+    } catch (\Exception $e) {
+        return 'Error uploading file: ' . $e->getMessage();
+    }
+});
+
+Route::get('/google-drive/authorize', [App\Http\Controllers\GoogleDriveController::class, 'authorizeGoogleDrive'])->name('google.drive.authorize');
+Route::get('/google-drive/callback', [App\Http\Controllers\GoogleDriveController::class, 'handleGoogleDriveCallback'])->name('google.drive.callback');
+
 // WebAuthn authentication routes
 Route::post('/webauthn/login/options', [App\Http\Controllers\WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
 Route::post('/webauthn/login/verify', [App\Http\Controllers\WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
@@ -22,7 +34,7 @@ Route::middleware([
     // Role-based redirect after login
     Route::get('/redirect-after-login', function () {
         // Middleware will handle the redirect
-    })->middleware(['auth', 'redirect.role']);
+    })->middleware(['auth', \App\Http\Middleware\RedirectIfHasRole::class]);
     
     Route::get('/dashboard', function () {
         return view('dashboard');
@@ -70,4 +82,6 @@ Route::middleware([
             return view('secure-area');
         })->name('secure-area');
     });
+
+    
 });

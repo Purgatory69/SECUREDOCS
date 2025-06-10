@@ -32,6 +32,7 @@
             window.SUPABASE_URL = "{{ config('services.supabase.url') }}";
             window.SUPABASE_KEY = "{{ config('services.supabase.key') }}";
             window.DEFAULT_N8N_WEBHOOK_URL = 'https://securedocs.app.n8n.cloud/webhook/0a216509-e55c-4a43-8d4a-581dffe09d18/chat'; // <-- IMPORTANT: Replace with your actual default URL
+
         </script>
     </head>
     <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">

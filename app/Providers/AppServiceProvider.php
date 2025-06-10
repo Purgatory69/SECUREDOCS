@@ -3,6 +3,8 @@
 namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Auth\Middleware\RedirectIfAuthenticated;
+use App\Providers\RouteServiceProvider;
 use Illuminate\Support\Facades\Blade;
 
 class AppServiceProvider extends ServiceProvider
@@ -22,5 +24,8 @@ class AppServiceProvider extends ServiceProvider
     {
         Blade::component('layouts.profile-dashboard', 'profile-dashboard');
 
+        RedirectIfAuthenticated::redirectUsing(function ($request) {
+            return RouteServiceProvider::HOME;
+        });
     }
 }

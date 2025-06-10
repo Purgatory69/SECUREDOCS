@@ -39,4 +39,5 @@ return [
         'key' => env('SUPABASE_KEY'),
         // Any other Supabase configurations...
     ],
+
 ];
