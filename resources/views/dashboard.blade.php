@@ -160,7 +160,7 @@
                     <span class="mr-4 text-lg w-6 text-center">🗑️</span>
                     <span>Trash</span>
                 </li>
-            </ul>
+            </ul>sh
 
             <div class="mt-8 px-6">
                 <div class="w-full h-1 bg-gray-200 rounded overflow-hidden">
