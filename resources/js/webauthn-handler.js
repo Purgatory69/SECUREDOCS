@@ -4,7 +4,7 @@
  */
 
 // Import WebAuthn if using as a module
-import './vendor/webauthn';
+// import './vendor/webauthn';
 
 // Helper function to convert base64url string to ArrayBuffer
 function base64urlToArrayBuffer(base64url) {

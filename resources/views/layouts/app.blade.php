@@ -31,7 +31,6 @@
             @endif
             window.SUPABASE_URL = "{{ config('services.supabase.url') }}";
             window.SUPABASE_KEY = "{{ config('services.supabase.key') }}";
-            window.DEFAULT_N8N_WEBHOOK_URL = 'YOUR_DEFAULT_N8N_WEBHOOK_URL_HERE'; // <-- IMPORTANT: Replace with your actual default URL
         </script>
     </head>
     <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
