@@ -1,0 +1,168 @@
+[2025-06-16 13:56:47] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"Checklist (1).docx","file_path":"user_7/Checklist (1).docx","file_size":814235,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 13:56:47] local.INFO: Creating file record in DB {"validated_data":{"file_name":"Checklist (1).docx","file_path":"user_7/Checklist (1).docx","file_size":814235,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},"user_id":7} 
+[2025-06-16 13:56:47] local.ERROR: File save error to DB: SQLSTATE[42883]: Undefined function: 7 ERROR:  function extensions.http_post(text, text, jsonb) does not exist
+LINE 1: SELECT extensions.http_post(
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  SELECT extensions.http_post(
+        n8n_webhook_url,
+        payload::TEXT,
+        '{"Content-Type": "application/json"}'::jsonb
+    )
+CONTEXT:  PL/pgSQL function send_file_metadata_to_n8n() line 25 at PERFORM (Connection: pgsql, SQL: insert into "files" ("file_name", "file_path", "file_size", "file_type", "mime_type", "user_id", "updated_at", "created_at") values (Checklist (1).docx, user_7/Checklist (1).docx, 814235, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.wordprocessingml.document, 7, 2025-06-16 13:56:47, 2025-06-16 13:56:47) returning "id") {"user_id":7,"exception_details":"SQLSTATE[42883]: Undefined function: 7 ERROR:  function extensions.http_post(text, text, jsonb) does not exist
+LINE 1: SELECT extensions.http_post(
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  SELECT extensions.http_post(
+
+        n8n_webhook_url,
+
+        payload::TEXT,
+
+        '{\"Content-Type\": \"application/json\"}'::jsonb
+
+    )
+CONTEXT:  PL/pgSQL function send_file_metadata_to_n8n() line 25 at PERFORM (Connection: pgsql, SQL: insert into \"files\" (\"file_name\", \"file_path\", \"file_size\", \"file_type\", \"mime_type\", \"user_id\", \"updated_at\", \"created_at\") values (Checklist (1).docx, user_7/Checklist (1).docx, 814235, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.wordprocessingml.document, 7, 2025-06-16 13:56:47, 2025-06-16 13:56:47) returning \"id\") in C:\\Users\\mactan nhs\\Desktop\\Capstone mats\\securedocsImproved\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php on line 822","validated_data":{"file_name":"Checklist (1).docx","file_path":"user_7/Checklist (1).docx","file_size":814235,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 13:56:50] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 13:56:50] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-16 14:01:36] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 14:01:36] local.INFO: Creating file record in DB {"validated_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},"user_id":7} 
+[2025-06-16 14:01:37] local.ERROR: File save error to DB: SQLSTATE[42883]: Undefined function: 7 ERROR:  function net.http_post(text, text, jsonb) does not exist
+LINE 1: SELECT net.http_post(
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  SELECT net.http_post(
+        n8n_webhook_url,
+        payload::TEXT,
+        '{"Content-Type": "application/json"}'::jsonb
+    )
+CONTEXT:  PL/pgSQL function send_file_metadata_to_n8n() line 23 at PERFORM (Connection: pgsql, SQL: insert into "files" ("file_name", "file_path", "file_size", "file_type", "mime_type", "user_id", "updated_at", "created_at") values (PROFIS10 - Seatwork No. 1.docx, user_7/PROFIS10 - Seatwork No. 1.docx, 9682, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.wordprocessingml.document, 7, 2025-06-16 14:01:36, 2025-06-16 14:01:36) returning "id") {"user_id":7,"exception_details":"SQLSTATE[42883]: Undefined function: 7 ERROR:  function net.http_post(text, text, jsonb) does not exist
+LINE 1: SELECT net.http_post(
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  SELECT net.http_post(
+        n8n_webhook_url,
+        payload::TEXT,
+        '{\"Content-Type\": \"application/json\"}'::jsonb
+    )
+CONTEXT:  PL/pgSQL function send_file_metadata_to_n8n() line 23 at PERFORM (Connection: pgsql, SQL: insert into \"files\" (\"file_name\", \"file_path\", \"file_size\", \"file_type\", \"mime_type\", \"user_id\", \"updated_at\", \"created_at\") values (PROFIS10 - Seatwork No. 1.docx, user_7/PROFIS10 - Seatwork No. 1.docx, 9682, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.wordprocessingml.document, 7, 2025-06-16 14:01:36, 2025-06-16 14:01:36) returning \"id\") in C:\\Users\\mactan nhs\\Desktop\\Capstone mats\\securedocsImproved\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php on line 822","validated_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 14:01:39] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 14:01:39] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-16 14:03:19] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 14:03:19] local.INFO: Creating file record in DB {"validated_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},"user_id":7} 
+[2025-06-16 14:03:20] local.ERROR: File save error to DB: SQLSTATE[42883]: Undefined function: 7 ERROR:  function net.http_post(text, text, jsonb) does not exist
+LINE 1: SELECT net.http_post(
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  SELECT net.http_post(
+        n8n_webhook_url,
+        payload::TEXT,
+        '{"Content-Type": "application/json"}'::jsonb
+    )
+CONTEXT:  PL/pgSQL function send_file_metadata_to_n8n() line 23 at PERFORM (Connection: pgsql, SQL: insert into "files" ("file_name", "file_path", "file_size", "file_type", "mime_type", "user_id", "updated_at", "created_at") values (PROFIS10 - Seatwork No. 1.docx, user_7/PROFIS10 - Seatwork No. 1.docx, 9682, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.wordprocessingml.document, 7, 2025-06-16 14:03:19, 2025-06-16 14:03:19) returning "id") {"user_id":7,"exception_details":"SQLSTATE[42883]: Undefined function: 7 ERROR:  function net.http_post(text, text, jsonb) does not exist
+LINE 1: SELECT net.http_post(
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  SELECT net.http_post(
+        n8n_webhook_url,
+        payload::TEXT,
+        '{\"Content-Type\": \"application/json\"}'::jsonb
+    )
+CONTEXT:  PL/pgSQL function send_file_metadata_to_n8n() line 23 at PERFORM (Connection: pgsql, SQL: insert into \"files\" (\"file_name\", \"file_path\", \"file_size\", \"file_type\", \"mime_type\", \"user_id\", \"updated_at\", \"created_at\") values (PROFIS10 - Seatwork No. 1.docx, user_7/PROFIS10 - Seatwork No. 1.docx, 9682, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.wordprocessingml.document, 7, 2025-06-16 14:03:19, 2025-06-16 14:03:19) returning \"id\") in C:\\Users\\mactan nhs\\Desktop\\Capstone mats\\securedocsImproved\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php on line 822","validated_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 14:03:22] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 14:03:22] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-16 14:06:27] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 14:06:27] local.INFO: Creating file record in DB {"validated_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},"user_id":7} 
+[2025-06-16 14:06:27] local.ERROR: File save error to DB: SQLSTATE[42883]: Undefined function: 7 ERROR:  function net.http_post(text, text, jsonb) does not exist
+LINE 1: SELECT net.http_post(
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  SELECT net.http_post(
+        n8n_webhook_url,
+        payload::TEXT,
+        '{"Content-Type": "application/json"}'::jsonb
+    )
+CONTEXT:  PL/pgSQL function send_file_metadata_to_n8n() line 23 at PERFORM (Connection: pgsql, SQL: insert into "files" ("file_name", "file_path", "file_size", "file_type", "mime_type", "user_id", "updated_at", "created_at") values (PROFIS10 - Seatwork No. 1.docx, user_7/PROFIS10 - Seatwork No. 1.docx, 9682, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.wordprocessingml.document, 7, 2025-06-16 14:06:27, 2025-06-16 14:06:27) returning "id") {"user_id":7,"exception_details":"SQLSTATE[42883]: Undefined function: 7 ERROR:  function net.http_post(text, text, jsonb) does not exist
+LINE 1: SELECT net.http_post(
+               ^
+HINT:  No function matches the given name and argument types. You might need to add explicit type casts.
+QUERY:  SELECT net.http_post(
+        n8n_webhook_url,
+        payload::TEXT,
+        '{\"Content-Type\": \"application/json\"}'::jsonb
+    )
+CONTEXT:  PL/pgSQL function send_file_metadata_to_n8n() line 23 at PERFORM (Connection: pgsql, SQL: insert into \"files\" (\"file_name\", \"file_path\", \"file_size\", \"file_type\", \"mime_type\", \"user_id\", \"updated_at\", \"created_at\") values (PROFIS10 - Seatwork No. 1.docx, user_7/PROFIS10 - Seatwork No. 1.docx, 9682, application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/vnd.openxmlformats-officedocument.wordprocessingml.document, 7, 2025-06-16 14:06:27, 2025-06-16 14:06:27) returning \"id\") in C:\\Users\\mactan nhs\\Desktop\\Capstone mats\\securedocsImproved\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php on line 822","validated_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 14:06:30] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 14:06:30] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-16 14:11:58] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 14:11:59] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-16 14:12:53] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 14:12:54] local.INFO: Creating file record in DB {"validated_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},"user_id":7} 
+[2025-06-16 14:12:55] local.INFO: File record created successfully {"file_id":30,"user_id":7} 
+[2025-06-16 14:13:03] local.INFO: File metadata successfully sent to n8n. {"file_id":30} 
+[2025-06-16 14:13:05] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 14:13:06] local.INFO: Files retrieved successfully {"user_id":7,"count":1} 
+[2025-06-16 15:38:52] local.ERROR: Maximum execution time of 60 seconds exceeded {"exception":"[object] (Symfony\\Component\\ErrorHandler\\Error\\FatalError(code: 0): Maximum execution time of 60 seconds exceeded at C:\\Users\\mactan nhs\\Desktop\\Capstone mats\\securedocsImproved\\vendor\\composer\\ClassLoader.php:429)
+[stacktrace]
+#0 {main}
+"} 
+[2025-06-16 15:43:56] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 15:43:57] local.INFO: Files retrieved successfully {"user_id":7,"count":1} 
+[2025-06-16 15:44:10] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 15:44:10] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-16 15:49:54] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 15:49:55] local.INFO: Creating file record in DB {"validated_data":{"file_name":"PROFIS10 - Seatwork No. 1.docx","file_path":"user_7/PROFIS10 - Seatwork No. 1.docx","file_size":9682,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},"user_id":7} 
+[2025-06-16 15:49:55] local.INFO: File record created successfully {"file_id":31,"user_id":7} 
+[2025-06-16 15:49:59] local.ERROR: Failed to send file metadata to n8n. {"file_id":31,"status":404,"body":"{\"code\":404,\"message\":\"The requested webhook \\\"f106ab40-0651-4e2c-acc1-6591ab771828\\\" is not registered.\",\"hint\":\"Click the 'Execute workflow' button on the canvas, then try again. (In test mode, the webhook only works for one call after you click this button)\"}"} 
+[2025-06-16 15:50:02] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 15:50:02] local.INFO: Files retrieved successfully {"user_id":7,"count":1} 
+[2025-06-16 15:52:01] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 15:52:01] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-16 15:52:43] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"Paulo-Louie-CV.docx","file_path":"user_7/Paulo-Louie-CV.docx","file_size":2910061,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"}} 
+[2025-06-16 15:52:43] local.INFO: Creating file record in DB {"validated_data":{"file_name":"Paulo-Louie-CV.docx","file_path":"user_7/Paulo-Louie-CV.docx","file_size":2910061,"file_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document","mime_type":"application/vnd.openxmlformats-officedocument.wordprocessingml.document"},"user_id":7} 
+[2025-06-16 15:52:44] local.INFO: File record created successfully {"file_id":32,"user_id":7} 
+[2025-06-16 15:52:46] local.INFO: File metadata successfully sent to n8n. {"file_id":32} 
+[2025-06-16 15:52:48] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-16 15:52:48] local.INFO: Files retrieved successfully {"user_id":7,"count":1} 
+[2025-06-17 05:49:05] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 05:49:06] local.INFO: Files retrieved successfully {"user_id":7,"count":1} 
+[2025-06-17 05:52:06] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"How-to-Join-the-Student-Congress_.pdf","file_path":"user_7/How-to-Join-the-Student-Congress_.pdf","file_size":2016469,"file_type":"application/pdf","mime_type":"application/pdf"}} 
+[2025-06-17 05:52:06] local.INFO: Creating file record in DB {"validated_data":{"file_name":"How-to-Join-the-Student-Congress_.pdf","file_path":"user_7/How-to-Join-the-Student-Congress_.pdf","file_size":2016469,"file_type":"application/pdf","mime_type":"application/pdf"},"user_id":7} 
+[2025-06-17 05:52:06] local.INFO: File record created successfully {"file_id":33,"user_id":7} 
+[2025-06-17 05:52:14] local.INFO: File metadata successfully sent to n8n. {"file_id":33} 
+[2025-06-17 05:52:16] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 05:52:17] local.INFO: Files retrieved successfully {"user_id":7,"count":2} 
+[2025-06-17 05:54:11] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 05:54:12] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-17 05:54:14] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 05:54:14] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-17 06:20:03] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"student_accounts.csv","file_path":"user_7/student_accounts.csv","file_size":2265,"file_type":"text/csv","mime_type":"text/csv"}} 
+[2025-06-17 06:20:03] local.INFO: Creating file record in DB {"validated_data":{"file_name":"student_accounts.csv","file_path":"user_7/student_accounts.csv","file_size":2265,"file_type":"text/csv","mime_type":"text/csv"},"user_id":7} 
+[2025-06-17 06:20:03] local.INFO: File record created successfully {"file_id":34,"user_id":7} 
+[2025-06-17 06:20:05] local.INFO: File metadata successfully sent to n8n. {"file_id":34} 
+[2025-06-17 06:20:07] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 06:20:07] local.INFO: Files retrieved successfully {"user_id":7,"count":1} 
+[2025-06-17 06:25:23] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 06:25:23] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-17 06:43:55] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"7-BONGHANOY-form-14.xlsm","file_path":"user_7/7-BONGHANOY-form-14.xlsm","file_size":113941,"file_type":"application/vnd.ms-excel.sheet.macroEnabled.12","mime_type":"application/vnd.ms-excel.sheet.macroEnabled.12"}} 
+[2025-06-17 06:43:57] local.INFO: Creating file record in DB {"validated_data":{"file_name":"7-BONGHANOY-form-14.xlsm","file_path":"user_7/7-BONGHANOY-form-14.xlsm","file_size":113941,"file_type":"application/vnd.ms-excel.sheet.macroEnabled.12","mime_type":"application/vnd.ms-excel.sheet.macroEnabled.12"},"user_id":7} 
+[2025-06-17 06:43:57] local.INFO: File record created successfully {"file_id":35,"user_id":7} 
+[2025-06-17 06:44:00] local.ERROR: Failed to send file metadata to n8n. {"file_id":35,"status":404,"body":"{\"code\":404,\"message\":\"The requested webhook \\\"f106ab40-0651-4e2c-acc1-6591ab771828\\\" is not registered.\",\"hint\":\"Click the 'Execute workflow' button on the canvas, then try again. (In test mode, the webhook only works for one call after you click this button)\"}"} 
+[2025-06-17 06:44:02] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 06:44:03] local.INFO: Files retrieved successfully {"user_id":7,"count":1} 
+[2025-06-17 07:07:16] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 07:07:16] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-17 10:48:45] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 10:48:46] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-17 10:49:33] local.INFO: File store request received {"user_id":7,"request_data":{"file_name":"7 MAGLASANG 2024 MASTERLIST (1).xlsx","file_path":"user_7/7 MAGLASANG 2024 MASTERLIST (1).xlsx","file_size":13835,"file_type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","mime_type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}} 
+[2025-06-17 10:49:33] local.INFO: Creating file record in DB {"validated_data":{"file_name":"7 MAGLASANG 2024 MASTERLIST (1).xlsx","file_path":"user_7/7 MAGLASANG 2024 MASTERLIST (1).xlsx","file_size":13835,"file_type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet","mime_type":"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"},"user_id":7} 
+[2025-06-17 10:49:34] local.INFO: File record created successfully {"file_id":36,"user_id":7} 
+[2025-06-17 10:49:35] local.INFO: File metadata successfully sent to n8n. {"file_id":36} 
+[2025-06-17 10:49:38] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 10:49:39] local.INFO: Files retrieved successfully {"user_id":7,"count":1} 
+[2025-06-17 10:52:22] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 10:52:23] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-17 16:39:23] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-17 16:39:23] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 
+[2025-06-18 09:03:35] local.INFO: File index request received {"user_id":7,"search_query":null} 
+[2025-06-18 09:03:36] local.INFO: Files retrieved successfully {"user_id":7,"count":0} 

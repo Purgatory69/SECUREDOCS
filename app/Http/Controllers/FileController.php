@@ -13,8 +13,7 @@ use App\Models\File; // Assuming you have this for ::create
 class FileController extends Controller
 {
     /**
-     * Store file metadata in the database after Supabase upload
-     * and send to n8n if user is premium.
+     * Store file metadata, then send it to an n8n webhook.
      *
      * @param  \Illuminate\Http\Request  $request
      * @return \Illuminate\Http\Response
@@ -36,95 +35,41 @@ class FileController extends Controller
             'mime_type' => 'required|string'
         ]);
 
-        // --- n8n Webhook Logic for Premium Users ---
-        if ($user && $user->is_premium) {
-            Log::info('Premium user detected. Attempting to process file for n8n.', [
-                'user_id' => $user->id,
-                'file_name' => $validated['file_name'],
-                'supabase_path' => $validated['file_path']
-            ]);
-
-            $webhookUrl = 'https://securedocs.app.n8n.cloud/webhook/5ee6b883-8b4f-4914-8253-b68c5cc77d4a'; // Your n8n webhook URL
-
+        try {
+            // 1. Create the file record in the database first.
+            Log::info('Creating file record in DB', ['validated_data' => $validated, 'user_id' => $user->id]);
+            $file = $user->files()->create($validated); 
+            Log::info('File record created successfully', ['file_id' => $file->id, 'user_id' => $user->id]);
+            
+            // 2. After successful creation, send metadata to n8n webhook.
+            //$n8nWebhookUrl = 'https://securedocs.app.n8n.cloud/webhook/f106ab40-0651-4e2c-acc1-6591ab771828';
+            $n8nWebhookUrl = 'https://securedocs.app.n8n.cloud/webhook-test/f106ab40-0651-4e2c-acc1-6591ab771828';
+            
             try {
-                // --- Construct the full Supabase URL ---
-                $supabaseBaseUrl = rtrim(env('SUPABASE_URL'), '/');
-                $supabaseBucket = env('SUPABASE_BUCKET_PUBLIC');
-                $filePath = $validated['file_path'];
+                $response = Http::post($n8nWebhookUrl, $file->toArray());
 
-                if (!$supabaseBaseUrl || !$supabaseBucket) {
-                    Log::error('Supabase URL or Bucket not configured in .env for n8n processing.', [
-                        'user_id' => $user->id,
-                        'file_name' => $validated['file_name']
-                    ]);
-                    // Skip n8n processing if config is missing
-                    throw new \Exception('Supabase environment variables not set.'); 
-                }
-
-                $fullSupabaseUrl = "{$supabaseBaseUrl}/storage/v1/object/public/{$supabaseBucket}/{$filePath}";
-                Log::info('Constructed Supabase download URL for n8n', ['url' => $fullSupabaseUrl, 'user_id' => $user->id]);
-                // --- End of URL construction ---
-
-                // 1. Download the file from Supabase using the full public URL
-                $fileContentsResponse = Http::timeout(60)->get($fullSupabaseUrl);
-
-                if ($fileContentsResponse->successful()) {
-                    $fileContents = $fileContentsResponse->body();
-                    
-                    // 2. Send the downloaded file content to n8n
-                    $n8nResponse = Http::timeout(30)
-                        ->attach(
-                            'data', // Field name n8n expects
-                            $fileContents,
-                            $validated['file_name'] // Use the original file name
-                        )->post($webhookUrl);
-
-                    if ($n8nResponse->successful()) {
-                        Log::info('File successfully sent to n8n webhook.', [
-                            'user_id' => $user->id, 
-                            'file_name' => $validated['file_name']
-                        ]);
-                    } else {
-                        Log::error('Failed to send file to n8n webhook.', [
-                            'user_id' => $user->id,
-                            'file_name' => $validated['file_name'],
-                            'n8n_status' => $n8nResponse->status(),
-                            'n8n_body' => $n8nResponse->body()
-                        ]);
-                    }
+                if ($response->successful()) {
+                    Log::info('File metadata successfully sent to n8n.', ['file_id' => $file->id]);
                 } else {
-                    Log::error('Failed to download file from Supabase for n8n processing.', [
-                        'user_id' => $user->id,
-                        'file_name' => $validated['file_name'],
-                        'supabase_path' => $validated['file_path'],
-                        'supabase_status' => $fileContentsResponse->status()
+                    // Log the error but don't fail the main request.
+                    Log::error('Failed to send file metadata to n8n.', [
+                        'file_id' => $file->id,
+                        'status' => $response->status(),
+                        'body' => $response->body()
                     ]);
                 }
-            } catch (\Illuminate\Http\Client\ConnectionException $e) {
-                Log::error('ConnectionException during n8n/Supabase processing.', [
-                    'user_id' => $user->id,
-                    'file_name' => $validated['file_name'],
-                    'error' => $e->getMessage()
-                ]);
             } catch (\Exception $e) {
-                Log::error('General Exception during n8n/Supabase processing.', [
-                    'user_id' => $user->id,
-                    'file_name' => $validated['file_name'],
+                Log::error('Exception while sending metadata to n8n.', [
+                    'file_id' => $file->id,
                     'error' => $e->getMessage()
                 ]);
             }
-        }
-        // --- End of n8n Webhook Logic ---
-
-        try {
-            Log::info('Creating file record in DB', ['validated_data' => $validated, 'user_id' => $user->id]);
             
-            $file = $user->files()->create($validated); 
-            
-            Log::info('File record created successfully', ['file_id' => $file->id, 'user_id' => $user->id]);
-            
+            // 3. Return the successful response to the client.
             return response()->json($file, 201);
+
         } catch (\Exception $e) {
+            // This will now only catch errors from the database insertion itself.
             Log::error('File save error to DB: '.$e->getMessage(), [
                 'user_id' => $user->id,
                 'exception_details' => $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine(),
@@ -153,7 +98,7 @@ class FileController extends Controller
             // Search by file name if 'q' is provided
             if ($request->has('q') && trim($request->q) !== '') {
                 $q = $request->q;
-                $query->where('file_name', 'ILIKE', "%$q%");
+                $query->where('file_name', 'ILIKE', "$q%");
             }
             
             // Sort by file_name, then most recent

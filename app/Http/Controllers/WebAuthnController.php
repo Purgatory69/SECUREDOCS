@@ -94,7 +94,7 @@ class WebAuthnController extends Controller
         ]);
         
         try {
-            $registered = $this->webauthn->doRegister(
+            $registered = Webauthn::register(       
                 Auth::user(),
                 $request->input('data'),
                 $request->input('name')
@@ -155,7 +155,7 @@ class WebAuthnController extends Controller
         ]);
         
         try {
-            $user = $this->webauthn->doLogin($request->input('data'));
+            $user = Webauthn::login($request->input('data'));
             
             if ($user) {
                 Auth::login($user);
