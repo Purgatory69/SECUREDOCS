@@ -5,6 +5,7 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Dashboard - Securedocs</title>
+        <link rel="icon" href="{{ asset('logo-white.png') }}" type="image/png"/>
         <script type="module">
             import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
             window.createChat = createChat;
