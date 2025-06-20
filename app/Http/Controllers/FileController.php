@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -42,8 +41,7 @@ class FileController extends Controller
             Log::info('File record created successfully', ['file_id' => $file->id, 'user_id' => $user->id]);
             
             // 2. After successful creation, send metadata to n8n webhook.
-            //$n8nWebhookUrl = 'https://securedocs.app.n8n.cloud/webhook/f106ab40-0651-4e2c-acc1-6591ab771828';
-            $n8nWebhookUrl = 'https://securedocs.app.n8n.cloud/webhook-test/f106ab40-0651-4e2c-acc1-6591ab771828';
+            $n8nWebhookUrl = 'http://localhost:5678/webhook-test/f106ab40-0651-4e2c-acc1-6591ab771828';
             
             try {
                 $response = Http::post($n8nWebhookUrl, $file->toArray());

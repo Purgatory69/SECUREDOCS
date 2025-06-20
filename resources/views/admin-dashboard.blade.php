@@ -6,6 +6,7 @@
         <div class="flex items-center mr-10">
             <div class="w-8 h-8 bg-red-600 rounded-lg mr-3 flex items-center justify-center text-white font-bold text-lg">A</div> {{-- Admin Indicator --}}
             <div class="text-xl font-medium text-text-main">Admin Panel - Securedocs</div>
+            
         </div>
 
         {{-- Spacer --}}
@@ -46,7 +47,7 @@
     </header>
 
     {{-- Sidebar --}}
-    <div class="bg-white border-r border-border-color py-4 overflow-y-auto">
+    <div id = "adminSidebar" class="bg-white border-r border-border-color py-4 overflow-y-auto">
         <div class="px-6 py-3 mb-4">
             <h2 class="text-lg font-semibold text-gray-700">Admin Menu</h2>
         </div>
