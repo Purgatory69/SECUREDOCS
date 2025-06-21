@@ -117,11 +117,37 @@
             </div>
         </div>
 
-        <div class="bg-[#141326] border-r border-border-color py-4 overflow-y-auto">
-            <div id="newBtn" class="flex items-center mx-4 my-2 mb-4 py-3 px-6 bg-[#3C3F58] border border-border-color rounded-3xl shadow-sm cursor-pointer transition-shadow hover:shadow-md">
-                <span class="mr-3 text-2xl text-primary">+</span>
-                <span class="text-base text-white font-medium">New</span>
+        <!-- Create Folder Modal -->
+        <div id="createFolderModal" class="fixed inset-0 z-50 flex items-center justify-center hidden text-white">
+            <div class="fixed inset-0 bg-[#0D0E2F] bg-opacity-50 transition-opacity"></div>
+            <div class="bg-[#0D0E2F] rounded-lg shadow-xl w-full max-w-md p-6 relative z-10 transform transition-all">
+                <div class="flex items-center justify-between mb-6">
+                    <h3 class="text-xl font-medium text-text-main">Create New Folder</h3>
+                    <button id="closeCreateFolderModalBtn" class="text-text-secondary hover:text-white text-2xl focus:outline-none">&times;</button>
+                </div>
+                <form id="createFolderForm">
+                    <div class="mb-4">
+                        <label for="newFolderNameInput" class="block text-sm font-medium text-gray-300 mb-1">Folder Name</label>
+                        <input type="text" id="newFolderNameInput" name="newFolderName" class="w-full py-2 px-3 rounded-lg border-none bg-[#3C3F58] text-base text-white focus:outline-none focus:shadow-md placeholder-gray-400" placeholder="Enter folder name" required>
+                    </div>
+                    <div class="mt-8 flex justify-end gap-3">
+                        <button type="button" id="cancelCreateFolderBtn" class="py-2 px-4 border border-border-color rounded text-sm bg-[#2B2C61] hover:bg-bg-light transition-colors">Cancel</button>
+                        <button type="submit" class="py-2 px-4 bg-[#3C3F58] text-white rounded text-sm hover:bg-primary-dark transition-colors">Create Folder</button>
+                    </div>
+                </form>
             </div>
+        </div>
+
+        <div class="bg-[#141326] border-r border-border-color py-4 overflow-y-auto">
+            <div id="newBtn" class="flex items-center mx-4 my-2 py-3 px-6 bg-[#3C3F58] border border-border-color rounded-3xl shadow-sm cursor-pointer transition-shadow hover:shadow-md">
+                <span class="mr-3 text-2xl text-primary">+</span>
+                <span class="text-base text-white font-medium">New File</span>
+            </div>
+            <div id="createFolderBtn" class="flex items-center mx-4 my-2 py-3 px-6 bg-[#3C3F58] border border-border-color rounded-3xl shadow-sm cursor-pointer transition-shadow hover:shadow-md mt-2">
+                <span class="mr-3 text-2xl text-primary">📁</span> <!-- Folder Icon -->
+                <span class="text-base text-white font-medium">New Folder</span>
+            </div>
+
 
             <ul class="mt-4">
                 <li class="bg-[#A9A4FF] py-3 px-6 flex items-center cursor-pointer rounded-r-2xl mr-4  text-white text-primary">
@@ -163,6 +189,9 @@
         </div>
 
         <main class="bg-[#141326] p-6 overflow-y-auto">
+            <div id="breadcrumbsContainer" class="mb-4 text-sm text-gray-400">
+                <!-- Breadcrumbs will be populated by JavaScript -->
+            </div>
             <h1 class="text-2xl text-white font-normal mb-6">My Documents</h1>
 
             <div class="flex items-center mb-6 gap-4 flex-wrap">
