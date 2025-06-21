@@ -16,6 +16,8 @@ class File extends Model
      */
     protected $fillable = [
         'user_id',
+        'parent_id',
+        'is_folder',
         'file_name',
         'file_path',
         'file_size',
@@ -29,5 +31,21 @@ class File extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the parent folder of this file/folder.
+     */
+    public function parent()
+    {
+        return $this->belongsTo(File::class, 'parent_id');
+    }
+
+    /**
+     * Get the children (files/folders) of this folder.
+     */
+    public function children()
+    {
+        return $this->hasMany(File::class, 'parent_id');
     }
 }
