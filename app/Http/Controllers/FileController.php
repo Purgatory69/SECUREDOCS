@@ -48,6 +48,27 @@ class FileController extends Controller
                 'is_folder' => $validated['is_folder'],
             ];
 
+            // --- START: Duplicate Folder Name Handling ---
+            if ($validated['is_folder']) {
+                $baseName = $validated['file_name'];
+                $parentId = $validated['parent_id'] ?? null;
+                $newName = $baseName;
+                $copyIndex = 1;
+
+                // Check for existing folders with the same name in the same parent
+                while (File::where('file_name', $newName)
+                        ->where('parent_id', $parentId)
+                        ->where('user_id', $user->id) // Ensure check is scoped to the user
+                        ->where('is_folder', true)
+                        ->exists()) {
+                    $newName = $baseName . ' COPY(' . $copyIndex . ')';
+                    $copyIndex++;
+                }
+                // Update the name in our data array
+                $fileData['file_name'] = $newName;
+            }
+            // --- END: Duplicate Folder Name Handling ---
+
             if (!$validated['is_folder']) {
                 // For files, add file-specific attributes
                 $fileData['file_path'] = $validated['file_path'];
@@ -55,10 +76,10 @@ class FileController extends Controller
                 $fileData['file_type'] = $validated['file_type'];
                 $fileData['mime_type'] = $validated['mime_type'];
             } else {
-                // For folders, set specific values or nulls
-                $fileData['file_path'] = $validated['parent_id'] ? (File::find($validated['parent_id'])->file_path . '/' . $validated['file_name']) : $validated['file_name'];
+                // For folders, construct path with potentially new name
+                $parentPath = $validated['parent_id'] ? (File::find($validated['parent_id'])->file_path) : ('user_' . $user->id);
+                $fileData['file_path'] = $parentPath . '/' . $fileData['file_name'];
                 $fileData['mime_type'] = 'inode/directory'; // Common practice for representing folders
-                // file_size and file_type can be null for folders
             }
             
             Log::info('Creating file/folder record in DB', ['data' => $fileData, 'user_id' => $user->id]);
@@ -198,6 +219,23 @@ class FileController extends Controller
         ]);
 
         try {
+            // --- START: Duplicate Folder Name Handling ---
+            $baseName = $validated['folder_name'];
+            $parentId = $validated['parent_id'] ?? null;
+            $newName = $baseName;
+            $copyIndex = 1;
+
+            // Check for existing folders with the same name in the same parent
+            while (File::where('file_name', $newName)
+                    ->where('parent_id', $parentId)
+                    ->where('user_id', $user->id)
+                    ->where('is_folder', true)
+                    ->exists()) {
+                $newName = $baseName . ' COPY(' . $copyIndex . ')';
+                $copyIndex++;
+            }
+            // --- END: Duplicate Folder Name Handling ---
+
             $parentFolderPath = '';
             if ($validated['parent_id']) {
                 $parentFolder = File::find($validated['parent_id']);
@@ -208,10 +246,10 @@ class FileController extends Controller
 
             $folderData = [
                 'user_id' => $user->id,
-                'file_name' => $validated['folder_name'],
+                'file_name' => $newName, // Use the new unique name
                 'parent_id' => $validated['parent_id'] ?? null,
                 'is_folder' => true,
-                'file_path' => $parentFolderPath ? ($parentFolderPath . '/' . $validated['folder_name']) : $validated['folder_name'], // Construct path
+                'file_path' => $parentFolderPath ? ($parentFolderPath . '/' . $newName) : $newName, // Construct path with new name
                 'mime_type' => 'inode/directory',
                 // file_size, file_type can be null for folders
             ];
