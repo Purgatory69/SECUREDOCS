@@ -39,5 +39,9 @@ return [
         'key' => env('SUPABASE_KEY'),
         // Any other Supabase configurations...
     ],
+    'n8n' => [
+        'default_webhook_url' => env('N8N_DEFAULT_WEBHOOK_URL'),
+        'premium_webhook_url' => env('N8N_PREMIUM_WEBHOOK_URL'),
+    ],
 
 ];

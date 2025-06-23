@@ -15,14 +15,22 @@ class File extends Model
      * @var array<int, string>
      */
     protected $fillable = [
+        'file_name',
+        'mime_type',
+        'file_path',
+        'file_size',
         'user_id',
         'parent_id',
         'is_folder',
-        'file_name',
-        'file_path',
-        'file_size',
-        'file_type',
-        'mime_type',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_folder' => 'boolean',
     ];
 
     /**

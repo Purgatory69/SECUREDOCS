@@ -32,7 +32,6 @@ class User extends Authenticatable
         'password',
         'role',
         'is_approved',
-        'n8n_webhook_url',
         'is_premium',
     ];
 

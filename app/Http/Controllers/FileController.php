@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\File;
 use Illuminate\Validation\Rule;
+use App\Jobs\SendFileToN8n;
 
 // If Illuminate\Support\Facades\Storage was used by other methods, keep it.
 // Otherwise, it can be removed if only store method used it and no longer does.
@@ -59,7 +60,7 @@ class FileController extends Controller
                 while (File::where('file_name', $newName)
                         ->where('parent_id', $parentId)
                         ->where('user_id', $user->id) // Ensure check is scoped to the user
-                        ->where('is_folder', true)
+                        ->whereRaw('is_folder IS TRUE') // Use whereRaw for unambiguous boolean check
                         ->exists()) {
                     $newName = $baseName . ' COPY(' . $copyIndex . ')';
                     $copyIndex++;
@@ -88,26 +89,9 @@ class FileController extends Controller
 
             // Only send to n8n if it's a file, not a folder
             if (!$file->is_folder) {
-                $n8nWebhookUrl = 'http://localhost:5678/webhook-test/f106ab40-0651-4e2c-acc1-6591ab771828';
-                try {
-                    $response = Http::post($n8nWebhookUrl, $file->toArray());
-                    if ($response->successful()) {
-                        Log::info('File metadata successfully sent to n8n.', ['file_id' => $file->id]);
-                    } else {
-                        Log::error('Failed to send file metadata to n8n.', [
-                            'file_id' => $file->id,
-                            'status' => $response->status(),
-                            'body' => $response->body()
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Exception while sending metadata to n8n.', [
-                        'file_id' => $file->id,
-                        'error' => $e->getMessage()
-                    ]);
-                }
+                SendFileToN8n::dispatch($file);
             }
-            
+
             return response()->json($file, 201);
 
         } catch (\Exception $e) {
@@ -223,16 +207,16 @@ class FileController extends Controller
             $baseName = $validated['folder_name'];
             $parentId = $validated['parent_id'] ?? null;
             $newName = $baseName;
-            $copyIndex = 1;
+            $counter = 1;
 
             // Check for existing folders with the same name in the same parent
             while (File::where('file_name', $newName)
-                    ->where('parent_id', $parentId)
-                    ->where('user_id', $user->id)
-                    ->where('is_folder', true)
-                    ->exists()) {
-                $newName = $baseName . ' COPY(' . $copyIndex . ')';
-                $copyIndex++;
+                        ->where('parent_id', $parentId)
+                        ->where('user_id', $user->id)
+                        ->whereRaw('is_folder IS TRUE') // Use whereRaw for unambiguous boolean check
+                        ->exists()) {
+                $counter++;
+                $newName = $baseName . ' COPY(' . $counter . ')';
             }
             // --- END: Duplicate Folder Name Handling ---
 
