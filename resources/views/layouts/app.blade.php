@@ -16,18 +16,17 @@
         
         <!-- Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+        @auth
         <script>
-            @if(Auth::check())
-                window.userId = @json(Auth::user()->id);
-                window.userEmail = @json(Auth::user()->email);
-                window.username = @json(Auth::user()->name);
-                window.userIsPremium = @json(Auth::user()->is_premium ?? false);
-            @else
-                window.userId = null;
-                window.userEmail = null;
-                window.username = null;
-                window.userIsPremium = false;
-            @endif
+            window.userId = {{ auth()->id() }};
+            window.userEmail = "{{ auth()->user()->email }}";
+            window.username = "{{ auth()->user()->name }}";
+            window.userIsPremium = {{ auth()->user()->is_premium ? 'true' : 'false' }};
+            // Determine the correct chat webhook URL on the backend
+            window.chatWebhookUrl = "{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}";
+        </script>
+        @endauth
+        <script>
             window.SUPABASE_URL = "{{ config('services.supabase.url') }}";
             window.SUPABASE_KEY = "{{ config('services.supabase.key') }}";
         </script>

@@ -14,6 +14,19 @@ return [
     |
     */
 
+    'mailgun' => [
+        'domain' => env('MAILGUN_DOMAIN'),
+        'secret' => env('MAILGUN_SECRET'),
+        'endpoint' => env('MAILGUN_ENDPOINT', 'api.mailgun.net'),
+        'scheme' => 'https',
+    ],
+
+    'n8n' => [
+        'webhook_url' => env('N8N_WEBHOOK_URL'),
+        'default_chat_webhook' => env('N8N_DEFAULT_CHAT_WEBHOOK_URL', 'YOUR_DEFAULT_CHAT_WEBHOOK_URL'),
+        'premium_chat_webhook' => env('N8N_PREMIUM_CHAT_WEBHOOK_URL', 'YOUR_PREMIUM_CHAT_WEBHOOK_URL'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],
@@ -38,10 +51,6 @@ return [
         'url' => env('SUPABASE_URL'),
         'key' => env('SUPABASE_KEY'),
         // Any other Supabase configurations...
-    ],
-    'n8n' => [
-        'default_webhook_url' => env('N8N_DEFAULT_WEBHOOK_URL'),
-        'premium_webhook_url' => env('N8N_PREMIUM_WEBHOOK_URL'),
     ],
 
 ];

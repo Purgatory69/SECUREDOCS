@@ -44,36 +44,58 @@ class SendFileToN8n implements ShouldQueue
             return;
         }
 
-        $isPremium = $user->is_premium;
-        $n8nWebhookUrl = $isPremium ? config('services.n8n.premium_webhook_url') : config('services.n8n.default_webhook_url');
+        $user = $this->file->user;
+
+        if (!$user) {
+            Log::error('Job SendFileToN8n: User not found for file.', ['file_id' => $this->file->id]);
+            return;
+        }
+
+        // If user is not premium, log and do nothing further.
+        if (!$user->is_premium) {
+            Log::info('Job SendFileToN8n: User is not premium. No action taken for this premium feature.', ['file_id' => $this->file->id, 'user_id' => $user->id]);
+            return; 
+        }
+
+        // If we reach here, user IS premium.
+        $n8nWebhookUrl = config('services.n8n.premium_webhook_url');
 
         if (empty($n8nWebhookUrl)) {
-            Log::error('Job SendFileToN8n: Webhook URL is not configured.', [
+            Log::error('Job SendFileToN8n: Premium Webhook URL is not configured.', [
                 'file_id' => $this->file->id,
-                'is_premium' => $isPremium
+                'user_id' => $user->id
             ]);
             return;
         }
 
-        Log::info('Job SendFileToN8n: Starting', ['file_id' => $this->file->id, 'webhook_type' => $isPremium ? 'premium' : 'default']);
+        Log::info('Job SendFileToN8n: Starting for premium user.', [
+            'file_id' => $this->file->id, 
+            'user_id' => $user->id,
+            'webhook_url' => $n8nWebhookUrl 
+        ]);
 
         try {
-            $response = Http::post($n8nWebhookUrl, $this->file->toArray());
+            $payload = $this->file->toArray();
+            // Example: $payload['user_id_for_n8n'] = $user->id; // Ensure user_id is in payload if needed by n8n
+
+            $response = Http::post($n8nWebhookUrl, $payload);
 
             if ($response->successful()) {
-                Log::info('Job SendFileToN8n: File metadata successfully sent.', ['file_id' => $this->file->id]);
+                Log::info('Job SendFileToN8n: File metadata successfully sent for premium user.', ['file_id' => $this->file->id]);
             } else {
-                Log::error('Job SendFileToN8n: Failed to send file metadata.', [
+                Log::error('Job SendFileToN8n: Failed to send file metadata for premium user.', [
                     'file_id' => $this->file->id,
                     'status' => $response->status(),
                     'body' => $response->body()
                 ]);
+                // Optional: throw new \Exception('Failed to send to n8n. Status: ' . $response->status());
             }
         } catch (\Exception $e) {
-            Log::error('Job SendFileToN8n: Exception while sending metadata.', [
+            Log::error('Job SendFileToN8n: Exception while sending metadata for premium user.', [
                 'file_id' => $this->file->id,
                 'error' => $e->getMessage()
             ]);
+            // Optional: throw $e;
         }
     }
 }
