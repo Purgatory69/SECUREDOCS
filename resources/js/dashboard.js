@@ -177,11 +177,8 @@ function initializeN8nChat() {
     const currentUserId = window.userId;
     const currentUsername = window.username;
 
-    // Determine the correct N8N webhook URL
-    let n8nWebhookUrlToUse = window.DEFAULT_N8N_WEBHOOK_URL;
-    if (window.userIsPremium && window.userN8nWebhookUrl) {
-        n8nWebhookUrlToUse = window.userN8nWebhookUrl;
-    }
+    // The backend now determines the correct webhook URL
+    const n8nWebhookUrlToUse = window.chatWebhookUrl;
 
     // Customize initial messages based on premium status
     const initialMessages = window.userIsPremium 
@@ -196,7 +193,7 @@ function initializeN8nChat() {
             'Upgrade to premium for personalized support and advanced features.'
           ];
 
-    if (window.createChat) {
+    if (window.createChat && n8nWebhookUrlToUse) {
         window.createChat({
             webhookUrl: n8nWebhookUrlToUse, // Use the dynamically determined URL
             webhookConfig: {
@@ -208,9 +205,10 @@ function initializeN8nChat() {
             chatInputKey: 'chatInput',
             chatSessionKey: 'sessionId',
             metadata: {
-                userId: currentUserId,
+                ...(window.userIsPremium && { userId: currentUserId }),
                 userEmail: currentUserEmail,
-                userName: currentUsername
+                userName: currentUsername,
+                isPremium: window.userIsPremium || false
             },
             showWelcomeScreen: false,
             defaultLanguage: 'en',

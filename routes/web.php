@@ -84,5 +84,7 @@ Route::middleware([
         })->name('secure-area');
     });
 
+    // User public info for chat widget
+    Route::get('/user/{id}', [UserController::class, 'showPublic'])->name('user.show_public');
     
 });

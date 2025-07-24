@@ -7,7 +7,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 use App\Models\File;
 use Illuminate\Validation\Rule;
-use App\Jobs\SendFileToN8n;
+use Illuminate\Support\Facades\DB; // Added for DB facade
+use PDO; // Added for PDO constants
 
 // If Illuminate\Support\Facades\Storage was used by other methods, keep it.
 // Otherwise, it can be removed if only store method used it and no longer does.
@@ -46,7 +47,8 @@ class FileController extends Controller
                 'user_id' => $user->id,
                 'file_name' => $validated['file_name'],
                 'parent_id' => $validated['parent_id'] ?? null,
-                'is_folder' => $validated['is_folder'],
+                // Workaround: Consistently use string 'true'/'false' for boolean
+                'is_folder' => $validated['is_folder'] ? 'true' : 'false',
             ];
 
             // --- START: Duplicate Folder Name Handling ---
@@ -87,12 +89,41 @@ class FileController extends Controller
             $file = File::create($fileData);
             Log::info('File/Folder record created successfully', ['id' => $file->id, 'user_id' => $user->id, 'is_folder' => $file->is_folder]);
 
+            // After successful creation, find the file to return it
+            $newFile = DB::table('files')->where('user_id', $user->id)->where('parent_id', $fileData['parent_id'])->where('file_name', $fileData['file_name'])->first();
+
+            Log::info('File/Folder created successfully via DB facade', ['file' => $newFile, 'user_id' => $user->id]);
+
             // Only send to n8n if it's a file, not a folder
-            if (!$file->is_folder) {
-                SendFileToN8n::dispatch($file);
+            if (!$newFile->is_folder) {
+                // Re-implementing synchronous n8n call
+                try {
+                    $supabaseUrl = rtrim(env('SUPABASE_URL'), '/');
+                    $bucketName = env('SUPABASE_BUCKET_PUBLIC');
+                    $publicUrl = "{$supabaseUrl}/storage/v1/object/public/{$bucketName}/{$newFile->file_path}";
+
+                    $webhookUrl = config('services.n8n.webhook_url');
+
+                    if ($webhookUrl) {
+                        Http::post($webhookUrl, [
+                            'file_id' => $newFile->id,
+                            'file_name' => $newFile->file_name,
+                            'file_path' => $newFile->file_path,
+                            'mime_type' => $newFile->mime_type,
+                            'public_url' => $publicUrl,
+                            'user_id' => $user->id,
+                            'user_email' => $user->email,
+                        ]);
+                        Log::info('Successfully sent file to n8n webhook.', ['file_id' => $newFile->id]);
+                    } else {
+                        Log::warning('N8N_WEBHOOK_URL is not configured. Skipping webhook call.');
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to send file to n8n webhook.', ['file_id' => $newFile->id, 'error' => $e->getMessage()]);
+                }
             }
 
-            return response()->json($file, 201);
+            return response()->json($newFile, 201);
 
         } catch (\Exception $e) {
             Log::error('File/Folder save error to DB: '.$e->getMessage(), [
@@ -127,7 +158,7 @@ class FileController extends Controller
                 // Ensure parent_id exists and belongs to the user and is a folder
                 $parentFolder = File::where('id', $parentId)
                                     ->where('user_id', $user->id)
-                                    ->where('is_folder', true)
+                                    ->where('is_folder', 'true') // Workaround: Use string 'true'
                                     ->first();
                 if (!$parentFolder) {
                     return response()->json(['error' => 'Parent folder not found or invalid.'], 404);
@@ -148,20 +179,27 @@ class FileController extends Controller
             // Sort by is_folder descending (folders first), then file_name, then most recent
             $query->orderByDesc('is_folder')->orderBy('file_name')->orderByDesc('created_at');
             
-            // Pagination: 20 per page
-            $items = $query->paginate(20); // Changed $files to $items
+            // Manual pagination to potentially avoid prepared statement issues with paginate()
+            $perPage = 20;
+            $currentPage = $request->input('page', 1);
+
+            // Clone the query for counting to avoid modification issues
+            $countQuery = $query->clone()->toBase();
+            $total = $countQuery->getCountForPagination();
+
+            $itemsResult = $query->forPage($currentPage, $perPage)->get();
             
             Log::info('Files/Folders retrieved successfully', [
                 'user_id' => $user->id,
-                'count' => count($items->items())
+                'count' => $itemsResult->count() 
             ]);
             
             return response()->json([
                 'status' => 'success',
-                'files' => $items->items(), // Keep 'files' key for frontend compatibility for now
-                'total' => $items->total(),
-                'current_page' => $items->currentPage(),
-                'last_page' => $items->lastPage(),
+                'files' => $itemsResult->values()->all(), // Ensure it's a plain array
+                'total' => $total,
+                'current_page' => (int)$currentPage,
+                'last_page' => ceil($total / $perPage),
             ]);
         } catch (\Exception $e) {
             Log::error('Error fetching files/folders', [
@@ -186,6 +224,14 @@ class FileController extends Controller
     public function createFolder(Request $request)
     {
         $user = Auth::user();
+
+        try {
+            // Diagnostic logging for PDO::ATTR_EMULATE_PREPARES
+            $emulatePrepares = DB::connection()->getPdo()->getAttribute(PDO::ATTR_EMULATE_PREPARES);
+            Log::info('PDO::ATTR_EMULATE_PREPARES value: ' . ($emulatePrepares ? 'true' : 'false'), ['user_id' => $user->id]);
+        } catch (\Exception $e) {
+            Log::error('Error getting PDO::ATTR_EMULATE_PREPARES: ' . $e->getMessage(), ['user_id' => $user->id]);
+        }
 
         Log::info('Create folder request received', [
             'user_id' => $user->id,
@@ -232,11 +278,17 @@ class FileController extends Controller
                 'user_id' => $user->id,
                 'file_name' => $newName, // Use the new unique name
                 'parent_id' => $validated['parent_id'] ?? null,
-                'is_folder' => true,
+                'is_folder' => 'true', // Workaround: Use string 'true' for boolean
                 'file_path' => $parentFolderPath ? ($parentFolderPath . '/' . $newName) : $newName, // Construct path with new name
                 'mime_type' => 'inode/directory',
                 // file_size, file_type can be null for folders
             ];
+
+            // Diagnostic logging for is_folder type
+            Log::info('is_folder type before create (after workaround): ' . gettype($folderData['is_folder']), [
+                'user_id' => $user->id,
+                'is_folder_value' => $folderData['is_folder']
+            ]);
 
             Log::info('Creating folder record in DB', ['data' => $folderData, 'user_id' => $user->id]);
             $folder = File::create($folderData);
