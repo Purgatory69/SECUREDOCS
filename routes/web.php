@@ -66,6 +66,7 @@ Route::middleware([
     Route::get('/files', [App\Http\Controllers\FileController::class, 'index'])->name('files.index');
     Route::get('/files/{id}', [App\Http\Controllers\FileController::class, 'show'])->name('files.show');
     Route::delete('/files/{id}', [App\Http\Controllers\FileController::class, 'destroy'])->name('files.destroy');
+    Route::post('/folders', [App\Http\Controllers\FileController::class, 'createFolder'])->name('folders.create');
     
     // WebAuthn routes
     Route::get('/webauthn', [App\Http\Controllers\WebAuthnController::class, 'index'])->name('webauthn.index');
@@ -83,5 +84,7 @@ Route::middleware([
         })->name('secure-area');
     });
 
+    // User public info for chat widget
+    Route::get('/user/{id}', [UserController::class, 'showPublic'])->name('user.show_public');
     
 });

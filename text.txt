@@ -1,239 +1,149 @@
-!VERSION 1
-<x-guest-layout>
-    <x-authentication-card>
-        <x-slot name="logo">
-            <header class="mb-10 flex items-center space-x-3">
-                <img src="{{ asset('src/logo-white.png') }}" alt="SecureDocs logo" class="w-10 h-10">
-                <h1 class="text-white text-xl font-extrabold">SECURE<span class="text-[#f89c00]">DOCS</span></h1>
-            </header>
-        </x-slot>
+Supabase MCP Project Info:
+-------------------------
+Project Name: Purgatory69's Project
+Project ID: fywmgiuvdbsjfchfzixc
+Organization ID: gpwlbpenhhklhwlylvlw
+Region: ap-northeast-1
+Status: ACTIVE_HEALTHY
+Database Host: db.fywmgiuvdbsjfchfzixc.supabase.co
+Database Version: 15.8.1.073
+Postgres Engine: 15
+Release Channel: ga
+Created At: 2025-04-20T14:59:30.982075Z
 
-        @if ($errors->has('email'))
-            @php
-                $lockoutMessage = $errors->first('email');
-                preg_match('/(\d+) seconds?/', $lockoutMessage, $matches);
-                $seconds = $matches[1] ?? 0;
-            @endphp
-            @if ($seconds > 0)
-                <div class="mb-4 font-medium text-sm text-red-600 text-center">
-                    You have been locked out due to too many failed login attempts.<br>
-                    Please try again in <span id="lockout-countdown">{{ $seconds }}</span> seconds.
-                </div>
-                <script>
-                    let lockoutSeconds = {{ $seconds }};
-                    let countdownElem = document.getElementById('lockout-countdown');
-                    let interval = setInterval(function () {
-                        if (lockoutSeconds > 0) {
-                            lockoutSeconds--;
-                            countdownElem.textContent = lockoutSeconds;
-                        }
-                        if (lockoutSeconds <= 0) {
-                            clearInterval(interval);
-                            location.reload();
-                        }
-                    }, 1000);
-                </script>
-            @endif
-        @endif
+Supabase Database Tables and Definitions:
+----------------------------------------
 
-        <x-validation-errors class="mb-4" />
+1. users
+   - id: bigint, primary key
+   - name: varchar
+   - email: varchar, unique
+   - email_verified_at: timestamp
+   - password: varchar
+   - remember_token: varchar
+   - created_at: timestamp
+   - updated_at: timestamp
+   - two_factor_secret: text
+   - two_factor_recovery_codes: text
+   - two_factor_confirmed_at: timestamp
+   - is_approved: boolean, default false
+   - role: varchar, default 'user', check constraint (user, record admin, admin)
+   - is_premium: boolean, default false
+   - n8n_webhook_url: varchar (nullable)
 
-        @session('status')
-            <div class="mb-4 font-medium text-sm text-green-600 text-center">
-                {{ $value }}
-            </div>
-        @endsession
+2. files
+   - id: bigint, primary key
+   - user_id: bigint, foreign key -> users(id)
+   - file_name: varchar
+   - file_path: varchar
+   - file_size: varchar (nullable)
+   - file_type: varchar (nullable)
+   - mime_type: varchar (nullable)
+   - created_at: timestamp
+   - updated_at: timestamp
+   - parent_id: bigint, foreign key -> files(id) (nullable)
+   - is_folder: boolean, default false
 
-        <form method="POST" action="{{ route('login') }}" class="bg-[#3b3f58] rounded-3xl max-w-8xl w-full px-10 py-8 space-y-8 flex flex-col items-center" style="min-height: 440px;">
-            @csrf
+3. webauthn_keys
+   - id: bigint, primary key
+   - user_id: bigint, foreign key -> users(id)
+   - name: varchar, default 'key'
+   - credentialId: text
+   - type: varchar
+   - transports: text
+   - attestationType: varchar
+   - trustPath: text
+   - aaguid: text
+   - credentialPublicKey: text
+   - counter: bigint
+   - created_at: timestamp
+   - updated_at: timestamp
 
-            <div class="w-4/6 min-w-[420px]">
-                <label for="email" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">EMAIL</label>
-                <input id="email" name="email" type="email" required autofocus autocomplete="username" :value="old('email')" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none">
-            </div>
+4. personal_access_tokens
+   - id: bigint, primary key
+   - tokenable_type: varchar
+   - tokenable_id: bigint
+   - name: varchar
+   - token: varchar, unique
+   - abilities: text (nullable)
+   - last_used_at: timestamp (nullable)
+   - expires_at: timestamp (nullable)
+   - created_at: timestamp
+   - updated_at: timestamp
 
-            <div class="w-4/6 min-w-[420px]">
-                <label for="password" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">PASSWORD</label>
-                <input id="password" name="password" type="password" required autocomplete="current-password" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none">
-            </div>
+5. password_reset_tokens
+   - email: varchar, primary key
+   - token: varchar
+   - created_at: timestamp (nullable)
 
-            <div class="flex justify-end w-4/6 min-w-[420px] items-center space-x-6">
-                @if (Route::has('password.request'))
-                    <a href="{{ route('password.request') }}" class="text-white text-sm underline tracking-wide hover:text-[#f89c00]">Forgot Password?</a>
-                @endif
-                <button type="submit" class="bg-[#f89c00] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:bg-[#d17f00] transition-colors">LOGIN</button>
-            </div>
+6. sessions
+   - id: varchar, primary key
+   - user_id: bigint (nullable), foreign key -> users(id)
+   - ip_address: varchar (nullable)
+   - user_agent: text (nullable)
+   - payload: text
+   - last_activity: integer
 
-            <hr class="border border-white/50 w-4/6 min-w-[410px]">
+7. cache
+   - key: varchar, primary key
+   - value: text
+   - expiration: integer
 
-            <button type="button" id="biometric-login-button" class="w-1/6 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:bg-[#7a7ef0] transition-colors">
-                LOGIN WITH BIOMETRICS
-            </button>
-            <p id="biometric-login-status" class="text-sm text-red-600 mt-2 text-center"></p>
-        </form>
+8. cache_locks
+   - key: varchar, primary key
+   - owner: varchar
+   - expiration: integer
 
-        <p class="text-white mt-10 text-center text-base tracking-wide">
-            Don’t have an account?
-            <a href="#" class="font-extrabold text-[#f89c00] hover:underline">Sign Up!</a>
-        </p>
-    </x-authentication-card>
-</x-guest-layout>
+9. jobs
+   - id: bigint, primary key
+   - queue: varchar
+   - payload: text
+   - attempts: smallint
+   - reserved_at: integer (nullable)
+   - available_at: integer
+   - created_at: integer
 
-<script src="{{ asset('vendor/webauthn/webauthn.js') }}" defer></script>
-@vite(['resources/css/app.css', 'resources/js/app.js'])
+10. job_batches
+   - id: varchar, primary key
+   - name: varchar
+   - total_jobs: integer
+   - pending_jobs: integer
+   - failed_jobs: integer
+   - failed_job_ids: text
+   - options: text (nullable)
+   - cancelled_at: integer (nullable)
+   - created_at: integer
+   - finished_at: integer (nullable)
 
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const emailInput = document.getElementById('email');
-        const biometricButton = document.getElementById('biometric-login-button');
-        const statusDisplay = document.getElementById('biometric-login-status');
+11. failed_jobs
+   - id: bigint, primary key
+   - uuid: varchar, unique
+   - connection: text
+   - queue: text
+   - payload: text
+   - exception: text
+   - failed_at: timestamp, default CURRENT_TIMESTAMP
 
-        if (biometricButton) {
-            biometricButton.addEventListener('click', async function () {
-                if (!emailInput.value.trim()) {
-                    statusDisplay.textContent = 'Please enter your email address first.';
-                    statusDisplay.className = 'text-sm text-red-600 mt-2';
-                    return;
-                }
+12. n8n_chat_histories
+   - id: integer, primary key
+   - session_id: varchar
+   - message: jsonb
 
-                if (window.handleBiometricLogin) {
-                    window.handleBiometricLogin(emailInput.value, biometricButton, statusDisplay);
-                } else {
-                    console.error('WebAuthn handler (handleBiometricLogin) not found.');
-                    statusDisplay.textContent = 'Biometric login script not loaded correctly.';
-                    statusDisplay.className = 'text-sm text-red-600 mt-2';
-                }
-            });
-        }
-    });
-</script>
+13. document_metadata
+   - id: text, primary key
+   - title: text (nullable)
+   - url: text (nullable)
+   - created_at: timestamp, default now()
+   - schema: text (nullable)
+   - user_id: bigint (nullable)
 
+14. document_rows
+   - id: integer, primary key
+   - dataset_id: text, foreign key -> document_metadata(id) (nullable)
+   - row_data: jsonb (nullable)
 
-
-!VERSION 2
-<x-guest-layout>
-    <div class="bg-[#121224] min-h-screen flex flex-col justify-center items-center px-4">
-        <header class="mb-10 flex items-center space-x-3">
-            <img src="{{ asset('logo-white.png') }}" alt="SecureDocs logo" class="w-10 h-10" />
-            <h1 class="text-white text-xl font-extrabold">SECURE<span class="text-[#f89c00]">DOCS</span></h1>
-        </header>
-
-        {{-- Lockout countdown --}}
-        @if ($errors->has('email'))
-            @php
-                $lockoutMessage = $errors->first('email');
-                preg_match('/(\d+) seconds?/', $lockoutMessage, $matches);
-                $seconds = $matches[1] ?? 0;
-            @endphp
-            @if ($seconds > 0)
-                <div class="mb-4 font-medium text-sm text-red-600 text-center">
-                    You have been locked out due to too many failed login attempts.<br>
-                    Please try again in <span id="lockout-countdown">{{ $seconds }}</span> seconds.
-                </div>
-                <script>
-                    let lockoutSeconds = {{ $seconds }};
-                    let countdownElem = document.getElementById('lockout-countdown');
-                    let interval = setInterval(() => {
-                        if (lockoutSeconds > 0) {
-                            lockoutSeconds--;
-                            countdownElem.textContent = lockoutSeconds;
-                        }
-                        if (lockoutSeconds <= 0) {
-                            clearInterval(interval);
-                            location.reload();
-                        }
-                    }, 1000);
-                </script>
-            @endif
-        @endif
-
-        <x-validation-errors class="mb-4" />
-
-        @session('status')
-            <div class="mb-4 font-medium text-sm text-green-600 text-center">
-                {{ $value }}
-            </div>
-        @endsession
-
-        <main>
-            <form method="POST" action="{{ route('login') }}" class="bg-[#3b3f58] rounded-3xl max-w-8xl w-full px-10 py-8 space-y-8 flex flex-col items-center" style="min-height: 440px;">
-                @csrf
-
-                <div class="w-4/6 min-w-[420px]">
-                    <label for="email" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">EMAIL</label>
-                    <input id="email" name="email" type="email" required autofocus autocomplete="username"
-                        value="{{ old('email') }}"
-                        class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none" />
-                </div>
-
-                <div class="w-4/6 min-w-[420px]">
-                    <label for="password" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">PASSWORD</label>
-                    <input id="password" name="password" type="password" required autocomplete="current-password"
-                        class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none" />
-                </div>
-
-                <div class="block mt-4 w-4/6 min-w-[420px] text-left">
-                    <label for="remember_me" class="flex items-center text-white text-sm space-x-2">
-                        <input id="remember_me" type="checkbox" name="remember" class="rounded" />
-                        <span>Remember me</span>
-                    </label>
-                </div>
-
-                <div class="flex justify-end w-4/6 min-w-[420px] items-center space-x-6">
-                    @if (Route::has('password.request'))
-                        <a class="text-white text-sm underline tracking-wide hover:text-[#f89c00]" href="{{ route('password.request') }}">
-                            Forgot Password?
-                        </a>
-                    @endif
-                    <button type="submit"
-                        class="bg-[#f89c00] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:bg-[#d17f00] transition-colors">
-                        LOGIN
-                    </button>
-                </div>
-
-                <hr class="border border-white/50 w-4/6 min-w-[410px]" />
-
-                <button type="button" id="biometric-login-button"
-                    class="w-1/6 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:bg-[#7a7ef0] transition-colors">
-                    <i class="fas fa-fingerprint mr-2"></i>
-                    LOGIN WITH BIOMETRICS
-                </button>
-                <p id="biometric-login-status" class="text-sm text-red-600 text-center"></p>
-            </form>
-
-            <p class="text-white mt-10 text-center text-base tracking-wide">
-                Don’t have an account?
-                <a class="font-extrabold text-[#f89c00] hover:underline" href="#">Sign Up!</a>
-            </p>
-        </main>
-    </div>
-</x-guest-layout>
-
-<script src="{{ asset('vendor/webauthn/webauthn.js') }}" defer></script>
-@vite(['resources/css/app.css', 'resources/js/app.js'])
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const emailInput = document.getElementById('email');
-        const biometricButton = document.getElementById('biometric-login-button');
-        const statusDisplay = document.getElementById('biometric-login-status');
-
-        if (biometricButton) {
-            biometricButton.addEventListener('click', async function () {
-                if (!emailInput.value.trim()) {
-                    statusDisplay.textContent = 'Please enter your email address first.';
-                    statusDisplay.className = 'text-sm text-red-600 mt-2';
-                    return;
-                }
-
-                if (window.handleBiometricLogin) {
-                    window.handleBiometricLogin(emailInput.value, biometricButton, statusDisplay);
-                } else {
-                    console.error('WebAuthn handler (handleBiometricLogin) not found.');
-                    statusDisplay.textContent = 'Biometric login script not loaded correctly.';
-                    statusDisplay.className = 'text-sm text-red-600 mt-2';
-                }
-            });
-        }
-    });
-</script>
+15. documents
+   - id: bigint, primary key
+   - content: text (nullable)
+   - metadata: jsonb (nullable)
+   - embedding: vector (nullable)
