@@ -350,6 +350,20 @@ function initializeUploadModal() {
             uploadBtn.disabled = false;
 
             Array.from(files).forEach(file => {
+                if (file.size > 102400000) {
+                    const errorItem = document.createElement('div');
+                    errorItem.className = 'flex items-center justify-between text-sm py-1 text-danger';
+                    errorItem.innerHTML = `
+                        <div class="flex items-center">
+                            <span class="mr-2">⚠️</span>
+                            <span class="truncate max-w-[250px]">${file.name}</span>
+                        </div>
+                        <span class="text-xs">File is too large (max 100MB)</span>
+                    `;
+                    fileList.appendChild(errorItem);
+                    return;
+                }
+
                 const fileItem = document.createElement('div');
                 fileItem.className = 'flex items-center justify-between text-sm py-1';
                 fileItem.innerHTML = `
