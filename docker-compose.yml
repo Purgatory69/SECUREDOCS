@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: securedocs-app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "8000:80"
+    environment:
+      - APP_ENV=local
+      - APP_DEBUG=true
+      - APP_KEY=
+      - APP_URL=http://localhost:8000
+      - DB_CONNECTION=pgsql
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_DATABASE=securedocs
+      - DB_USERNAME=postgres
+      - DB_PASSWORD=secret
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_BUCKET_PUBLIC=${SUPABASE_BUCKET_PUBLIC}
+    depends_on:
+      - db
+
+  db:
+    image: postgres:13
+    container_name: securedocs-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: securedocs
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # Optional: phpMyAdmin for database management
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: securedocs-pma
+    depends_on:
+      - db
+    environment:
+      PMA_HOST: db
+      PMA_PORT: 5432
+      PMA_USER: postgres
+      PMA_PASSWORD: secret
+    ports:
+      - "8080:80"
+
+volumes:
+  postgres_data:
+    driver: local
