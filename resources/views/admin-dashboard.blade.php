@@ -86,7 +86,6 @@
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approved</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Premium Status</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N8N URL</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manage Premium</th>
                     </tr>
@@ -111,9 +110,6 @@
                                     <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Standard</span>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 truncate max-w-[150px] hover:max-w-none hover:whitespace-normal hover:overflow-visible" title="{{ $user->n8n_webhook_url ?? 'Not set' }}">
-                                {{ $user->n8n_webhook_url ? Str::limit($user->n8n_webhook_url, 20) : 'Not set' }}
-                            </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                 @if (!$user->is_approved)
                                     <form method="POST" action="{{ route('admin.approve', $user->id) }}" class="inline">
@@ -135,17 +131,13 @@
                                         <input type="checkbox" name="is_premium" id="is_premium_{{ $user->id }}" value="1" {{ $user->is_premium ? 'checked' : '' }} class="mr-1 h-3 w-3 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
                                         <label for="is_premium_{{ $user->id }}" class="text-xs">Premium</label>
                                     </div>
-                                    <div>
-                                        <input type="url" name="n8n_webhook_url" id="n8n_webhook_url_{{ $user->id }}" value="{{ old('n8n_webhook_url.'. $user->id, $user->n8n_webhook_url) }}" placeholder="N8N Webhook URL" class="mt-1 block w-full px-2 py-1 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-xs text-xs" style="min-width: 200px;">
-                                        {{-- Consider adding specific error handling for this user's form if validation fails --}}
-                                    </div>
                                     <button type="submit" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">Update</button>
                                 </form>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No users found.</td>
+                            <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No users found.</td>
                         </tr>
                     @endforelse
                 </tbody>

@@ -15,12 +15,22 @@ class File extends Model
      * @var array<int, string>
      */
     protected $fillable = [
-        'user_id',
         'file_name',
+        'mime_type',
         'file_path',
         'file_size',
-        'file_type',
-        'mime_type',
+        'user_id',
+        'parent_id',
+        'is_folder',
+    ];
+
+    /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'is_folder' => 'boolean',
     ];
 
     /**
@@ -29,5 +39,21 @@ class File extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    /**
+     * Get the parent folder of this file/folder.
+     */
+    public function parent()
+    {
+        return $this->belongsTo(File::class, 'parent_id');
+    }
+
+    /**
+     * Get the children (files/folders) of this folder.
+     */
+    public function children()
+    {
+        return $this->hasMany(File::class, 'parent_id');
     }
 }

@@ -169,4 +169,21 @@ class UserController extends Controller
     {
         return view('auth.forgot-password');
     }
+
+    /**
+     * Return public user info for chat widget or API.
+     *
+     * @param int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function showPublic($id)
+    {
+        $user = \App\Models\User::findOrFail($id);
+        return response()->json([
+            'id' => $user->id,
+            'name' => $user->name,
+            'email' => $user->email,
+            'is_premium' => $user->is_premium,
+        ]);
+    }
 }
