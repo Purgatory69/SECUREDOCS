@@ -1,0 +1,170 @@
+{
+  "name": "default chat bot",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "6470ceba-6ebe-4fac-bafb-d4643a46da7a",
+      "name": "When chat message received",
+      "webhookId": "0a216509-e55c-4a43-8d4a-581dffe09d18"
+    },
+    {
+      "parameters": {
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "You are Tubby, a friendly and helpful AI assistant for Securedocs.\nYou can assist users by answering questions about SecureDocs."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.8,
+      "position": [
+        580,
+        0
+      ],
+      "id": "cddcbfa2-6023-48a7-a272-2cbcadd46282",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash-exp",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        460,
+        180
+      ],
+      "id": "e96c758e-21fb-46e3-9d21-a52ee87bbcab",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "ztxrjk7sKGHE97v3",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.3,
+      "position": [
+        600,
+        260
+      ],
+      "id": "2b106be5-e63e-4c0c-bb73-d0b9a8dba661",
+      "name": "Postgres Chat Memory",
+      "credentials": {
+        "postgres": {
+          "id": "L9zbMUtFkj5ESAwm",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "94af170d-28d0-4573-828e-31edb0259fc5",
+              "name": "user_id",
+              "value": "={{$json.metadata.userId}}",
+              "type": "string"
+            },
+            {
+              "id": "8f669da3-48c9-41e3-bce6-5758554d8402",
+              "name": "user_email",
+              "value": "={{$json.metadata.userEmail}}",
+              "type": "string"
+            },
+            {
+              "id": "1e2e3c49-0a43-4d49-bfc1-69c082d31a90",
+              "name": "user_name",
+              "value": "={{$json.metadata.userName}}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        260,
+        0
+      ],
+      "id": "7b59dfcb-e9d0-42f0-9c71-86ebd8b8ca83",
+      "name": "Edit Fields"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "02ff5405-b6f6-4932-b358-c36d88f565c2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "009d3b53ab292f8c0fe9086013e0bdd4782c12ce799c35f92bdc41179918350f"
+  },
+  "id": "pLqbHtf8DUk94z4g",
+  "tags": []
+}
