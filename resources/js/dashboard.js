@@ -404,9 +404,19 @@ function initializeUploadModal() {
 
             if (error) {
                 console.error('Upload error:', error);
-                alert(`Upload failed: ${error.message}`);
+                window.Livewire.emit('showConfirmationModal', {
+                    title: 'Upload Failed',
+                    message: `Upload failed: ${error.message}`,
+                    confirmButtonText: 'Ok',
+                    confirmAction: 'closeModal',
+                });
             } else {
-                alert('File uploaded successfully!');
+                window.Livewire.emit('showConfirmationModal', {
+                    title: 'Upload Successful',
+                    message: 'File uploaded successfully!',
+                    confirmButtonText: 'Ok',
+                    confirmAction: 'closeModal',
+                });
                 await saveFileMetadata(file, `user_${userId}/${file.name}`);
                 await loadUserFiles();
             }
@@ -461,10 +471,20 @@ function initializeFileManagement() {
                 `Are you sure you want to delete the folder "${itemName}" and all its contents? This action cannot be undone.` :
                 `Are you sure you want to delete the file "${itemName}"?`;
 
-            if (itemId && confirm(confirmationMessage)) {
-                await deleteItem(itemId); // Renamed from deleteFile
+            if (itemId) {
+                window.Livewire.emit('showConfirmationModal', {
+                    title: 'Delete Item',
+                    message: confirmationMessage,
+                    confirmButtonText: 'Delete',
+                    confirmAction: 'deleteItem',
+                    itemId: itemId,
+                });
             }
         }
+    });
+
+    window.Livewire.on('deleteItem', async ({ itemId }) => {
+        await deleteItem(itemId);
     });
 
     // Pagination click handler
@@ -760,7 +780,12 @@ async function downloadFile(fileId) { // fileId here is actually itemId
     try {
         const response = await fetch(`/files/${fileId}`); // Use generic itemId
         if (!response.ok) {
-            alert('Failed to fetch file details.');
+            window.Livewire.emit('showConfirmationModal', {
+                title: 'Download Failed',
+                message: 'Failed to fetch file details.',
+                confirmButtonText: 'Ok',
+                confirmAction: 'closeModal',
+            });
             console.error('Failed to fetch file details:', response.status, response.statusText);
             return;
         }
@@ -770,7 +795,12 @@ async function downloadFile(fileId) { // fileId here is actually itemId
         const fileName = fileData.file_name;
 
         if (!filePath) {
-            alert('File path missing in file data. Cannot download file.');
+            window.Livewire.emit('showConfirmationModal', {
+                title: 'Download Failed',
+                message: 'File path missing in file data. Cannot download file.',
+                confirmButtonText: 'Ok',
+                confirmAction: 'closeModal',
+            });
             console.error('File data missing file_path:', fileData);
             return;
         }
@@ -778,13 +808,23 @@ async function downloadFile(fileId) { // fileId here is actually itemId
         const { data, error } = supabase.storage.from('docs').getPublicUrl(filePath);
         
         if (error) {
-            alert('Error generating download URL: ' + error.message);
+            window.Livewire.emit('showConfirmationModal', {
+                title: 'Download Failed',
+                message: 'Error generating download URL: ' + error.message,
+                confirmButtonText: 'Ok',
+                confirmAction: 'closeModal',
+            });
             console.error('Supabase Storage getPublicUrl error:', error);
             return;
         }
 
         if (!data?.publicUrl) {
-            alert('Could not generate download URL.');
+            window.Livewire.emit('showConfirmationModal', {
+                title: 'Download Failed',
+                message: 'Could not generate download URL.',
+                confirmButtonText: 'Ok',
+                confirmAction: 'closeModal',
+            });
             return;
         }
 
@@ -798,7 +838,12 @@ async function downloadFile(fileId) { // fileId here is actually itemId
 
     } catch (error) {
         console.error('Error downloading file:', error);
-        alert('Error downloading file. Please try again.');
+        window.Livewire.emit('showConfirmationModal', {
+            title: 'Download Failed',
+            message: 'Error downloading file. Please try again.',
+            confirmButtonText: 'Ok',
+            confirmAction: 'closeModal',
+        });
     }
 }
 
@@ -807,7 +852,12 @@ async function deleteItem(itemId) { // Renamed from deleteFile to deleteItem
         // Get item details first to check if it's a folder and to get path for files
         const response = await fetch(`/files/${itemId}`); // Endpoint remains /files/:id for fetching
         if (!response.ok) {
-            alert('Failed to fetch item details.');
+            window.Livewire.emit('showConfirmationModal', {
+                title: 'Delete Failed',
+                message: 'Failed to fetch item details.',
+                confirmButtonText: 'Ok',
+                confirmAction: 'closeModal',
+            });
             console.error('Failed to fetch item details:', response.status, response.statusText);
             return;
         }
@@ -856,13 +906,23 @@ async function deleteItem(itemId) { // Renamed from deleteFile to deleteItem
             await loadUserFiles(lastMainSearch, currentPage, currentParentId); // Reload with currentParentId
         } else {
             const errorData = await dbResponse.json();
-            alert(`Failed to delete item from database: ${errorData.message || dbResponse.statusText}`);
+            window.Livewire.emit('showConfirmationModal', {
+                title: 'Delete Failed',
+                message: `Failed to delete item from database: ${errorData.message || dbResponse.statusText}`,
+                confirmButtonText: 'Ok',
+                confirmAction: 'closeModal',
+            });
             console.error('Failed to delete item from database:', dbResponse.status, dbResponse.statusText, errorData);
         }
 
     } catch (error) {
         console.error('Error deleting item:', error);
-        alert(`Error deleting item: ${error.message}. Please try again.`);
+        window.Livewire.emit('showConfirmationModal', {
+            title: 'Delete Failed',
+            message: `Error deleting item: ${error.message}. Please try again.`,
+            confirmButtonText: 'Ok',
+            confirmAction: 'closeModal',
+        });
     }
 }
 

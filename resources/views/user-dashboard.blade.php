@@ -221,6 +221,8 @@
     @push('scripts')
 @endsection
 
+@livewire('confirmation-modal')
+
 @push('scripts')
     @vite(['resources/js/dashboard.js'])
 @endpush
