@@ -32,13 +32,13 @@ class FileController extends Controller
         ]);
 
         $validated = $request->validate([
-            'file_name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_.-]+$/'],
+            'file_name' => ['required', 'string', 'max:255'],
             'parent_id' => 'nullable|exists:files,id,user_id,' . $user->id . ',is_folder,true', // Parent must be a folder owned by the user
             'is_folder' => 'required|boolean',
             // File specific validations - only required if not a folder
             'file_path' => Rule::requiredIf(!$request->boolean('is_folder')) . '|string',
             'file_size' => Rule::requiredIf(!$request->boolean('is_folder')) . '|integer|max:102400', // Max 100MB
-            'file_type' => Rule::requiredIf(!$request->boolean('is_folder')) . '|string',
+            // 'file_type' => Rule::requiredIf(!$request->boolean('is_folder')) . '|string',
             'mime_type' => Rule::requiredIf(!$request->boolean('is_folder')) . '|string|in:application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain',
         ]);
 
@@ -76,7 +76,7 @@ class FileController extends Controller
                 // For files, add file-specific attributes
                 $fileData['file_path'] = $validated['file_path'];
                 $fileData['file_size'] = $validated['file_size'];
-                $fileData['file_type'] = $validated['file_type'];
+                // $fileData['file_type'] = $validated['file_type'];
                 $fileData['mime_type'] = $validated['mime_type'];
             } else {
                 // For folders, construct path with potentially new name

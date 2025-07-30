@@ -6,6 +6,8 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Dashboard - Securedocs</title>
         <link rel="icon" href="{{ asset('logo-white.png') }}" type="image/png"/>
+        @livewireStyles
+
         <script type="module">
             import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
             window.createChat = createChat;
@@ -30,10 +32,12 @@
             window.SUPABASE_URL = "{{ config('services.supabase.url') }}";
             window.SUPABASE_KEY = "{{ config('services.supabase.key') }}";
         </script>
+        <div id="overlay" class="fixed inset-0 bg-black bg-opacity-50 z-50 hidden"></div>
     </head>
     <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
         @yield('content')
         
         @stack('scripts')
+        @livewireScripts
     </body>
 </html>

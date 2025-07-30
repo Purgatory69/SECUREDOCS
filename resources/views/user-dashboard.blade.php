@@ -221,7 +221,8 @@
     @push('scripts')
 @endsection
 
-@livewire('confirmation-modal')
+<!-- Confirmation Modal Component -->
+<x-confirmation-modal id="globalConfirmationModal" />
 
 @push('scripts')
     @vite(['resources/js/dashboard.js'])

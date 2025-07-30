@@ -230,44 +230,86 @@ function initializeN8nChat() {
     }
 }
 
-// --- User Profile Dropdown ---
 function initializeUserProfile() {
+    console.log('🔍 [DEBUG] Initializing user profile dropdown');
+    
     const userProfileBtn = document.getElementById('userProfileBtn');
     const profileDropdown = document.getElementById('profileDropdown');
     const overlay = document.getElementById('overlay');
 
-    if (!userProfileBtn || !profileDropdown || !overlay) return;
+    // Debug: Check if elements exist
+    console.log('🔍 [DEBUG] Elements found:', {
+        userProfileBtn: !!userProfileBtn,
+        profileDropdown: !!profileDropdown,
+        overlay: !!overlay
+    });
 
-    userProfileBtn.addEventListener('click', (e) => {
+    if (!userProfileBtn || !profileDropdown || !overlay) {
+        console.error('❌ [ERROR] Missing profile dropdown elements:', {
+            userProfileBtn: !!userProfileBtn,
+            profileDropdown: !!profileDropdown,
+            overlay: !!overlay
+        });
+        return;
+    }
+
+    // Remove any existing event listeners by cloning the button
+    const newUserProfileBtn = userProfileBtn.cloneNode(true);
+    userProfileBtn.parentNode.replaceChild(newUserProfileBtn, userProfileBtn);
+
+    newUserProfileBtn.addEventListener('click', (e) => {
+        console.log('🟢 [DEBUG] User profile button clicked');
         e.preventDefault();
         e.stopPropagation();
         toggleProfileDropdown();
     });
 
-    overlay.addEventListener('click', hideProfileDropdown);
+    overlay.addEventListener('click', (e) => {
+        console.log('🟡 [DEBUG] Overlay clicked');
+        hideProfileDropdown();
+    });
 
+    // Update the document click listener to use the new button reference
     document.addEventListener('click', (event) => {
-        const isClickInside = userProfileBtn.contains(event.target) || profileDropdown.contains(event.target);
+        const isClickInside = newUserProfileBtn.contains(event.target) || profileDropdown.contains(event.target);
         if (!isClickInside && !profileDropdown.classList.contains('invisible')) {
+            console.log('🟡 [DEBUG] Clicked outside, hiding dropdown');
             hideProfileDropdown();
         }
     });
 
     function toggleProfileDropdown() {
-        profileDropdown.classList.toggle('opacity-0');
-        profileDropdown.classList.toggle('invisible');
-        profileDropdown.classList.toggle('translate-y-[-10px]');
-        overlay.classList.toggle('hidden');
+        console.log('🔄 [DEBUG] Toggling profile dropdown');
+        const isHidden = profileDropdown.classList.contains('invisible');
+        
+        // Log current classes for debugging
+        console.log('🔍 [DEBUG] Current dropdown classes:', profileDropdown.className);
+        
+        if (isHidden) {
+            // Show dropdown
+            profileDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+            overlay.classList.remove('hidden');
+            console.log('✅ [DEBUG] Dropdown shown, new classes:', profileDropdown.className);
+        } else {
+            // Hide dropdown
+            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+            overlay.classList.add('hidden');
+            console.log('✅ [DEBUG] Dropdown hidden, new classes:', profileDropdown.className);
+        }
     }
 
     function hideProfileDropdown() {
+        console.log('🔄 [DEBUG] Hiding profile dropdown');
         profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
         overlay.classList.add('hidden');
     }
+
+    console.log('✅ [DEBUG] User profile initialization complete');
 }
 
 // --- Upload Modal ---
 function initializeUploadModal() {
+    console.log('initializeUploadModal called 1');
     const newBtn = document.getElementById('newBtn');
     const uploadModal = document.getElementById('uploadModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
@@ -283,8 +325,13 @@ function initializeUploadModal() {
 
     if (!newBtn || !uploadModal) return;
 
+    let filesSelected = false; // Track if files are selected
+    
     // Modal show/hide handlers
-    newBtn.addEventListener('click', showUploadModal);
+    newBtn.addEventListener('click', () => {
+        filesSelected = false; // Always reset selection state when opening modal
+        showUploadModal();
+    });
     [closeModalBtn, modalBackdrop, cancelUploadBtn].forEach(element => {
         if (element) {
             element.addEventListener('click', hideUploadModal);
@@ -293,21 +340,105 @@ function initializeUploadModal() {
 
     // Drag and drop functionality
     if (dropZone && fileInput) {
-        dropZone.addEventListener('click', () => fileInput.click());
+        // Add a unique ID to the file input for debugging
+        fileInput.setAttribute('id', 'debugFileInput');
+        
+        // Log all clicks on the file input (for debugging)
+        fileInput.addEventListener('click', (e) => {
+            console.log('🔵 [DEBUG] File input clicked directly', { 
+                event: 'click', 
+                target: e.target.id || 'unknown',
+                time: new Date().toISOString()
+            });
+        });
+
+        // Log all changes to the file input (for debugging)
+        fileInput.addEventListener('change', (e) => {
+            console.log('🟢 [DEBUG] File input changed', { 
+                files: e.target.files.length,
+                event: 'change',
+                time: new Date().toISOString()
+            });
+            handleFiles(fileInput.files);
+        });
+
+        // Modified click handler - prevent triggering when files are already selected
+        let isHandlingClick = false;
+        dropZone.addEventListener('click', (e) => {
+            // Prevent multiple rapid clicks
+            if (isHandlingClick) {
+                console.log('⚠️ [DEBUG] Click already being handled, ignoring');
+                return;
+            }
+            
+            isHandlingClick = true;
+            
+            try {
+                console.log('🟣 [DEBUG] Drop zone clicked', { 
+                    target: e.target.id || e.target.className || 'unknown',
+                    isFileList: !!e.target.closest('#fileList'),
+                    isChangeBtn: !!e.target.closest('#changeFilesBtn'),
+                    time: new Date().toISOString()
+                });
+
+                if (uploadModal.classList.contains('hidden')) {
+                    console.log('⚠️ [DEBUG] Modal is hidden, ignoring click');
+                    return;
+                }
+                
+                if (filesSelected) {
+                    console.log('⚠️ [DEBUG] Files already selected, ignoring click');
+                    return;
+                }
+                
+                if (e.target.closest('#fileList') || e.target.closest('#changeFilesBtn')) {
+                    console.log('⚠️ [DEBUG] Clicked on file list or change button, ignoring');
+                    return;
+                }
+                
+                console.log('🟠 [DEBUG] Triggering file input click from drop zone');
+                fileInput.value = '';
+                fileInput.click();
+            } finally {
+                // Reset the flag after a short delay to prevent double clicks
+                setTimeout(() => {
+                    isHandlingClick = false;
+                }, 100);
+            }
+        });
+        
         dropZone.addEventListener('dragover', handleDragOver);
         dropZone.addEventListener('dragleave', handleDragLeave);
         dropZone.addEventListener('drop', handleDrop);
-        fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+        
+        // Prevent double triggering on file input change
+        fileInput.addEventListener('change', (e) => {
+            e.stopPropagation();
+            handleFiles(fileInput.files);
+        });
     }
 
     // Upload button handler
+    let uploadInProgress = false;
     if (uploadBtn) {
-        uploadBtn.addEventListener('click', handleUpload);
+        uploadBtn.addEventListener('click', async function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (uploadInProgress) return; // Prevent double trigger
+            uploadInProgress = true;
+            try {
+                await handleUpload();
+            } finally {
+                uploadInProgress = false;
+            }
+        });
     }
 
     function showUploadModal() {
         uploadModal.classList.remove('hidden');
         document.body.classList.add('overflow-hidden');
+        // filesSelected is now reset by newBtn click handler
     }
 
     function hideUploadModal() {
@@ -317,6 +448,7 @@ function initializeUploadModal() {
     }
 
     function resetUploadForm() {
+        filesSelected = false;
         if (fileInput) fileInput.value = '';
         if (fileList) {
             fileList.classList.add('hidden');
@@ -326,29 +458,46 @@ function initializeUploadModal() {
         if (uploadProgress) uploadProgress.classList.add('hidden');
         if (progressBar) progressBar.style.width = '0%';
         if (progressPercentage) progressPercentage.textContent = '0%';
+        // Show the drop zone content again
+        const dropZoneContent = dropZone.querySelector('.flex.flex-col.items-center');
+        if (dropZoneContent) {
+            dropZoneContent.style.display = 'flex';
+        }
     }
 
     function handleDragOver(e) {
         e.preventDefault();
+        e.stopPropagation();
         dropZone.classList.add('border-primary');
     }
 
-    function handleDragLeave() {
+    function handleDragLeave(e) {
+        e.preventDefault();
+        e.stopPropagation();
         dropZone.classList.remove('border-primary');
     }
 
     function handleDrop(e) {
         e.preventDefault();
+        e.stopPropagation();
         dropZone.classList.remove('border-primary');
         handleFiles(e.dataTransfer.files);
     }
 
     function handleFiles(files) {
         if (files.length > 0 && fileList && uploadBtn) {
+            filesSelected = true; // Mark files as selected
+            
             fileList.classList.remove('hidden');
-            fileList.innerHTML = '<div class="text-sm font-medium">Selected Files:</div>';
+            fileList.innerHTML = '<div class="text-sm font-medium mb-2">Selected Files:</div>';
             uploadBtn.disabled = false;
-
+    
+            // Hide the original drop zone content when files are selected
+            const dropZoneContent = dropZone.querySelector('.flex.flex-col.items-center');
+            if (dropZoneContent) {
+                dropZoneContent.style.display = 'none';
+            }
+    
             Array.from(files).forEach(file => {
                 if (file.size > 102400000) {
                     const errorItem = document.createElement('div');
@@ -363,7 +512,7 @@ function initializeUploadModal() {
                     fileList.appendChild(errorItem);
                     return;
                 }
-
+    
                 const fileItem = document.createElement('div');
                 fileItem.className = 'flex items-center justify-between text-sm py-1';
                 fileItem.innerHTML = `
@@ -375,9 +524,64 @@ function initializeUploadModal() {
                 `;
                 fileList.appendChild(fileItem);
             });
+    
+            // Add a "Choose different files" button
+            const changeFilesBtn = document.createElement('div');
+            changeFilesBtn.className = 'text-center mt-3 pt-2 border-t border-border-color';
+            changeFilesBtn.innerHTML = `
+                <button type="button" class="text-primary hover:underline text-sm" id="changeFilesBtn">
+                    Choose different files
+                </button>
+            `;
+            fileList.appendChild(changeFilesBtn);
+    
+            // Add event listener for the "choose different files" button
+            const changeBtn = changeFilesBtn.querySelector('#changeFilesBtn');
+            if (changeBtn) {
+                // Remove previous event listeners by replacing the node
+                const newChangeBtn = changeBtn.cloneNode(true);
+                changeBtn.parentNode.replaceChild(newChangeBtn, changeBtn);
+                newChangeBtn.addEventListener('click', (e) => {
+                    console.log('🔴 [DEBUG] Change files button clicked', { 
+                        time: new Date().toISOString() 
+                    });
+                    
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    // Reset the state
+                    filesSelected = false;
+                    
+                    // Show drop zone content again
+                    const dropZoneContent = dropZone.querySelector('.flex.flex-col.items-center');
+                    if (dropZoneContent) {
+                        dropZoneContent.style.display = 'flex';
+                    }
+                    
+                    // Hide file list
+                    fileList.classList.add('hidden');
+                    fileList.innerHTML = '<div class="text-sm font-medium">Selected Files:</div>';
+                    
+                    // Reset file input and disable upload button
+                    fileInput.value = '';
+                    uploadBtn.disabled = true;
+                    
+                    // Remove focus from button
+                    newChangeBtn.blur();
+                    
+                    console.log('🟠 [DEBUG] Triggering file input click from change files button');
+                    
+                    // Use a small delay to ensure the previous click is fully processed
+                    setTimeout(() => {
+                        fileInput.value = ''; // Ensure it's reset
+                        fileInput.click();
+                    }, 10);
+                });
+            }
         }
     }
 
+    // Rest of your upload functions remain the same...
     async function handleUpload() {
         const files = fileInput.files;
         if (files.length === 0) return;
@@ -404,14 +608,14 @@ function initializeUploadModal() {
 
             if (error) {
                 console.error('Upload error:', error);
-                window.Livewire.emit('showConfirmationModal', {
+                showConfirmationModal({
                     title: 'Upload Failed',
                     message: `Upload failed: ${error.message}`,
                     confirmButtonText: 'Ok',
                     confirmAction: 'closeModal',
                 });
             } else {
-                window.Livewire.emit('showConfirmationModal', {
+                showConfirmationModal({
                     title: 'Upload Successful',
                     message: 'File uploaded successfully!',
                     confirmButtonText: 'Ok',
@@ -429,29 +633,69 @@ function initializeUploadModal() {
     }
 
     async function saveFileMetadata(file, filePath) {
+        console.log('🔄 [DEBUG] Starting saveFileMetadata', { 
+            fileName: file.name,
+            filePath,
+            time: new Date().toISOString() 
+        });
+
         try {
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+            if (!csrfToken) {
+                console.error('❌ [ERROR] CSRF token not found');
+                return;
+            }
+
+            console.log('📤 [DEBUG] Sending request to /files', {
+                file_name: file.name,
+                file_path: filePath,
+                file_size: file.size,
+                mime_type: file.type,
+                parent_id: currentParentId || null,
+                is_folder: false,
+                time: new Date().toISOString()
+            });
+
             const response = await fetch('/files', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
                 },
                 body: JSON.stringify({
                     file_name: file.name,
                     file_path: filePath,
                     file_size: file.size,
-                    file_type: file.type,
                     mime_type: file.type,
-                    is_folder: false, // Explicitly set for file uploads
-                    parent_id: currentParentId // Associate with the current folder
+                    parent_id: currentParentId || null,
+                    is_folder: false
                 })
             });
 
+            console.log('📥 [DEBUG] Received response from /files', {
+                status: response.status,
+                statusText: response.statusText,
+                time: new Date().toISOString()
+            });
+
+            const responseData = await response.json();
+            console.log('📄 [DEBUG] Response data:', responseData);
+
             if (!response.ok) {
-                throw new Error('Failed to save file metadata');
+                throw new Error(responseData.message || 'Failed to save file metadata');
             }
+
+            console.log('✅ [DEBUG] File metadata saved successfully');
+            return responseData;
         } catch (error) {
-            console.error('Metadata save error:', error);
+            console.error('❌ [ERROR] Error in saveFileMetadata:', {
+                error: error.message,
+                stack: error.stack,
+                time: new Date().toISOString()
+            });
+            throw error;
         }
     }
 }
@@ -472,19 +716,21 @@ function initializeFileManagement() {
                 `Are you sure you want to delete the file "${itemName}"?`;
 
             if (itemId) {
-                window.Livewire.emit('showConfirmationModal', {
-                    title: 'Delete Item',
+                // Use the confirmation modal component
+                const confirmed = await window.showConfirmationModal({
+                    title: isFolder ? 'Delete Folder' : 'Delete File',
                     message: confirmationMessage,
                     confirmButtonText: 'Delete',
-                    confirmAction: 'deleteItem',
-                    itemId: itemId,
+                    confirmButtonClass: 'bg-red-600 hover:bg-red-700',
+                    cancelButtonText: 'Cancel'
                 });
+                
+                if (confirmed) {
+                    // Call the delete function directly
+                    await deleteItem(itemId);
+                }
             }
         }
-    });
-
-    window.Livewire.on('deleteItem', async ({ itemId }) => {
-        await deleteItem(itemId);
     });
 
     // Pagination click handler
@@ -780,7 +1026,7 @@ async function downloadFile(fileId) { // fileId here is actually itemId
     try {
         const response = await fetch(`/files/${fileId}`); // Use generic itemId
         if (!response.ok) {
-            window.Livewire.emit('showConfirmationModal', {
+            showConfirmationModal({
                 title: 'Download Failed',
                 message: 'Failed to fetch file details.',
                 confirmButtonText: 'Ok',
@@ -795,7 +1041,7 @@ async function downloadFile(fileId) { // fileId here is actually itemId
         const fileName = fileData.file_name;
 
         if (!filePath) {
-            window.Livewire.emit('showConfirmationModal', {
+            showConfirmationModal({
                 title: 'Download Failed',
                 message: 'File path missing in file data. Cannot download file.',
                 confirmButtonText: 'Ok',
@@ -808,7 +1054,7 @@ async function downloadFile(fileId) { // fileId here is actually itemId
         const { data, error } = supabase.storage.from('docs').getPublicUrl(filePath);
         
         if (error) {
-            window.Livewire.emit('showConfirmationModal', {
+            showConfirmationModal({
                 title: 'Download Failed',
                 message: 'Error generating download URL: ' + error.message,
                 confirmButtonText: 'Ok',
@@ -819,7 +1065,7 @@ async function downloadFile(fileId) { // fileId here is actually itemId
         }
 
         if (!data?.publicUrl) {
-            window.Livewire.emit('showConfirmationModal', {
+            showConfirmationModal({
                 title: 'Download Failed',
                 message: 'Could not generate download URL.',
                 confirmButtonText: 'Ok',
@@ -838,7 +1084,7 @@ async function downloadFile(fileId) { // fileId here is actually itemId
 
     } catch (error) {
         console.error('Error downloading file:', error);
-        window.Livewire.emit('showConfirmationModal', {
+        showConfirmationModal({
             title: 'Download Failed',
             message: 'Error downloading file. Please try again.',
             confirmButtonText: 'Ok',
@@ -852,7 +1098,7 @@ async function deleteItem(itemId) { // Renamed from deleteFile to deleteItem
         // Get item details first to check if it's a folder and to get path for files
         const response = await fetch(`/files/${itemId}`); // Endpoint remains /files/:id for fetching
         if (!response.ok) {
-            window.Livewire.emit('showConfirmationModal', {
+            showConfirmationModal({
                 title: 'Delete Failed',
                 message: 'Failed to fetch item details.',
                 confirmButtonText: 'Ok',
@@ -906,7 +1152,7 @@ async function deleteItem(itemId) { // Renamed from deleteFile to deleteItem
             await loadUserFiles(lastMainSearch, currentPage, currentParentId); // Reload with currentParentId
         } else {
             const errorData = await dbResponse.json();
-            window.Livewire.emit('showConfirmationModal', {
+            showConfirmationModal({
                 title: 'Delete Failed',
                 message: `Failed to delete item from database: ${errorData.message || dbResponse.statusText}`,
                 confirmButtonText: 'Ok',
@@ -917,7 +1163,7 @@ async function deleteItem(itemId) { // Renamed from deleteFile to deleteItem
 
     } catch (error) {
         console.error('Error deleting item:', error);
-        window.Livewire.emit('showConfirmationModal', {
+        showConfirmationModal({
             title: 'Delete Failed',
             message: `Error deleting item: ${error.message}. Please try again.`,
             confirmButtonText: 'Ok',
@@ -926,13 +1172,7 @@ async function deleteItem(itemId) { // Renamed from deleteFile to deleteItem
     }
 }
 
-// --- Event Listeners for Livewire Integration ---
-document.addEventListener('livewire:load', () => {
-    console.log('Livewire loaded, reinitializing dashboard...');
-    initializeApp();
-});
-
-document.addEventListener('livewire:update', () => {
-    console.log('Livewire updated, reinitializing dashboard...');
+// Initialize the app when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
 });
