@@ -2,181 +2,96 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use App\Models\User;
-use LaravelWebauthn\Models\WebauthnKey;
-use LaravelWebauthn\Services\Webauthn as WebauthnService;
-use LaravelWebauthn\Facades\Webauthn;
-use Illuminate\Validation\ValidationException;
+use Laragear\WebAuthn\Http\Requests\AssertionRequest;
+use Laragear\WebAuthn\Http\Requests\AssertedRequest;
+use Laragear\WebAuthn\Http\Requests\AttestationRequest;
+use Laragear\WebAuthn\Http\Requests\AttestedRequest;
+use Laragear\WebAuthn\Models\WebAuthnCredential;
 
 class WebAuthnController extends Controller
 {
-    protected $webauthn;
-
     /**
-     * Create a new controller instance.
-     */
-    public function __construct(WebauthnService $webauthn)
-    {
-        $this->webauthn = $webauthn;
-        $this->middleware('auth', ['except' => ['loginOptions', 'loginVerify']]);
-    }
-
-    /**
-     * Show the WebAuthn management page.
+     * Display the WebAuthn credentials management page.
      */
     public function index()
     {
-        $webauthnKeys = Auth::user()->webauthnKeys;
-        
-        return view('webauthn.manage', [
-            'webauthnKeys' => $webauthnKeys,
-        ]);
+        $user = Auth::user();
+        $credentials = $user ? $user->webAuthnCredentials : collect();
+        return view('webauthn.manage', compact('credentials'));
     }
 
     /**
-     * Delete a WebAuthn key.
+     * Delete a WebAuthn credential.
      */
     public function destroy($id)
     {
-        $key = WebauthnKey::where('id', $id)
-            ->where('user_id', Auth::id())
-            ->firstOrFail();
+        $credential = WebAuthnCredential::findOrFail($id);
 
-        $key->delete();
-
-        return redirect()->route('webauthn.index')
-            ->with('status', 'Device removed successfully.');
-    }
-    
-    /**
-     * Register a new WebAuthn device.
-     */
-    public function register(Request $request)
-    {
-        $this->validate($request, [
-            'name' => 'required|string|max:255',
-        ]);
-        
-        return view('webauthn.register', [
-            'name' => $request->input('name'),
-        ]);
-    }
-    
-    /**
-     * Get registration options for WebAuthn.
-     */
-    public function registerOptions(Request $request)
-    {
-        $this->validate($request, [
-            'name' => 'required|string|max:255',
-        ]);
-        
-        try {
-            $options = Webauthn::prepareAttestation(Auth::user());
-            return response()->json($options);
-        } catch (\Exception $e) {
-            Log::error('WebAuthn registration options error: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to create registration options'], 500);
+        if ($credential->authenticatable_id !== Auth::id()) {
+            abort(403);
         }
+
+        $credential->delete();
+
+        return back()->with('status', 'Security key removed successfully.');
     }
-    
+
     /**
-     * Verify the registration response from the authenticator.
+     * Generate the options for logging in with a security key.
      */
-    public function registerVerify(Request $request)
+    public function loginOptions(AssertionRequest $request)
     {
-        $this->validate($request, [
-            'name' => 'required|string|max:255',
-            'data' => 'required',
-        ]);
-        
-        try {
-            $registered = Webauthn::register(       
-                Auth::user(),
-                $request->input('data'),
-                $request->input('name')
-            );
-            
-            if ($registered) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Device registered successfully',
-                ]);
-            }
-            
-            return response()->json([
-                'success' => false,
-                'message' => 'Device registration failed',
-            ], 400);
-        } catch (\Exception $e) {
-            Log::error('WebAuthn registration verification error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Device registration failed: ' . $e->getMessage(),
-            ], 500);
+        return $request->toVerify($request->validate(['email' => 'sometimes|email|string']));
+    }
+
+    /**
+     * Verify the login assertion and log the user in.
+     */
+    public function loginVerify(AssertedRequest $request)
+    {
+        if ($user = $request->login()) {
+            Auth::login($user);
+            return response()->json(['verified' => true, 'redirect' => url('/redirect-after-login')]);
         }
+
+        return response()->json(['verified' => false, 'message' => 'Authentication failed'], 401);
     }
-    
+
     /**
-     * Get login options for WebAuthn.
+     * Generate the options for registering a new security key.
      */
-    public function loginOptions(Request $request)
+    public function registerOptions(AttestationRequest $request)
+    {
+        return $request->toCreate($request->user());
+    }
+
+    /**
+     * Save the new security key to the database.
+     */
+    public function registerVerify(AttestedRequest $request)
     {
         try {
-            $request->validate(['email' => 'required|email']);
-            $email = $request->input('email');
+            $credential = $request->save();
 
-            $user = User::where('email', $email)->first();
-
-            if (! $user) {
-                return response()->json(['error' => 'User not found.'], 404);
-            }
-
-            $options = Webauthn::prepareAssertion($user);
-            return response()->json($options);
-        } catch (ValidationException $e) {
-            return response()->json(['error' => 'Validation failed', 'messages' => $e->errors()], 422);
+            return response()->json([
+                'success' => true,
+                'message' => 'Security key registered successfully',
+                'credential' => $credential
+            ]);
         } catch (\Exception $e) {
-            Log::error('WebAuthn login options error: ' . $e->getMessage());
-            return response()->json(['error' => 'Failed to create login options: ' . $e->getMessage()], 500);
-        }
-    }
-    
-    /**
-     * Verify the login response from the authenticator.
-     */
-    public function loginVerify(Request $request)
-    {
-        $this->validate($request, [
-            'data' => 'required',
-        ]);
-        
-        try {
-            $user = Webauthn::login($request->input('data'));
-            
-            if ($user) {
-                Auth::login($user);
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Login successful',
-                    'redirect' => route('dashboard'),
-                ]);
-            }
-            
+            Log::error('WebAuthn registration error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
             return response()->json([
                 'success' => false,
-                'message' => 'Login failed',
-            ], 401);
-        } catch (\Exception $e) {
-            Log::error('WebAuthn login verification error: ' . $e->getMessage());
-            return response()->json([
-                'success' => false,
-                'message' => 'Login failed: ' . $e->getMessage(),
-            ], 500);
+                'message' => 'Registration failed: ' . $e->getMessage()
+            ], 422);
         }
     }
 }

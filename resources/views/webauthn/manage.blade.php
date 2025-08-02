@@ -1,105 +1,176 @@
+
 @extends('layouts.webauthn')
 
 @section('content')
-<div class="min-h-screen bg-gray-100 py-6 flex flex-col justify-center sm:py-12">
-    <div class="relative py-3 sm:max-w-xl md:max-w-2xl lg:max-w-4xl mx-auto">
-        <div class="relative px-4 py-10 bg-white shadow-lg sm:rounded-3xl sm:p-20">
-            <div class="max-w-md mx-auto">
-                <div>
-                    <h1 class="text-2xl font-semibold text-gray-900">{{ __('Biometric Authentication') }}</h1>
-                </div>
-                <div class="divide-y divide-gray-200">
-                    <div class="py-8 text-base leading-6 space-y-4 text-gray-700 sm:text-lg sm:leading-7">
-                        
-                        <h2 class="text-xl font-semibold text-gray-800">{{ __('Registered Devices') }}</h2>
-                        
-                        @if($webauthnKeys && count($webauthnKeys) > 0)
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200 mt-3">
-                                    <thead class="bg-gray-50">
-                                        <tr>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                {{ __('Device Name') }}
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                {{ __('Added On') }}
-                                            </th>
-                                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                                {{ __('Actions') }}
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody class="bg-white divide-y divide-gray-200">
-                                        @foreach($webauthnKeys as $key)
-                                            <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                                                    {{ $key->name }}
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                                    {{ $key->created_at->format('M d, Y') }}
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                                    <form method="POST" action="{{ route('webauthn.keys.destroy', $key->id) }}" onsubmit="return confirm('{{ __('Are you sure you want to remove this device?') }}');">
-                                                        @csrf
-                                                        @method('DELETE')
-                                                        <button type="submit" class="text-red-600 hover:text-red-900">
-                                                            {{ __('Remove') }}
-                                                        </button>
-                                                    </form>
-                                                </td>
-                                            </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
-                            </div>
-                        @else
-                            <div class="mt-3 bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4" role="alert">
-                                <p class="font-bold">{{ __('Info') }}</p>
-                                <p>{{ __('No devices registered yet.') }}</p>
-                            </div>
-                        @endif
-
-                        <hr class="my-8 border-gray-300">
-
-                        <h2 class="text-xl font-semibold text-gray-800 mt-6">{{ __('Register New Device') }}</h2>
-                        <p class="text-gray-600 text-sm">{{ __('Add a new device for biometric login (fingerprint, face recognition, etc.)') }}</p>
-                        
-                        <form method="POST" action="{{ route('webauthn.register.options') }}" class="mt-6 space-y-6" id="webauthn-register-form">
-                            @csrf
-                            <div>
-                                <label for="device-name" class="block text-sm font-medium text-gray-700">{{ __('Device Name') }}</label>
-                                <input id="device-name" type="text" class="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm @error('name') border-red-500 @enderror" name="name" required autofocus placeholder="My iPhone, Work Laptop, etc.">
-                                
-                                @error('name')
-                                    <p class="mt-2 text-sm text-red-600">{{ $message }}</p>
-                                @enderror
-                            </div>
-
-                            <div>
-                                <button type="button" id="register-device-button" 
-                                        class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
-                                    {{ __('Register Device') }}
-                                </button>
-                            </div>
-                        </form>
+    <div class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+        <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
+            <div class="p-6 bg-white border-b border-gray-200">
+                <h2 class="text-2xl font-semibold mb-6">Manage Security Keys</h2>
+                
+                @if (session('status'))
+                    <div class="mb-4 font-medium text-sm text-green-600">
+                        {{ session('status') }}
                     </div>
+                @endif
+
+                <div class="mb-6">
+                    <button onclick="registerNewKey()" class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700 active:bg-gray-900 focus:outline-none focus:border-gray-900 focus:ring focus:ring-gray-300 disabled:opacity-25 transition">
+                        Register New Security Key
+                    </button>
+                </div>
+
+                <div class="bg-white shadow overflow-hidden sm:rounded-md">
+                    <ul class="divide-y divide-gray-200">
+                        @forelse ($credentials as $credential)
+                            <li>
+                                <div class="px-4 py-4 flex items-center sm:px-6">
+                                    <div class="min-w-0 flex-1 sm:flex sm:items-center sm:justify-between">
+                                        <div class="truncate">
+                                            <div class="flex text-sm">
+                                                <p class="font-medium text-indigo-600 truncate">{{ $credential->name }}</p>
+                                                <p class="ml-1 flex-shrink-0 font-normal text-gray-500">({{ $credential->created_at->diffForHumans() }})</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="ml-5 flex-shrink-0">
+                                        <form action="{{ route('webauthn.keys.destroy', $credential->id) }}" method="POST" class="inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to remove this security key?')">
+                                                Remove
+                                            </button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </li>
+                        @empty
+                            <li class="text-center py-4 text-gray-500">
+                                No security keys registered yet.
+                            </li>
+                        @endforelse
+                    </ul>
                 </div>
             </div>
         </div>
     </div>
-</div>
 
+    @push('scripts')
+    <script>
+    // Helper function to convert base64url to ArrayBuffer
+    function base64urlToArrayBuffer(base64url) {
+        const base64 = base64url.replace(/\-/g, '+').replace(/_/g, '/');
+        const binaryString = window.atob(base64);
+        const len = binaryString.length;
+        const bytes = new Uint8Array(len);
+        for (let i = 0; i < len; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+        }
+        return bytes.buffer;
+    }
+
+    async function registerNewKey() {
+        const button = event.target;
+        const originalText = button.innerHTML;
+        
+        try {
+            // Show loading state
+            button.disabled = true;
+            button.innerHTML = 'Preparing...';
+            
+            // Get registration options
+            const optionsResponse = await fetch('/webauthn/register/options', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    name: 'Security Key ' + new Date().toLocaleString()
+                })
+            });
+            
+            if (!optionsResponse.ok) {
+                const error = await optionsResponse.json();
+                throw new Error(error.message || 'Failed to get registration options');
+            }
+            
+            const options = await optionsResponse.json();
+            
+            // Convert challenge and user.id to ArrayBuffer
+            if (options.challenge) {
+                options.challenge = base64urlToArrayBuffer(options.challenge);
+            }
+            
+            if (options.user && options.user.id) {
+                options.user.id = base64urlToArrayBuffer(options.user.id);
+            }
+            
+            // Ensure required parameters are set
+            options.authenticatorSelection = options.authenticatorSelection || {
+                requireResidentKey: false,
+                userVerification: 'preferred'
+            };
+            
+            options.attestation = options.attestation || 'none';
+            
+            // Create the credential
+            button.innerHTML = 'Waiting for security key...';
+            
+            const credential = await navigator.credentials.create({
+                publicKey: options
+            });
+            
+            // Convert ArrayBuffers to base64url for JSON
+            const publicKeyCredential = {
+                id: credential.id,
+                rawId: btoa(String.fromCharCode(...new Uint8Array(credential.rawId)))
+                    .replace(/\+/g, '-')
+                    .replace(/\//g, '_')
+                    .replace(/=+$/, ''),
+                type: credential.type,
+                response: {
+                    clientDataJSON: btoa(String.fromCharCode(...new Uint8Array(credential.response.clientDataJSON)))
+                        .replace(/\+/g, '-')
+                        .replace(/\//g, '_')
+                        .replace(/=+$/, ''),
+                    attestationObject: btoa(String.fromCharCode(...new Uint8Array(credential.response.attestationObject)))
+                        .replace(/\+/g, '-')
+                        .replace(/\//g, '_')
+                        .replace(/=+$/, ''),
+                    transports: credential.response.getTransports ? credential.response.getTransports() : [],
+                },
+                clientExtensionResults: credential.getClientExtensionResults(),
+            };
+            
+            // Send the credential to the server
+            button.innerHTML = 'Verifying...';
+            
+            const response = await fetch('/webauthn/register/verify', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify(publicKeyCredential)
+            });
+            
+            const result = await response.json();
+            
+            if (response.ok) {
+                alert('Security key registered successfully!');
+                window.location.reload();
+            } else {
+                throw new Error(result.message || 'Registration failed');
+            }
+        } catch (error) {
+            console.error('WebAuthn error:', error);
+            alert('Failed to register security key: ' + (error.message || 'Unknown error occurred'));
+            button.innerHTML = originalText;
+            button.disabled = false;
+        }
+    }
+    </script>
+    @endpush
 @endsection
-
-@push('scripts')
-<script>
-    // Basic CSRF setup for fetch requests if not already handled globally
-    const csrfToken = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-
-    // Consider moving webauthn-handler.js logic here or ensuring it's loaded and initialized correctly
-    // For example, if webauthn-handler.js relies on DOMContentLoaded, it should be fine as a separate file.
-    // If it needs specific data from Blade, you might pass it here.
-</script>
-{{-- Include your webauthn-handler.js if it's not part of the main app.js bundle --}}
-{{-- @vite('resources/js/webauthn-handler.js') --}}
-@endpush
