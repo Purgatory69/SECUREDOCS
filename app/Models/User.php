@@ -2,19 +2,24 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
+use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\WebAuthnCredential;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
 use Laravel\Sanctum\HasApiTokens;
-use LaravelWebauthn\Models\WebauthnKey;
+use Laragear\WebAuthn\WebAuthnAuthentication;
+use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
 
-class User extends Authenticatable
+
+
+class User extends Authenticatable implements WebAuthnAuthenticatable
 {
     use HasApiTokens;
-
+    use WebAuthnAuthentication;
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasFactory;
     use HasProfilePhoto;
@@ -54,8 +59,6 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'two_factor_recovery_codes',
-        'two_factor_secret',
     ];
 
     /**
@@ -88,6 +91,16 @@ class User extends Authenticatable
     public function hasRole(string $role): bool
     {
         return $this->role === $role;
+    }
+
+    /**
+     * Get the WebAuthn user handle for the user.
+     *
+     * @return string
+     */
+    public function getWebAuthnIdentifier(): string
+    {
+        return (string) $this->getKey();
     }
 
     /**
@@ -129,10 +142,12 @@ class User extends Authenticatable
     }
 
     /**
-     * Get the WebAuthn keys for the user.
+     * Get the WebAuthn credentials for the user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\MorphMany
      */
-    public function webauthnKeys()
+    public function webAuthnCredentials(): \Illuminate\Database\Eloquent\Relations\MorphMany
     {
-        return $this->hasMany(WebauthnKey::class);
+        return $this->morphMany(\Laragear\WebAuthn\Models\WebAuthnCredential::class, 'authenticatable');
     }
 }

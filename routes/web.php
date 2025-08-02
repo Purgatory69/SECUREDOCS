@@ -4,27 +4,15 @@ use Illuminate\Support\Facades\Route;
 use App\Livewire\Dashboard;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
-
+use App\Http\Controllers\WebAuthnController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/test-google-drive-upload', function () {
-    try {
-        Storage::disk('google')->put('test.txt', 'Hello Google Drive from Laravel!');
-        return 'File uploaded to Google Drive successfully!';
-    } catch (\Exception $e) {
-        return 'Error uploading file: ' . $e->getMessage();
-    }
-});
-
-Route::get('/google-drive/authorize', [App\Http\Controllers\GoogleDriveController::class, 'authorizeGoogleDrive'])->name('google.drive.authorize');
-Route::get('/google-drive/callback', [App\Http\Controllers\GoogleDriveController::class, 'handleGoogleDriveCallback'])->name('google.drive.callback');
-
 // WebAuthn authentication routes
-Route::post('/webauthn/login/options', [App\Http\Controllers\WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
-Route::post('/webauthn/login/verify', [App\Http\Controllers\WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
+Route::post('/webauthn/login/options', [WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
+Route::post('/webauthn/login/verify', [WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
 
 Route::middleware([
     'auth:sanctum',
@@ -36,9 +24,6 @@ Route::middleware([
         // Middleware will handle the redirect
     })->middleware(['auth', \App\Http\Middleware\RedirectIfHasRole::class]);
     
-    Route::get('/dashboard', function () {
-        return view('dashboard');
-    });
 
     // Admin dashboard
     Route::get('/admin/dashboard', [AdminController::class, 'dashboard'])->name('admin.dashboard');
@@ -69,13 +54,10 @@ Route::middleware([
     Route::post('/folders', [App\Http\Controllers\FileController::class, 'createFolder'])->name('folders.create');
     
     // WebAuthn routes
-    Route::get('/webauthn', [App\Http\Controllers\WebAuthnController::class, 'index'])->name('webauthn.index');
-    Route::delete('/webauthn/keys/{id}', [App\Http\Controllers\WebAuthnController::class, 'destroy'])->name('webauthn.keys.destroy');
-
-    // WebAuthn registration routes
-    // Route::get('/webauthn/register', [App\Http\Controllers\WebAuthnController::class, 'registerShow'])->name('webauthn.register'); // Removed as manage.blade.php handles this
-    Route::post('/webauthn/register/options', [App\Http\Controllers\WebAuthnController::class, 'registerOptions'])->name('webauthn.register.options');
-    Route::post('/webauthn/register/verify', [App\Http\Controllers\WebAuthnController::class, 'registerVerify'])->name('webauthn.register.verify');
+    Route::get('/webauthn', [WebAuthnController::class, 'index'])->name('webauthn.index');
+    Route::delete('/webauthn/keys/{id}', [WebAuthnController::class, 'destroy'])->name('webauthn.keys.destroy');
+    Route::post('/webauthn/register/options', [WebAuthnController::class, 'registerOptions'])->name('webauthn.register.options');
+    Route::post('/webauthn/register/verify', [WebAuthnController::class, 'registerVerify'])->name('webauthn.register.verify');
 
     // WebAuthn-protected routes
     Route::middleware(['auth', 'auth.webauthn'])->group(function () {
@@ -86,5 +68,4 @@ Route::middleware([
 
     // User public info for chat widget
     Route::get('/user/{id}', [UserController::class, 'showPublic'])->name('user.show_public');
-    
 });
