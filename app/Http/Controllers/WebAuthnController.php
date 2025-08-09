@@ -62,7 +62,7 @@ class WebAuthnController extends Controller
     }
 
     /**
-     * Generate the options for registering a new security key.
+     * Generate the optplaraions for registering a new security key.
      */
     public function registerOptions(AttestationRequest $request)
     {
