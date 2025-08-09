@@ -1,336 +1,488 @@
 <?php
+
 namespace App\Http\Controllers;
 
+use App\Models\File;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use App\Models\File;
 use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB; // Added for DB facade
-use PDO; // Added for PDO constants
-
-// If Illuminate\Support\Facades\Storage was used by other methods, keep it.
-// Otherwise, it can be removed if only store method used it and no longer does.
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\RequestException;
+use Illuminate\Support\Str;
 
 class FileController extends Controller
 {
     /**
-     * Store file metadata, then send it to an n8n webhook.
-     * Also handles folder creation if is_folder is true.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
-     */
-    public function store(Request $request)
-    {
-        $user = Auth::user();
-
-        Log::info('File/Folder store request received', [
-            'user_id' => $user->id,
-            'request_data' => $request->all()
-        ]);
-
-        $validated = $request->validate([
-            'file_name' => ['required', 'string', 'max:255', 'regex:/^[a-zA-Z0-9_.-]+$/'],
-            'parent_id' => 'nullable|exists:files,id,user_id,' . $user->id . ',is_folder,true', // Parent must be a folder owned by the user
-            'is_folder' => 'required|boolean',
-            // File specific validations - only required if not a folder
-            'file_path' => Rule::requiredIf(!$request->boolean('is_folder')) . '|string',
-            'file_size' => Rule::requiredIf(!$request->boolean('is_folder')) . '|integer|max:102400', // Max 100MB
-            'file_type' => Rule::requiredIf(!$request->boolean('is_folder')) . '|string',
-            'mime_type' => Rule::requiredIf(!$request->boolean('is_folder')) . '|string|in:application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain',
-        ]);
-
-        try {
-            $fileData = [
-                'user_id' => $user->id,
-                'file_name' => $validated['file_name'],
-                'parent_id' => $validated['parent_id'] ?? null,
-                // Workaround: Consistently use string 'true'/'false' for boolean
-                'is_folder' => $validated['is_folder'] ? 'true' : 'false',
-            ];
-
-            // --- START: Duplicate Folder Name Handling ---
-            if ($validated['is_folder']) {
-                $baseName = $validated['file_name'];
-                $parentId = $validated['parent_id'] ?? null;
-                $newName = $baseName;
-                $copyIndex = 1;
-
-                // Check for existing folders with the same name in the same parent
-                while (File::where('file_name', $newName)
-                        ->where('parent_id', $parentId)
-                        ->where('user_id', $user->id) // Ensure check is scoped to the user
-                        ->whereRaw('is_folder IS TRUE') // Use whereRaw for unambiguous boolean check
-                        ->exists()) {
-                    $newName = $baseName . ' COPY(' . $copyIndex . ')';
-                    $copyIndex++;
-                }
-                // Update the name in our data array
-                $fileData['file_name'] = $newName;
-            }
-            // --- END: Duplicate Folder Name Handling ---
-
-            if (!$validated['is_folder']) {
-                // For files, add file-specific attributes
-                $fileData['file_path'] = $validated['file_path'];
-                $fileData['file_size'] = $validated['file_size'];
-                $fileData['file_type'] = $validated['file_type'];
-                $fileData['mime_type'] = $validated['mime_type'];
-            } else {
-                // For folders, construct path with potentially new name
-                $parentPath = $validated['parent_id'] ? (File::find($validated['parent_id'])->file_path) : ('user_' . $user->id);
-                $fileData['file_path'] = $parentPath . '/' . $fileData['file_name'];
-                $fileData['mime_type'] = 'inode/directory'; // Common practice for representing folders
-            }
-            
-            Log::info('Creating file/folder record in DB', ['data' => $fileData, 'user_id' => $user->id]);
-            $file = File::create($fileData);
-            Log::info('File/Folder record created successfully', ['id' => $file->id, 'user_id' => $user->id, 'is_folder' => $file->is_folder]);
-
-            // After successful creation, find the file to return it
-            $newFile = DB::table('files')->where('user_id', $user->id)->where('parent_id', $fileData['parent_id'])->where('file_name', $fileData['file_name'])->first();
-
-            Log::info('File/Folder created successfully via DB facade', ['file' => $newFile, 'user_id' => $user->id]);
-
-            // Only send to n8n if it's a file, not a folder
-            if (!$newFile->is_folder) {
-                // Re-implementing synchronous n8n call
-                try {
-                    $supabaseUrl = rtrim(env('SUPABASE_URL'), '/');
-                    $bucketName = env('SUPABASE_BUCKET_PUBLIC');
-                    $publicUrl = "{$supabaseUrl}/storage/v1/object/public/{$bucketName}/{$newFile->file_path}";
-
-                    $webhookUrl = config('services.n8n.webhook_url');
-
-                    if ($webhookUrl) {
-                        Http::post($webhookUrl, [
-                            'file_id' => $newFile->id,
-                            'file_name' => $newFile->file_name,
-                            'file_path' => $newFile->file_path,
-                            'mime_type' => $newFile->mime_type,
-                            'public_url' => $publicUrl,
-                            'user_id' => $user->id,
-                            'user_email' => $user->email,
-                        ]);
-                        Log::info('Successfully sent file to n8n webhook.', ['file_id' => $newFile->id]);
-                    } else {
-                        Log::warning('N8N_WEBHOOK_URL is not configured. Skipping webhook call.');
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Failed to send file to n8n webhook.', ['file_id' => $newFile->id, 'error' => $e->getMessage()]);
-                }
-            }
-
-            return response()->json($newFile, 201);
-
-        } catch (\Exception $e) {
-            Log::error('File/Folder save error to DB: '.$e->getMessage(), [
-                'user_id' => $user->id,
-                'exception_details' => $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine(),
-                'validated_data' => $validated ?? null
-            ]);
-            return response()->json(['error' => 'Server error while saving metadata: ' . $e->getMessage()], 500);
-        }
-    }
-
-    /**
-     * Get all files and folders for the authenticated user, optionally filtered by parent_id.
-     *
-     * @return \Illuminate\Http\Response
+     * Display a listing of the resource.
      */
     public function index(Request $request)
     {
         $user = Auth::user();
+        $parentId = $request->input('parent_id');
+
+        $query = $user->files();
+
+        if ($parentId) {
+            $query->where('parent_id', $parentId);
+        } else {
+            $query->whereNull('parent_id');
+        }
+
+        $files = $query->orderBy('is_folder', 'desc')->orderBy('file_name', 'asc')->get();
+
+        return response()->json($files);
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     */
+    public function store(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        Log::info('File store request received', ['user_id' => $user->id, 'data' => $request->all()]);
+
+        $validated = $request->validate([
+            'file_name' => ['required', 'string', 'max:255'],
+            'parent_id' => ['nullable', 'integer', Rule::exists('files', 'id')->where('user_id', $user->id)->where('is_folder', true)],
+            'is_folder' => 'required|boolean',
+            'file_path' => 'sometimes|string',
+            'file_size' => 'sometimes|integer',
+            'file_type' => 'sometimes|string',
+            'mime_type' => 'sometimes|string',
+        ]);
+
+        $parentId = $validated['parent_id'] ?? null;
+
+        // Check for duplicates
+        $duplicateCheck = $user->files()
+            ->where('file_name', $validated['file_name'])
+            ->where('is_folder', $validated['is_folder']);
+
+        if ($parentId) {
+            $duplicateCheck->where('parent_id', $parentId);
+        } else {
+            $duplicateCheck->whereNull('parent_id');
+        }
+
+        if ($duplicateCheck->exists()) {
+            $type = $validated['is_folder'] ? 'Folder' : 'File';
+            return response()->json(['message' => "A {$type} with this name already exists in this directory."], 409);
+        }
+
+        $item = File::create([
+            'user_id' => $user->id,
+            'file_name' => $validated['file_name'],
+            'parent_id' => $parentId,
+            'is_folder' => $validated['is_folder'],
+            'file_path' => $validated['file_path'] ?? '',
+            'file_size' => $validated['file_size'] ?? 0,
+            'file_type' => $validated['file_type'] ?? ($validated['is_folder'] ? 'folder' : 'file'),
+            'mime_type' => $validated['mime_type'] ?? ($validated['is_folder'] ? 'inode/directory' : 'application/octet-stream'),
+        ]);
+
+        return response()->json($item, 201);
+    }
+
+    /**
+     * Move a file or folder to the trash (soft delete)
+     */
+    public function destroy($id): JsonResponse
+    {
         try {
-            $parentId = $request->input('parent_id');
+            $file = Auth::user()->files()->findOrFail($id);
 
-            Log::info('File/Folder index request received', [
-                'user_id' => $user->id,
-                'search_query' => $request->q ?? null,
-                'parent_id' => $parentId
-            ]);
-            
-            $query = $user->files();
-
-            if ($parentId) {
-                // Ensure parent_id exists and belongs to the user and is a folder
-                $parentFolder = File::where('id', $parentId)
-                                    ->where('user_id', $user->id)
-                                    ->where('is_folder', 'true') // Workaround: Use string 'true'
-                                    ->first();
-                if (!$parentFolder) {
-                    return response()->json(['error' => 'Parent folder not found or invalid.'], 404);
+            DB::transaction(function () use ($file) {
+                if ($file->is_folder) {
+                    $this->trashFolder($file);
+                } else {
+                    $this->trashFile($file);
                 }
-                $query->where('parent_id', $parentId);
-            } else {
-                // Root level items
-                $query->whereNull('parent_id');
-            }
-            
-            // Search by file name if 'q' is provided
-            if ($request->has('q') && trim($request->q) !== '') {
-                $q = $request->q;
-                // Search only within the current level (parent_id or root)
-                $query->where('file_name', 'ILIKE', "$q%");
-            }
-            
-            // Sort by is_folder descending (folders first), then file_name, then most recent
-            $query->orderByDesc('is_folder')->orderBy('file_name')->orderByDesc('created_at');
-            
-            // Manual pagination to potentially avoid prepared statement issues with paginate()
-            $perPage = 20;
-            $currentPage = $request->input('page', 1);
+            });
 
-            // Clone the query for counting to avoid modification issues
-            $countQuery = $query->clone()->toBase();
-            $total = $countQuery->getCountForPagination();
+            $message = $file->is_folder ? 'Folder moved to trash' : 'File moved to trash';
+            return response()->json(['success' => true, 'message' => $message]);
 
-            $itemsResult = $query->forPage($currentPage, $perPage)->get();
-            
-            Log::info('Files/Folders retrieved successfully', [
-                'user_id' => $user->id,
-                'count' => $itemsResult->count() 
-            ]);
-            
-            return response()->json([
-                'status' => 'success',
-                'files' => $itemsResult->values()->all(), // Ensure it's a plain array
-                'total' => $total,
-                'current_page' => (int)$currentPage,
-                'last_page' => ceil($total / $perPage),
-            ]);
         } catch (\Exception $e) {
-            Log::error('Error fetching files/folders', [
-                'user_id' => $user->id ?? 'unauthenticated',
-                'exception_details' => $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine(),
+            Log::error('Error moving file/folder to trash', [
+                'file_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-            
+
             return response()->json([
-                'status' => 'error',
-                'message' => 'Failed to retrieve items',
-                'error' => $e->getMessage()
+                'success' => false,
+                'error' => 'Error moving item to trash',
+                'message' => $e->getMessage()
             ], 500);
         }
     }
 
     /**
-     * Create a new folder.
-     *
-     * @param  \Illuminate\Http\Request  $request
-     * @return \Illuminate\Http\Response
+     * Recursively move a folder and its contents to trash
+     */
+    private function trashFolder($folder)
+    {
+        $allChildren = $this->getAllChildren($folder, true);
+        $allChildren->push($folder);
+
+        foreach ($allChildren as $item) {
+            if (!$item->is_folder && !empty($item->file_path)) {
+                $this->moveFileToTrashStorage($item);
+            }
+            $item->delete(); // Soft delete
+        }
+    }
+
+    /**
+     * Move a single file to trash
+     */
+    private function trashFile($file)
+    {
+        if (!empty($file->file_path)) {
+            $this->moveFileToTrashStorage($file);
+        }
+        $file->delete(); // Soft delete
+    }
+
+    /**
+     * Recursively get all children of a folder, including nested children.
+     */
+    private function getAllChildren($folder, $includeFolders = false)
+    {
+        $allChildren = collect();
+        $children = $folder->children()->get();
+
+        foreach ($children as $child) {
+            if ($includeFolders || !$child->is_folder) {
+                $allChildren->push($child);
+            }
+            if ($child->is_folder) {
+                $allChildren = $allChildren->merge($this->getAllChildren($child, $includeFolders));
+            }
+        }
+        return $allChildren;
+    }
+
+    /**
+     * Move a file in Supabase storage to the 'trash' directory
+     */
+    private function moveFileToTrashStorage($file)
+    {
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = env('SUPABASE_SERVICE_KEY');
+        $bucketName = 'docs';
+
+        if (!$supabaseUrl || !$supabaseKey || empty($file->file_path)) {
+            Log::error('Cannot move file to trash due to missing config or file path.', ['file_id' => $file->id]);
+            return;
+        }
+
+        $client = new Client(['base_uri' => $supabaseUrl]);
+        $originalPath = $file->file_path;
+        $trashPath = 'trash/' . $originalPath;
+
+        try {
+            Log::info('Moving file to trash in Supabase', ['from' => $originalPath, 'to' => $trashPath]);
+
+            $client->post("/storage/v1/object/move", [
+                'headers' => ['Authorization' => 'Bearer ' . $supabaseKey, 'Content-Type' => 'application/json'],
+                'json' => [
+                    'bucketId' => $bucketName,
+                    'sourceKey' => $originalPath,
+                    'destinationKey' => $trashPath,
+                ]
+            ]);
+
+            // Update the file path in the database to the new trash path
+            $file->file_path = $trashPath;
+            $file->save();
+
+            Log::info('File moved to trash successfully', ['file_id' => $file->id, 'new_path' => $trashPath]);
+
+        } catch (RequestException $e) {
+            Log::error('Failed to move file to trash in Supabase', [
+                'file_path' => $originalPath,
+                'status_code' => $e->hasResponse() ? $e->getResponse()->getStatusCode() : 'N/A',
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Create a new folder
      */
     public function createFolder(Request $request)
     {
         $user = Auth::user();
 
-        try {
-            // Diagnostic logging for PDO::ATTR_EMULATE_PREPARES
-            $emulatePrepares = DB::connection()->getPdo()->getAttribute(PDO::ATTR_EMULATE_PREPARES);
-            Log::info('PDO::ATTR_EMULATE_PREPARES value: ' . ($emulatePrepares ? 'true' : 'false'), ['user_id' => $user->id]);
-        } catch (\Exception $e) {
-            Log::error('Error getting PDO::ATTR_EMULATE_PREPARES: ' . $e->getMessage(), ['user_id' => $user->id]);
-        }
-
-        Log::info('Create folder request received', [
-            'user_id' => $user->id,
+        Log::info('Folder creation request started.', [
+            'user_id' => $user->id, 
             'request_data' => $request->all()
         ]);
 
-        $validated = $request->validate([
-            'folder_name' => 'required|string|max:255',
-            'parent_id' => [
-                'nullable',
-                Rule::exists('files', 'id')->where(function ($query) use ($user) {
-                    $query->where('user_id', $user->id)->where('is_folder', true);
-                }),
-            ],
-        ]);
-
         try {
-            // --- START: Duplicate Folder Name Handling ---
-            $baseName = $validated['folder_name'];
+            $validated = $request->validate([
+                'file_name' => [
+                    'required', 
+                    'string', 
+                    'max:255', 
+                    'regex:/^[a-zA-Z0-9_ .-]+$/'
+                ],
+                'parent_id' => [
+                    'nullable',
+                    'integer',
+                    Rule::exists('files', 'id')->where('user_id', $user->id)->where('is_folder', true),
+                ],
+            ], [
+                'file_name.regex' => 'Folder name can only contain letters, numbers, spaces, underscores, dots, and hyphens.',
+                'parent_id.exists' => 'The selected parent folder is invalid or does not exist.',
+            ]);
+
             $parentId = $validated['parent_id'] ?? null;
-            $newName = $baseName;
-            $counter = 1;
+            $folderName = $validated['file_name'];
 
-            // Check for existing folders with the same name in the same parent
-            while (File::where('file_name', $newName)
-                        ->where('parent_id', $parentId)
-                        ->where('user_id', $user->id)
-                        ->whereRaw('is_folder IS TRUE') // Use whereRaw for unambiguous boolean check
-                        ->exists()) {
-                $counter++;
-                $newName = $baseName . ' COPY(' . $counter . ')';
+            // Check for duplicate folder name in the same directory
+            $duplicateCheck = $user->files()
+                ->where('file_name', $folderName)
+                ->whereRaw('is_folder IS TRUE');
+
+            if ($parentId) {
+                $duplicateCheck->where('parent_id', $parentId);
+            } else {
+                $duplicateCheck->whereNull('parent_id');
             }
-            // --- END: Duplicate Folder Name Handling ---
 
-            $parentFolderPath = '';
-            if ($validated['parent_id']) {
-                $parentFolder = File::find($validated['parent_id']);
-                if ($parentFolder) { // Should always exist due to validation rule
-                    $parentFolderPath = $parentFolder->file_path;
+            if ($duplicateCheck->exists()) {
+                Log::warning('Duplicate folder creation attempt.', ['name' => $folderName, 'parent_id' => $parentId]);
+                return response()->json(['message' => 'A folder with this name already exists in this directory.'], 409);
+            }
+
+            // Construct the folder path
+            $path = 'user_' . $user->id . '/' . $folderName;
+            if ($parentId) {
+                $parent = File::find($parentId);
+                // Ensure parent exists and has a path before trying to append to it
+                if ($parent && !empty($parent->file_path)) {
+                    $path = rtrim($parent->file_path, '/') . '/' . $folderName;
+                } else {
+                    // This is a fallback. With the fix, all folders should have a path.
+                    Log::warning('Parent folder found but has no file_path. Constructing path from root.', ['parent_id' => $parentId]);
                 }
             }
 
-            $folderData = [
-                'user_id' => $user->id,
-                'file_name' => $newName, // Use the new unique name
-                'parent_id' => $validated['parent_id'] ?? null,
-                'is_folder' => 'true', // Workaround: Use string 'true' for boolean
-                'file_path' => $parentFolderPath ? ($parentFolderPath . '/' . $newName) : $newName, // Construct path with new name
-                'mime_type' => 'inode/directory',
-                // file_size, file_type can be null for folders
-            ];
+            $folder = new File();
+            $folder->user_id = $user->id;
+            $folder->file_name = $folderName;
+            $folder->is_folder = DB::raw('true');
+            $folder->parent_id = $parentId;
+            $folder->file_path = $path;
+            $folder->file_size = 0;
+            $folder->file_type = 'folder';
+            $folder->mime_type = 'inode/directory';
+            $folder->save();
 
-            // Diagnostic logging for is_folder type
-            Log::info('is_folder type before create (after workaround): ' . gettype($folderData['is_folder']), [
-                'user_id' => $user->id,
-                'is_folder_value' => $folderData['is_folder']
-            ]);
-
-            Log::info('Creating folder record in DB', ['data' => $folderData, 'user_id' => $user->id]);
-            $folder = File::create($folderData);
-            Log::info('Folder record created successfully', ['id' => $folder->id, 'user_id' => $user->id]);
+            Log::info('Folder created successfully', ['folder_id' => $folder->id, 'path' => $path]);
 
             return response()->json($folder, 201);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            Log::error('Folder creation validation error', ['errors' => $e->errors()]);
+            return response()->json(['message' => 'The given data was invalid.', 'errors' => $e->errors()], 422);
         } catch (\Exception $e) {
-            Log::error('Folder creation error: '.$e->getMessage(), [
+            Log::error('An unexpected error occurred while creating folder', [
                 'user_id' => $user->id,
-                'exception_details' => $e->getMessage() . ' in ' . $e->getFile() . ' on line ' . $e->getLine(),
-                'validated_data' => $validated ?? null
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
             ]);
-            return response()->json(['error' => 'Server error while creating folder: ' . $e->getMessage()], 500);
+
+            return response()->json(['message' => 'An unexpected error occurred while creating the folder.'], 500);
         }
     }
 
     /**
-     * Get a single file by ID
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * Display a listing of the trashed resources.
      */
-    public function show($id)
+    public function indexTrash(Request $request)
     {
-        $file = auth()->user()->files()->findOrFail($id);
-        return response()->json($file);
+        $user = Auth::user();
+        $files = $user->files()->onlyTrashed()->orderBy('deleted_at', 'desc')->get();
+        return response()->json($files);
     }
 
     /**
-     * Delete a file
-     *
-     * @param  int  $id
-     * @return \Illuminate\Http\Response
+     * Restore a soft-deleted file or folder from the trash.
      */
-    public function destroy($id)
+    public function restore($id): JsonResponse
     {
-        $file = auth()->user()->files()->findOrFail($id);
-        $file->delete();
+        try {
+            // Use withTrashed to find the file, as it's soft-deleted.
+            $file = Auth::user()->files()->withTrashed()->findOrFail($id);
 
-        return response()->json([
-            'success' => true
-        ]);
+            DB::transaction(function () use ($file) {
+                $this->restoreItem($file);
+            });
+
+            $message = $file->is_folder ? 'Folder restored successfully' : 'File restored successfully';
+            return response()->json(['success' => true, 'message' => $message]);
+
+        } catch (\Exception $e) {
+            Log::error('Error restoring item from trash', [
+                'file_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['success' => false, 'error' => 'Error restoring item', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Permanently delete a file or folder from the trash.
+     */
+    public function forceDelete($id): JsonResponse
+    {
+        try {
+            $file = Auth::user()->files()->withTrashed()->findOrFail($id);
+
+            DB::transaction(function () use ($file) {
+                if ($file->is_folder) {
+                    $allChildren = $this->getAllChildren($file, true);
+                    $allChildren->push($file);
+
+                    $filesToDeleteFromStorage = $allChildren->where('is_folder', false)->where('file_path', '!=', '');
+                    if ($filesToDeleteFromStorage->isNotEmpty()) {
+                        $this->deleteFilesFromStorage($filesToDeleteFromStorage);
+                    }
+                    
+                    // Force delete all children and the folder itself
+                    foreach($allChildren as $item) {
+                        $item->forceDelete();
+                    }
+                } else {
+                    if (!empty($file->file_path)) {
+                        $this->deleteFilesFromStorage(collect([$file]));
+                    }
+                    $file->forceDelete();
+                }
+            });
+
+            return response()->json(['success' => true, 'message' => 'Item permanently deleted']);
+
+        } catch (\Exception $e) {
+            Log::error('Error permanently deleting item', [
+                'file_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json(['success' => false, 'error' => 'Error permanently deleting item', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Helper to restore a file or folder and its contents.
+     */
+    private function restoreItem($item)
+    {
+        // If it's a folder, restore all its children first
+        if ($item->is_folder) {
+            $children = $this->getAllChildren($item, true);
+            foreach ($children as $child) {
+                $this->restoreItem($child);
+            }
+        }
+
+        // For files, move them from trash storage
+        if (!$item->is_folder && !empty($item->file_path)) {
+            $this->moveFileFromTrashStorage($item);
+        }
+
+        // Restore the item itself
+        $item->restore();
+    }
+
+    /**
+     * Move a file in Supabase storage from the 'trash' directory back to its original path.
+     */
+    private function moveFileFromTrashStorage($file)
+    {
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = env('SUPABASE_SERVICE_KEY');
+        $bucketName = 'docs';
+
+        if (!$supabaseUrl || !$supabaseKey || empty($file->file_path) || !Str::startsWith($file->file_path, 'trash/')) {
+            Log::warning('Cannot restore file from storage.', ['file_id' => $file->id, 'path' => $file->file_path]);
+            return;
+        }
+
+        $client = new Client(['base_uri' => $supabaseUrl]);
+        $trashPath = $file->file_path;
+        $originalPath = Str::after($trashPath, 'trash/');
+
+        try {
+            Log::info('Moving file from trash in Supabase', ['from' => $trashPath, 'to' => $originalPath]);
+
+            $client->post("/storage/v1/object/move", [
+                'headers' => ['Authorization' => 'Bearer ' . $supabaseKey, 'Content-Type' => 'application/json'],
+                'json' => [
+                    'bucketId' => $bucketName,
+                    'sourceKey' => $trashPath,
+                    'destinationKey' => $originalPath,
+                ]
+            ]);
+
+            $file->file_path = $originalPath;
+            $file->save();
+
+        } catch (RequestException $e) {
+            Log::error('Failed to move file from trash in Supabase', [
+                'file_path' => $trashPath,
+                'status_code' => $e->hasResponse() ? $e->getResponse()->getStatusCode() : 'N/A',
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Delete multiple files from Supabase storage (used for force delete).
+     */
+    private function deleteFilesFromStorage($files)
+    {
+        if ($files->isEmpty()) {
+            return;
+        }
+
+        $filePaths = $files->pluck('file_path')->filter()->toArray();
+        
+        if (empty($filePaths)) {
+            return;
+        }
+
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = env('SUPABASE_SERVICE_KEY');
+        $bucketName = 'docs';
+
+        if (!$supabaseUrl || !$supabaseKey) {
+            Log::error('Supabase URL or Service Key is not configured.');
+            return;
+        }
+
+        $client = new Client(['base_uri' => $supabaseUrl]);
+
+        foreach ($filePaths as $path) {
+            try {
+                $client->delete("/storage/v1/object/{$bucketName}/{$path}", [
+                    'headers' => ['Authorization' => 'Bearer ' . $supabaseKey]
+                ]);
+            } catch (RequestException $e) {
+                Log::error('Failed to permanently delete file from Supabase', [
+                    'file_path' => $path,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        }
     }
 }

@@ -5,6 +5,7 @@ use App\Livewire\Dashboard;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WebAuthnController;
+use App\Http\Controllers\FileController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -49,8 +50,14 @@ Route::middleware([
     // File routes
     Route::post('/files', [App\Http\Controllers\FileController::class, 'store'])->name('files.store');
     Route::get('/files', [App\Http\Controllers\FileController::class, 'index'])->name('files.index');
-    Route::get('/files/{id}', [App\Http\Controllers\FileController::class, 'show'])->name('files.show');
-    Route::delete('/files/{id}', [App\Http\Controllers\FileController::class, 'destroy'])->name('files.destroy');
+    Route::post('/files/create-folder', [FileController::class, 'createFolder'])->name('files.createFolder');
+    Route::delete('/files/{id}', [FileController::class, 'destroy'])->name('files.destroy');
+
+    // Trash Bin Routes
+    Route::get('/files/trash', [FileController::class, 'indexTrash'])->name('files.trash');
+
+    Route::post('/files/{id}/restore', [FileController::class, 'restore'])->name('files.restore');
+    Route::delete('/files/{id}/force-delete', [FileController::class, 'forceDelete'])->name('files.forceDelete');
     Route::post('/folders', [App\Http\Controllers\FileController::class, 'createFolder'])->name('folders.create');
     
     // WebAuthn routes

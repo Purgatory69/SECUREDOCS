@@ -9,8 +9,8 @@ if (window.supabase && window.SUPABASE_URL && window.SUPABASE_KEY) {
 // Global variables for pagination, search, and current folder
 let currentPage = 1;
 let lastMainSearch = '';
-let currentParentId = null; // null for root directory
-let breadcrumbs = [{ id: null, name: 'My Documents' }]; // For navigation
+let currentParentId = localStorage.getItem('currentParentId') !== null ? localStorage.getItem('currentParentId') : null; // Persisted folder
+let breadcrumbs = localStorage.getItem('breadcrumbs') ? JSON.parse(localStorage.getItem('breadcrumbs')) : [{ id: null, name: 'My Documents' }]; // Persisted breadcrumbs
 
 // Check if WebAuthn is available
 if (typeof WebAuthn === 'undefined') {
@@ -18,35 +18,151 @@ if (typeof WebAuthn === 'undefined') {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Restore folder state from localStorage if available
+    if (localStorage.getItem('currentParentId')) {
+        currentParentId = localStorage.getItem('currentParentId');
+    }
+    if (localStorage.getItem('breadcrumbs')) {
+        breadcrumbs = JSON.parse(localStorage.getItem('breadcrumbs'));
+    }
     initializeApp();
 });
 
+function showNotification(message, type = 'info') {
+    // You can use your preferred notification library here
+    // This is a simple implementation using the browser's alert for now
+    alert(`${type.toUpperCase()}: ${message}`);
+}
+
 function initializeApp() {
-    initializeN8nChat();
+    if (document.getElementById('currentFolderId')) {
+        document.getElementById('currentFolderId').value = currentParentId;
+    }
+    // initializeN8nChat();
     initializeUserProfile();
-    initializeUploadModal();
     initializeFileManagement();
-    initializeFolderManagement(); // New
+    initializeFolderManagement();
+    initializeNewDropdown();
+    initializeUploadModal();
     initializeSearch();
-    loadUserFiles(); // Will be called with currentParentId
+    loadUserFiles(lastMainSearch, currentPage, currentParentId); 
     initializeWebAuthnForDashboard();
-    updateBreadcrumbsDisplay(); // New
+    updateBreadcrumbsDisplay();
+    initializeViewToggling();
+}
+
+function initializeNewDropdown() {
+    const newBtn = document.getElementById('newBtn');
+    const newDropdown = document.getElementById('newDropdown');
+    const chevronIcon = document.getElementById('chevronIcon');
+    const dropdownOverlay = document.getElementById('newDropdownOverlay');
+    const uploadFileOption = document.getElementById('uploadFileOption');
+    const createFolderOption = document.getElementById('createFolderOption');
+
+    if (!newBtn || !newDropdown) {
+        console.warn('New dropdown elements not found');
+        return;
+    }
+
+    let isDropdownOpen = false;
+
+    // Remove any existing event listeners by cloning the button
+    const newBtnClone = newBtn.cloneNode(true);
+    newBtn.parentNode.replaceChild(newBtnClone, newBtn);
+    
+    // Update references to use the cloned element
+    const cleanNewBtn = document.getElementById('newBtn');
+    const cleanChevronIcon = document.getElementById('chevronIcon');
+
+    // Toggle dropdown with the cleaned button
+    cleanNewBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        console.log('New button clicked, toggling dropdown');
+        toggleDropdown();
+    });
+
+    // Close dropdown when clicking overlay
+    if (dropdownOverlay) {
+        dropdownOverlay.addEventListener('click', function() {
+            closeDropdown();
+        });
+    }
+
+    // Handle dropdown options
+    if (uploadFileOption) {
+        uploadFileOption.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Upload file option clicked');
+            
+            // Trigger your existing upload modal
+            const uploadModal = document.getElementById('uploadModal');
+            if (uploadModal) {
+                uploadModal.classList.remove('hidden');
+                document.body.classList.add('overflow-hidden');
+            }
+            closeDropdown();
+        });
+    }
+
+    if (createFolderOption) {
+        createFolderOption.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log('Create folder option clicked');
+            
+            // Trigger your existing create folder modal
+            const createFolderModal = document.getElementById('createFolderModal');
+            if (createFolderModal) {
+                createFolderModal.classList.remove('hidden');
+                const newFolderNameInput = document.getElementById('newFolderNameInput');
+                if (newFolderNameInput) newFolderNameInput.focus();
+            }
+            closeDropdown();
+        });
+    }
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!cleanNewBtn.contains(e.target) && !newDropdown.contains(e.target)) {
+            closeDropdown();
+        }
+    });
+
+    function toggleDropdown() {
+        if (isDropdownOpen) {
+            closeDropdown();
+        } else {
+            openDropdown();
+        }
+    }
+
+    function openDropdown() {
+        // console.log('Opening dropdown');
+        isDropdownOpen = true;
+        newDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+        newDropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
+        if (cleanChevronIcon) cleanChevronIcon.style.transform = 'rotate(180deg)';
+        if (dropdownOverlay) dropdownOverlay.classList.remove('hidden');
+    }
+
+    function closeDropdown() {
+        // console.log('Closing dropdown');
+        isDropdownOpen = false;
+        newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+        newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+        if (cleanChevronIcon) cleanChevronIcon.style.transform = 'rotate(0deg)';
+        if (dropdownOverlay) dropdownOverlay.classList.add('hidden');
+    }
 }
 
 function initializeFolderManagement() {
-    const createFolderBtn = document.getElementById('createFolderBtn');
     const createFolderModal = document.getElementById('createFolderModal');
     const closeCreateFolderModalBtn = document.getElementById('closeCreateFolderModalBtn');
     const createFolderForm = document.getElementById('createFolderForm');
     const newFolderNameInput = document.getElementById('newFolderNameInput');
     const cancelCreateFolderBtn = document.getElementById('cancelCreateFolderBtn');
-
-    if (createFolderBtn) {
-        createFolderBtn.addEventListener('click', () => {
-            if (createFolderModal) createFolderModal.classList.remove('hidden');
-            if (newFolderNameInput) newFolderNameInput.focus();
-        });
-    }
 
     if (closeCreateFolderModalBtn) {
         closeCreateFolderModalBtn.addEventListener('click', () => {
@@ -88,33 +204,71 @@ function initializeFolderManagement() {
     }
 }
 
-async function handleCreateFolder(folderName) {
-    try {
-        const response = await fetch('/folders', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-            },
-            body: JSON.stringify({
-                folder_name: folderName,
-                parent_id: currentParentId
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || 'Failed to create folder');
+    // Update the create folder handler to better handle errors
+    async function handleCreateFolder(folderName = null, e = null) {
+        // If called with an event, prevent default and get folder name from form
+        if (e && e.preventDefault) {
+            e.preventDefault();
+            folderName = document.getElementById('folderName')?.value?.trim();
         }
-
-        const newFolder = await response.json();
-        // console.log('Folder created:', newFolder);
-        await loadUserFiles(lastMainSearch, 1, currentParentId); // Reload current view
-    } catch (error) {
-        console.error('Create folder error:', error);
-        alert(`Error creating folder: ${error.message}`);
+        
+        // Get current parent ID safely
+        const currentParentId = document.getElementById('currentFolderId')?.value || null;
+        
+        if (!folderName) {
+            showNotification('Folder name is required', 'error');
+            return;
+        }
+    
+        try {
+            console.log('Creating folder with:', { folderName, currentParentId });
+            
+            const response = await fetch('/folders', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({
+                    file_name: folderName,
+                    parent_id: currentParentId ? parseInt(currentParentId) : null
+                })
+            });
+    
+            const data = await response.json();
+            
+            if (!response.ok) {
+                if (response.status === 422 && data.errors) {
+                    const errorMessage = Object.values(data.errors).flat().join('\n');
+                    throw new Error(`Validation Error: ${errorMessage}`);
+                }
+                throw new Error(data.message || 'Failed to create folder');
+            }
+    
+            console.log('Folder created successfully:', data);
+            // Close the dropdown using the correct method
+            const newDropdown = document.getElementById('newDropdown');
+            if (newDropdown) {
+                newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+                newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+                const chevronIcon = document.getElementById('chevronIcon');
+                if (chevronIcon) chevronIcon.style.transform = 'rotate(0deg)';
+                const dropdownOverlay = document.getElementById('newDropdownOverlay');
+                if (dropdownOverlay) dropdownOverlay.classList.add('hidden');
+            }
+            loadUserFiles(lastMainSearch, currentPage, currentParentId);
+            showNotification('Folder created successfully', 'success');
+            
+            // Reset the form if it exists
+            const form = document.getElementById('createFolderForm');
+            if (form) form.reset();
+            
+        } catch (error) {
+            console.error('Create folder error:', error);
+            showNotification(error.message || 'Failed to create folder', 'error');
+        }
     }
-}
 
 function updateBreadcrumbsDisplay() {
     const breadcrumbsContainer = document.getElementById('breadcrumbsContainer');
@@ -142,21 +296,22 @@ function navigateToFolder(folderId, folderName) {
         // If folder exists in breadcrumbs, truncate to that level
         breadcrumbs = breadcrumbs.slice(0, existingIndex + 1);
     } else {
-        // This case should ideally not happen if navigation is only through displayed folders or breadcrumbs
-        // If it's a new folder being entered (not from breadcrumbs click but from item click)
-        // This will be handled by the item click handler that calls this.
-        // For direct breadcrumb click, we assume it's valid.
+        // Navigating into a new child folder
+        breadcrumbs.push({ id: folderId, name: folderName });
     }
 
     currentParentId = folderId;
+    localStorage.setItem('currentParentId', currentParentId);
+    document.getElementById('currentFolderId').value = currentParentId;
+    localStorage.setItem('breadcrumbs', JSON.stringify(breadcrumbs));
     currentPage = 1; // Reset to first page
-    lastMainSearch = ''; // Clear search when navigating
-    document.querySelector('input[placeholder*="Search"]').value = ''; // Clear search input field
+    lastMainSearch = '';
+    let searchInput = document.querySelector('input[placeholder*="Search"]');
+    if (searchInput) searchInput.value = '';
 
     loadUserFiles(lastMainSearch, currentPage, currentParentId);
     updateBreadcrumbsDisplay();
 }
-
 
 // Add this new function to handle WebAuthn initialization
 function initializeWebAuthnForDashboard() {
@@ -268,7 +423,6 @@ function initializeUserProfile() {
 
 // --- Upload Modal ---
 function initializeUploadModal() {
-    const newBtn = document.getElementById('newBtn');
     const uploadModal = document.getElementById('uploadModal');
     const closeModalBtn = document.getElementById('closeModalBtn');
     const modalBackdrop = document.getElementById('modalBackdrop');
@@ -281,10 +435,8 @@ function initializeUploadModal() {
     const progressBar = document.getElementById('progressBar');
     const progressPercentage = document.getElementById('progressPercentage');
 
-    if (!newBtn || !uploadModal) return;
+    if (!uploadModal) return;
 
-    // Modal show/hide handlers
-    newBtn.addEventListener('click', showUploadModal);
     [closeModalBtn, modalBackdrop, cancelUploadBtn].forEach(element => {
         if (element) {
             element.addEventListener('click', hideUploadModal);
@@ -387,12 +539,16 @@ function initializeUploadModal() {
 
         const file = files[0];
         const userId = window.userId;
+        
+        // Construct path from breadcrumbs
+        const folderPath = breadcrumbs.slice(1).map(b => b.name).join('/');
+        const fullPath = folderPath ? `user_${userId}/${folderPath}/${file.name}` : `user_${userId}/${file.name}`;
 
         try {
             const { data, error } = await supabase
                 .storage
                 .from('docs')
-                .upload(`user_${userId}/${file.name}`, file, {
+                .upload(fullPath, file, {
                     cacheControl: '3600',
                     upsert: false,
                     onProgress: (event) => {
@@ -424,16 +580,17 @@ function initializeUploadModal() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                    'Accept': 'application/json'
                 },
                 body: JSON.stringify({
                     file_name: file.name,
+                    is_folder: false,
+                    parent_id: currentParentId ? parseInt(currentParentId) : null,
                     file_path: filePath,
                     file_size: file.size,
-                    file_type: file.type,
-                    mime_type: file.type,
-                    is_folder: false, // Explicitly set for file uploads
-                    parent_id: currentParentId // Associate with the current folder
+                    file_type: file.type || 'application/octet-stream',
+                    mime_type: file.type || 'application/octet-stream'
                 })
             });
 
@@ -602,31 +759,48 @@ function hideSearchDropdown() {
 }
 
 // --- Main File/Folder Loading Function ---
-async function loadUserFiles(query = '', page = 1, parentId = null) { // Added parentId parameter
-    const itemsContainer = document.getElementById('filesContainer'); // Renamed for clarity
+async function loadUserFiles(query = '', page = 1, parentId = null) {
+    const itemsContainer = document.getElementById('filesContainer');
     if (!itemsContainer) {
         console.error('Items container not found');
         return;
     }
+    
     try {
-        let url = `/files?page=${page}`;
+        // Show loading state
+        itemsContainer.innerHTML = '<div class="p-4 text-center text-text-secondary">Loading files...</div>';
+        
+        // Build the API URL with query parameters
+        let url = `/files?page=${page}`; // Changed from /api/files to /files to match web.php route
         if (query) {
             url += `&q=${encodeURIComponent(query)}`;
         }
-        if (parentId !== null) { // Check explicitly for null
+        if (parentId !== null  && parentId !== "null") {
             url += `&parent_id=${parentId}`;
         }
 
-        const response = await fetch(url);
+        // Add authentication headers
+        const response = await fetch(url, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            credentials: 'same-origin' // Include cookies for authentication
+        });
+        
         if (!response.ok) {
-            const errorData = await response.json();
+            const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
         }
 
         const data = await response.json();
         
-        itemsContainer.innerHTML = ''; // Clear previous items
-        const items = data.files || []; // Backend still uses 'files' key
+        // Clear previous items
+        itemsContainer.innerHTML = '';
+        
+        // Use the data directly since our API returns the files array at the root
+        const items = Array.isArray(data) ? data : [];
 
         if (items.length === 0) {
             itemsContainer.innerHTML = `<div class="p-4 text-center text-text-secondary col-span-full">No items found in this folder.</div>`;
@@ -687,6 +861,28 @@ function createItemElement(item) { // Renamed from createFileElement, takes gene
         badgeHtml = `<div class="absolute top-2 right-2 bg-[#e8f0fe] text-primary px-1.5 py-0.5 rounded text-xs font-medium">${fileType}</div>`;
     }
 
+    // Determine which action buttons to show
+    const isTrashView = document.getElementById('header-title')?.textContent === 'Trash';
+    let actionButtons = '';
+    if (isTrashView) {
+        actionButtons = `
+            <button class="restore-item-btn text-text-secondary hover:text-green-500 mr-2" data-item-id="${item.id}" title="Restore">
+                 <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h5" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 11A8.1 8.1 0 004.5 9.5M4 15v-5" /></svg>
+            </button>
+            <button class="force-delete-item-btn text-text-secondary hover:text-danger" data-item-id="${item.id}" title="Delete Permanently">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+        `;
+    } else {
+        actionButtons = `
+            <button class="delete-file-btn text-text-secondary hover:text-danger" data-file-id="${item.id}" title="Delete ${item.is_folder ? 'folder' : 'file'}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </button>
+        `;
+    }
+
     itemElement.innerHTML = `
         <div class="h-[120px] bg-bg-light flex items-center justify-center border-b border-border-color relative">
             <span class="text-3xl">${itemIcon}</span>
@@ -695,16 +891,155 @@ function createItemElement(item) { // Renamed from createFileElement, takes gene
         <div class="p-3 relative">
             <div class="text-sm text-white whitespace-nowrap overflow-hidden text-ellipsis mb-1">${item.file_name}</div>
             <div class="text-xs text-white text-text-secondary">Modified: ${itemDate}</div>
-            <button class="delete-file-btn absolute top-3 right-3 text-text-secondary hover:text-danger" data-file-id="${item.id}" title="Delete ${item.is_folder ? 'folder' : 'file'}">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                </svg>
-            </button>
+            <div class="absolute top-3 right-3 flex items-center">
+                ${actionButtons}
+            </div>
         </div>
     `;
 
     return itemElement;
 }
+
+// --- Trash Functionality ---
+async function loadTrashItems(page = 1) {
+    const itemsContainer = document.getElementById('filesContainer');
+    if (!itemsContainer) return;
+
+    itemsContainer.innerHTML = '<div class="p-4 text-center text-text-secondary">Loading trashed items...</div>';
+
+    try {
+        const response = await fetch(`/files/trash?page=${page}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            }
+        });
+
+        if (!response.ok) throw new Error('Failed to load trash items.');
+
+        const data = await response.json();
+        itemsContainer.innerHTML = '';
+
+        const items = Array.isArray(data) ? data : [];
+
+        if (items.length === 0) {
+            itemsContainer.innerHTML = `<div class="p-4 text-center text-text-secondary col-span-full">Trash is empty.</div>`;
+            return;
+        }
+
+        items.forEach(item => {
+            const itemElement = createItemElement(item);
+            itemsContainer.appendChild(itemElement);
+        });
+
+        // Since the response is not paginated, we don't add pagination controls here.
+
+        addItemEventListeners();
+    } catch (error) {
+        console.error('Error loading trash:', error);
+        itemsContainer.innerHTML = `<div class="p-4 text-center text-red-500 col-span-full">Error loading trash.</div>`;
+    }
+}
+
+async function restoreItem(id) {
+    try {
+        const response = await fetch(`/trash/${id}/restore`, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to restore item.');
+        }
+
+        showNotification('Item restored successfully!', 'success');
+        loadTrashItems(); // Refresh trash view
+    } catch (error) {
+        console.error('Restore error:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+async function forceDeleteItem(id) {
+    try {
+        const response = await fetch(`/trash/${id}/force-delete`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to permanently delete item.');
+        }
+
+        showNotification('Item permanently deleted!', 'success');
+        loadTrashItems(); // Refresh trash view
+    } catch (error) {
+        console.error('Force delete error:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+async function deleteFile(id) {
+    try {
+        const response = await fetch(`/files/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+            }
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to move item to trash.');
+        }
+
+        showNotification('Item moved to trash successfully!', 'success');
+        loadUserFiles(lastMainSearch, currentPage, currentParentId); // Refresh main view
+    } catch (error) {
+        console.error('Delete error:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+// --- View Toggling ---
+function initializeViewToggling() {
+    const myDocumentsLink = document.getElementById('my-documents-link');
+    const trashLink = document.getElementById('trash-link');
+    const newButton = document.getElementById('new-button-container');
+    const headerTitle = document.getElementById('header-title');
+
+    myDocumentsLink?.addEventListener('click', (e) => {
+        e.preventDefault();
+        headerTitle.textContent = 'My Documents';
+        newButton.style.display = 'block';
+        myDocumentsLink.classList.add('bg-primary', 'text-white');
+        trashLink.classList.remove('bg-primary', 'text-white');
+        loadUserFiles(lastMainSearch, 1, null);
+    });
+
+    trashLink?.addEventListener('click', (e) => {
+        e.preventDefault();
+        headerTitle.textContent = 'Trash';
+        newButton.style.display = 'none';
+        trashLink.classList.add('bg-primary', 'text-white');
+        myDocumentsLink.classList.remove('bg-primary', 'text-white');
+        loadTrashItems();
+    });
+}
+
 
 function addPaginationControls(container, data) {
     let paginationHtml = '<div class="col-span-full flex justify-center mt-4 gap-2">';
@@ -716,41 +1051,57 @@ function addPaginationControls(container, data) {
     container.insertAdjacentHTML('beforeend', paginationHtml);
 }
 
-function addItemEventListeners() { // Renamed from addFileEventListeners
+function addItemEventListeners() {
+    // Listener for restore button
+    document.querySelectorAll('.restore-item-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const itemId = e.currentTarget.dataset.itemId;
+            if (confirm('Are you sure you want to restore this item?')) {
+                restoreItem(itemId);
+            }
+        });
+    });
+
+    // Listener for force delete button
+    document.querySelectorAll('.force-delete-item-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const itemId = e.currentTarget.dataset.itemId;
+            if (confirm('Are you sure you want to permanently delete this item? This action cannot be undone.')) {
+                forceDeleteItem(itemId);
+            }
+        });
+    });
+
+    document.querySelectorAll('.delete-file-btn').forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const fileId = e.currentTarget.dataset.fileId;
+            if (confirm('Are you sure you want to move this item to the trash?')) {
+                deleteFile(fileId);
+            }
+        });
+    });
+
     document.querySelectorAll('#filesContainer .border.border-border-color.rounded-lg').forEach(card => {
         card.addEventListener('click', function(e) {
-            if (e.target.closest('.delete-file-btn')) return; // Ignore clicks on delete button
+            if (e.target.closest('.delete-file-btn, .restore-item-btn, .force-delete-item-btn')) return;
 
             const itemId = this.dataset.itemId;
             const isFolder = this.dataset.isFolder === 'true';
             const itemName = this.dataset.itemName;
+            const isTrashView = document.getElementById('header-title')?.textContent === 'Trash';
 
-            if (isFolder) {
-                // Navigate into folder
-                // Update breadcrumbs:
-                // Check if we are navigating "back" to an already existing parent in the breadcrumb trail
-                const existingIndex = breadcrumbs.findIndex(crumb => crumb.id === itemId);
-                if (existingIndex !== -1) {
-                    breadcrumbs = breadcrumbs.slice(0, existingIndex + 1);
-                } else {
-                    // Navigating into a new child folder
-                    breadcrumbs.push({ id: itemId, name: itemName });
-                }
-
-                currentParentId = itemId;
-                currentPage = 1; // Reset to first page of the new folder
-                lastMainSearch = ''; // Clear search
-                document.querySelector('input[placeholder*="Search"]').value = '';
-
-
-                loadUserFiles(lastMainSearch, currentPage, currentParentId);
-                updateBreadcrumbsDisplay();
-            } else {
-                // It's a file, download it
-                if (itemId) {
-                    downloadFile(itemId);
-                }
+            if (isFolder && !isTrashView) {
+                // Only allow folder navigation in normal view, not in trash view
+                navigateToFolder(itemId, itemName);
+            } else if (!isFolder && !isTrashView) {
+                // Only allow file downloads in normal view, not in trash view
+                if (itemId) downloadFile(itemId);
             }
+            // In trash view, folders and files are not clickable for navigation/download
+            // They can only be restored or permanently deleted via their action buttons
         });
     });
 }
