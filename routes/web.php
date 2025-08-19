@@ -6,13 +6,26 @@ use App\Http\Controllers\UserController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\WebAuthnController;
 
+
 Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/set-language/{language}', function ($language) {
+    $validLanguages = ['en', 'fil'];
+    
+    if (in_array($language, $validLanguages)) {
+        session(['app_locale' => $language]);
+        return redirect()->back();
+    }
+    
+    return redirect()->back();
+})->name('language.switch');
+
 // WebAuthn authentication routes
 Route::post('/webauthn/login/options', [WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
 Route::post('/webauthn/login/verify', [WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
+
 
 Route::middleware([
     'auth:sanctum',
@@ -68,4 +81,5 @@ Route::middleware([
 
     // User public info for chat widget
     Route::get('/user/{id}', [UserController::class, 'showPublic'])->name('user.show_public');
+    
 });
