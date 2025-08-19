@@ -82,7 +82,7 @@ class File extends Model
      */
     public function latestBlockchainUpload()
     {
-        return $this->hasOne(BlockchainUpload::class)->latestOfMany()->where('upload_status', 'success');
+        return $this->hasOne(BlockchainUpload::class)->latest();
     }
 
     /**

@@ -43,6 +43,9 @@ class PinataService implements BlockchainStorageInterface
                 'pinata_api_key' => $this->apiKey,
                 'pinata_secret_api_key' => $this->apiSecret,
             ])
+            ->withOptions([
+                'verify' => app()->environment('production'), // Only verify SSL in production
+            ])
             ->timeout(120) // 2 minutes timeout for large files
             ->attach('file', file_get_contents($file->path()), $file->getClientOriginalName())
             ->post($this->apiUrl . '/pinning/pinFileToIPFS', [
@@ -104,7 +107,9 @@ class PinataService implements BlockchainStorageInterface
     public function getFile(string $ipfsHash): ?string
     {
         try {
-            $response = Http::timeout(30)->get($this->getGatewayUrl($ipfsHash));
+            $response = Http::withOptions([
+                'verify' => app()->environment('production'),
+            ])->timeout(30)->get($this->getGatewayUrl($ipfsHash));
             
             if ($response->successful()) {
                 return $response->body();
@@ -130,7 +135,11 @@ class PinataService implements BlockchainStorageInterface
             $response = Http::withHeaders([
                 'pinata_api_key' => $this->apiKey,
                 'pinata_secret_api_key' => $this->apiSecret,
-            ])->delete($this->apiUrl . "/pinning/unpin/{$ipfsHash}");
+            ])
+            ->withOptions([
+                'verify' => app()->environment('production'),
+            ])
+            ->delete($this->apiUrl . "/pinning/unpin/{$ipfsHash}");
 
             if ($response->successful()) {
                 Log::info('File unpinned from Pinata', ['ipfs_hash' => $ipfsHash]);
@@ -164,7 +173,11 @@ class PinataService implements BlockchainStorageInterface
             $response = Http::withHeaders([
                 'pinata_api_key' => $this->apiKey,
                 'pinata_secret_api_key' => $this->apiSecret,
-            ])->get($this->apiUrl . '/data/testAuthentication');
+            ])
+            ->withOptions([
+                'verify' => app()->environment('production'),
+            ])
+            ->get($this->apiUrl . '/data/testAuthentication');
 
             if ($response->successful()) {
                 return [
