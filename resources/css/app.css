@@ -2,7 +2,61 @@
 @tailwind components;
 @tailwind utilities;
 
-
 [x-cloak] {
     display: none;
+}
+
+/* Dark theme: Google Drive-style cards */
+.file-card {
+  background-color: #2A2D47; /* matches JS renderer */
+  border: 1px solid #4A4D6A;
+  border-radius: 0.5rem; /* 8px */
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.05s ease;
+  color: #E5E7EB; /* text-gray-200 */
+}
+.file-card:hover {
+  border-color: #6B7280; /* gray-500 */
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.25);
+}
+.file-card:focus-visible {
+  outline: 2px solid #60A5FA; /* blue-400 */
+  outline-offset: 2px;
+}
+
+/* Actions menu (three-dot) */
+.actions-menu {
+  background-color: #1F2235;
+  border: 1px solid #4A4D6A;
+  border-radius: 0.5rem;
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.35);
+  z-index: 50;
+  min-width: 160px;
+}
+.actions-menu-item {
+  color: #E5E7EB; /* gray-200 */
+}
+.actions-menu-item:hover {
+  background-color: #2A2D47;
+  color: #FFFFFF;
+}
+
+/* Nice dark scrollbars for overflow menus */
+.actions-menu::-webkit-scrollbar {
+  width: 8px;
+}
+.actions-menu::-webkit-scrollbar-thumb {
+  background-color: #4A4D6A;
+  border-radius: 4px;
+}
+.actions-menu::-webkit-scrollbar-thumb:hover {
+  background-color: #6B7280;
+}
+
+/* Clamp long file names if we ever opt-in with a class */
+.clamp-2 {
+  display: -webkit-box;
+  line-clamp: 2;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }

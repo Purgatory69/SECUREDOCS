@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\Rule;
 use GuzzleHttp\Client;
+use Illuminate\Support\Facades\Storage;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Str;
 
@@ -21,19 +22,99 @@ class FileController extends Controller
     public function index(Request $request)
     {
         $user = Auth::user();
-        $parentId = $request->input('parent_id');
+        // Normalize incoming query params
+        $parentRaw = $request->query('parent_id', null);
+        $search = $request->query('q');
 
-        $query = $user->files();
+        // Explicitly exclude soft-deleted items to ensure trashed files don't appear in main list
+        $query = $user->files()->whereNull('deleted_at');
 
-        if ($parentId) {
-            $query->where('parent_id', $parentId);
+        // Apply parent filter robustly
+        if ($request->has('parent_id')) {
+            if ($parentRaw === null || $parentRaw === '' || $parentRaw === 'null') {
+                $query->whereNull('parent_id');
+            } else {
+                $query->where('parent_id', (int) $parentRaw);
+            }
         } else {
             $query->whereNull('parent_id');
         }
 
-        $files = $query->orderBy('is_folder', 'desc')->orderBy('file_name', 'asc')->get();
+        if ($search) {
+            $query->where('file_name', 'LIKE', '%' . $search . '%');
+        }
+
+        $files = $query->orderBy('is_folder', 'desc')->orderBy('file_name', 'asc')->paginate(20);
 
         return response()->json($files);
+    }
+
+    /**
+     * Display the specified resource.
+     */
+    public function show($id): JsonResponse
+    {
+        $user = Auth::user();
+        // Include trashed so the frontend can inspect items in trash as well
+        $file = $user->files()->withTrashed()->findOrFail($id);
+        return response()->json($file);
+    }
+
+    /**
+     * Show file preview page.
+     */
+    public function preview($id)
+    {
+        $user = Auth::user();
+        $file = $user->files()->findOrFail($id);
+        
+        // Only allow preview for actual files, not folders
+        if ($file->is_folder) {
+            return redirect()->route('user.dashboard')->with('error', 'Folders cannot be previewed');
+        }
+        
+        return view('file-preview', compact('file'));
+    }
+
+    /**
+     * Proxy file content to bypass CORS restrictions
+     */
+    public function proxyFile($id)
+    {
+        $user = Auth::user();
+        $file = $user->files()->findOrFail($id);
+        
+        if ($file->is_folder) {
+            abort(404, 'Cannot proxy folder');
+        }
+
+        $supabaseUrl = env('SUPABASE_URL');
+        $filePath = $file->file_path;
+        $publicUrl = "{$supabaseUrl}/storage/v1/object/public/docs/{$filePath}";
+
+        try {
+            $client = new \GuzzleHttp\Client();
+            $response = $client->get($publicUrl);
+            
+            $content = $response->getBody()->getContents();
+            $contentType = $response->getHeader('Content-Type')[0] ?? $file->mime_type ?? 'application/octet-stream';
+            
+            return response($content)
+                ->header('Content-Type', $contentType)
+                ->header('Access-Control-Allow-Origin', '*')
+                ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+                ->header('Content-Disposition', 'inline; filename="' . $file->file_name . '"')
+                ->header('Cache-Control', 'public, max-age=3600');
+                
+        } catch (\Exception $e) {
+            Log::error('Error proxying file', [
+                'file_id' => $id,
+                'file_path' => $filePath,
+                'error' => $e->getMessage()
+            ]);
+            abort(404, 'File not found or cannot be accessed');
+        }
     }
 
     /**
@@ -46,7 +127,14 @@ class FileController extends Controller
 
         $validated = $request->validate([
             'file_name' => ['required', 'string', 'max:255'],
-            'parent_id' => ['nullable', 'integer', Rule::exists('files', 'id')->where('user_id', $user->id)->where('is_folder', true)],
+            'parent_id' => [
+                'nullable',
+                'integer',
+                Rule::exists('files', 'id')->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                          ->whereRaw('is_folder IS TRUE');
+                }),
+            ],
             'is_folder' => 'required|boolean',
             'file_path' => 'sometimes|string',
             'file_size' => 'sometimes|integer',
@@ -55,32 +143,35 @@ class FileController extends Controller
         ]);
 
         $parentId = $validated['parent_id'] ?? null;
+        
+        // Force boolean conversion for PostgreSQL compatibility - explicit casting
+        $isFolder = $validated['is_folder'] === true || $validated['is_folder'] === 'true' || $validated['is_folder'] === '1' || $validated['is_folder'] === 1;
 
-        // Check for duplicates
+        // Duplicate name check within the same directory (files only)
+        // Use PostgreSQL-safe boolean handling and ignore trashed items
         $duplicateCheck = $user->files()
+            ->whereNull('deleted_at')
             ->where('file_name', $validated['file_name'])
-            ->where('is_folder', $validated['is_folder']);
-
+            ->whereRaw('is_folder IS FALSE');
         if ($parentId) {
             $duplicateCheck->where('parent_id', $parentId);
         } else {
             $duplicateCheck->whereNull('parent_id');
         }
-
         if ($duplicateCheck->exists()) {
-            $type = $validated['is_folder'] ? 'Folder' : 'File';
-            return response()->json(['message' => "A {$type} with this name already exists in this directory."], 409);
+            return response()->json(['message' => 'A file with this name already exists in this directory.'], 409);
         }
 
+        // Create file record using raw SQL insert to force boolean casting
         $item = File::create([
             'user_id' => $user->id,
             'file_name' => $validated['file_name'],
             'parent_id' => $parentId,
-            'is_folder' => $validated['is_folder'],
+            'is_folder' => DB::raw($isFolder ? 'TRUE' : 'FALSE'),
             'file_path' => $validated['file_path'] ?? '',
             'file_size' => $validated['file_size'] ?? 0,
-            'file_type' => $validated['file_type'] ?? ($validated['is_folder'] ? 'folder' : 'file'),
-            'mime_type' => $validated['mime_type'] ?? ($validated['is_folder'] ? 'inode/directory' : 'application/octet-stream'),
+            'file_type' => $validated['file_type'] ?? ($isFolder ? 'folder' : 'file'),
+            'mime_type' => $validated['mime_type'] ?? ($isFolder ? 'inode/directory' : 'application/octet-stream'),
         ]);
 
         return response()->json($item, 201);
@@ -92,6 +183,11 @@ class FileController extends Controller
     public function destroy($id): JsonResponse
     {
         try {
+            Log::info('Destroy request received', [
+                'user_id' => Auth::id(),
+                'file_id' => $id,
+                'via' => 'ajax',
+            ]);
             $file = Auth::user()->files()->findOrFail($id);
 
             DB::transaction(function () use ($file) {
@@ -310,6 +406,14 @@ class FileController extends Controller
         $user = Auth::user();
         $files = $user->files()->onlyTrashed()->orderBy('deleted_at', 'desc')->get();
         return response()->json($files);
+    }
+
+    /**
+     * Backwards compatible alias for indexTrash used by routes: /files/trash
+     */
+    public function getTrashItems(Request $request)
+    {
+        return $this->indexTrash($request);
     }
 
     /**

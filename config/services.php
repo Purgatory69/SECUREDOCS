@@ -21,11 +21,11 @@ return [
         'scheme' => 'https',
     ],
 
-    'n8n' => [
-        'webhook_url' => env('N8N_WEBHOOK_URL'),
-        'default_chat_webhook' => env('N8N_DEFAULT_CHAT_WEBHOOK_URL', 'YOUR_DEFAULT_CHAT_WEBHOOK_URL'),
-        'premium_chat_webhook' => env('N8N_PREMIUM_CHAT_WEBHOOK_URL', 'YOUR_PREMIUM_CHAT_WEBHOOK_URL'),
-    ],
+    // 'n8n' => [
+    //     'webhook_url' => env('N8N_WEBHOOK_URL'),
+    //     'default_chat_webhook' => env('N8N_DEFAULT_CHAT_WEBHOOK_URL', 'YOUR_DEFAULT_CHAT_WEBHOOK_URL'),
+    //     'premium_chat_webhook' => env('N8N_PREMIUM_CHAT_WEBHOOK_URL', 'YOUR_PREMIUM_CHAT_WEBHOOK_URL'),
+    // ],
 
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
