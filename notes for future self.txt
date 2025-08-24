@@ -1,0 +1,5 @@
+create a folder in the bucket where all the soft deleted is stored and can be restored
+
+create a feature for when the user also want to upload to the block chain on his first upload also this applies to the vector. where the user can select to upload to the block chain or not . this also applies to the vector. where the user can select what the ai can read.
+
+

@@ -19,11 +19,10 @@
         @auth
         <script>
             window.userId = {{ auth()->id() }};
-            window.userEmail = "{{ auth()->user()->email }}";
-            window.username = "{{ auth()->user()->name }}";
+            window.userEmail = '{{ auth()->user()->email }}';
+            window.username = '{{ auth()->user()->name }}';
             window.userIsPremium = {{ auth()->user()->is_premium ? 'true' : 'false' }};
-            // Determine the correct chat webhook URL on the backend
-            window.chatWebhookUrl = "{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}";
+            // window.chatWebhookUrl = '{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}';
         </script>
         @endauth
         <script>
@@ -33,6 +32,7 @@
     </head>
     <body class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
         @yield('content')
+        <div id="notification-container" class="fixed bottom-4 right-4 z-[1000] space-y-2"></div>
         
         @stack('scripts')
     
