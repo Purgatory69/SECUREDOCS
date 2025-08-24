@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\WebAuthnCredential;
+use App\Models\File;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
@@ -25,7 +26,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     use HasProfilePhoto;
     use Notifiable;
     use TwoFactorAuthenticatable;
-
+    
     /**
      * The attributes that are mass assignable.
      *
@@ -135,8 +136,10 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
 
     /**
      * Get the files for the user.
+     *
+     * @return \Illuminate\Database\Eloquent\Relations\HasMany
      */
-    public function files()
+    public function files(): HasMany
     {
         return $this->hasMany(File::class);
     }
