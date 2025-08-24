@@ -68,7 +68,7 @@ class BlockchainController extends Controller
 
             $mapped = $files->map(function (File $f) {
                 $meta = $f->blockchain_metadata ?? [];
-                $uploadTs = $meta['upload_timestamp'] ?? optional($f->updated_at)->toISOString();
+                $uploadTs = $meta['upload_timestamp'] ?? optional($f->updated_at)->toIso8601String();
                 $gateway = $meta['gateway_url'] ?? $f->blockchain_url;
                 return [
                     'id' => $f->id,
@@ -81,8 +81,8 @@ class BlockchainController extends Controller
                     'status' => 'pinned',
                     'encrypted' => (bool) ($meta['encrypted'] ?? false),
                     'upload_timestamp' => $uploadTs,
-                    'created_at' => optional($f->created_at)->toISOString(),
-                    'updated_at' => optional($f->updated_at)->toISOString(),
+                    'created_at' => optional($f->created_at)->toIso8601String(),
+                    'updated_at' => optional($f->updated_at)->toIso8601String(),
                 ];
             });
 

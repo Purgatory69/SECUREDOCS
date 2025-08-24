@@ -124,7 +124,8 @@ class File extends Model
      */
     public function scopeBlockchainStored($query)
     {
-        return $query->where('is_blockchain_stored', true);
+        return $query->whereRaw('is_blockchain_stored IS TRUE')
+                    ->whereNotNull('ipfs_hash');
     }
 
     /**

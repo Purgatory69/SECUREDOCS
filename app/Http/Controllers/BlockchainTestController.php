@@ -28,7 +28,7 @@ class BlockchainTestController extends Controller
                 'success' => $result['success'],
                 'message' => $result['message'],
                 'provider' => 'pinata',
-                'timestamp' => now()->toISOString(),
+                'timestamp' => now()->toIso8601String(),
                 'response' => $result['response'] ?? null
             ]);
 
@@ -37,7 +37,7 @@ class BlockchainTestController extends Controller
                 'success' => false,
                 'message' => 'Pinata test failed: ' . $e->getMessage(),
                 'provider' => 'pinata',
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toIso8601String()
             ], 500);
         }
     }
@@ -54,14 +54,14 @@ class BlockchainTestController extends Controller
                 'success' => true,
                 'providers' => $providers,
                 'default_provider' => config('blockchain.default'),
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toIso8601String()
             ]);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get providers: ' . $e->getMessage(),
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toIso8601String()
             ], 500);
         }
     }
@@ -96,7 +96,7 @@ class BlockchainTestController extends Controller
                 'keyvalues' => [
                     'test' => true,
                     'environment' => app()->environment(),
-                    'timestamp' => now()->toISOString()
+                    'timestamp' => now()->toIso8601String()
                 ]
             ]);
 
@@ -112,14 +112,14 @@ class BlockchainTestController extends Controller
                     'mime_type' => $file->getMimeType()
                 ],
                 'result' => $result,
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toIso8601String()
             ]);
 
         } catch (Exception $e) {
             return response()->json([
                 'success' => false,
                 'message' => 'Test upload failed: ' . $e->getMessage(),
-                'timestamp' => now()->toISOString()
+                'timestamp' => now()->toIso8601String()
             ], 500);
         }
     }
@@ -146,7 +146,7 @@ class BlockchainTestController extends Controller
                     ]
                 ]
             ],
-            'timestamp' => now()->toISOString()
+            'timestamp' => now()->toIso8601String()
         ]);
     }
 }

@@ -111,7 +111,7 @@ class BlockchainStorageManager
                     'blockchain_metadata' => [
                         'provider' => $providerName,
                         'pin_size' => $result['pin_size'] ?? null,
-                        'upload_timestamp' => $result['timestamp'] ?? now()->toISOString(),
+                        'upload_timestamp' => $result['timestamp'] ?? now()->toIso8601String(),
                         'gateway_url' => $result['gateway_url'],
                     ]
                 ]);

@@ -82,7 +82,8 @@ class FileController extends Controller
     public function proxyFile($id)
     {
         $user = Auth::user();
-        $file = $user->files()->findOrFail($id);
+        // Allow proxying even for trashed items so previews work from Trash view
+        $file = $user->files()->withTrashed()->findOrFail($id);
         
         if ($file->is_folder) {
             abort(404, 'Cannot proxy folder');
@@ -90,6 +91,16 @@ class FileController extends Controller
 
         $supabaseUrl = env('SUPABASE_URL');
         $filePath = $file->file_path;
+
+        if (empty($supabaseUrl) || empty($filePath)) {
+            Log::error('Proxy config or file path missing', [
+                'file_id' => $id,
+                'supabase_url_set' => !empty($supabaseUrl),
+                'file_path_set' => !empty($filePath),
+            ]);
+            abort(404);
+        }
+
         $publicUrl = "{$supabaseUrl}/storage/v1/object/public/docs/{$filePath}";
 
         try {

@@ -53,7 +53,7 @@ class PinataService implements BlockchainStorageInterface
                     'name' => $metadata['name'] ?? $file->getClientOriginalName(),
                     'keyvalues' => array_merge([
                         'uploaded_by' => 'SECUREDOCS',
-                        'upload_timestamp' => now()->toISOString(),
+                        'upload_timestamp' => now()->toIso8601String(),
                         'file_size' => $file->getSize(),
                         'mime_type' => $file->getMimeType(),
                     ], $metadata['keyvalues'] ?? [])
