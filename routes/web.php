@@ -161,8 +161,12 @@ Route::middleware([
         })->name('secure-area');
     });
 
+    // Debug blockchain endpoints (temporary)
+    Route::get('/debug/blockchain/stats', [App\Http\Controllers\DebugController::class, 'debugBlockchainStats'])->name('debug.blockchain.stats');
+    Route::get('/debug/blockchain/files', [App\Http\Controllers\DebugController::class, 'debugBlockchainFiles'])->name('debug.blockchain.files');
+
     // File proxy for CORS-free access
-    Route::get('/file-proxy/{id}', [FileController::class, 'proxyFile'])->name('file.proxy');
+    Route::get('/file-proxy/{id}', [FileController::class, 'proxyFile'])->whereNumber('id')->name('file.proxy');
     
     // User public info for chat widget
     Route::get('/user/{id}', [UserController::class, 'showPublic'])->name('user.show_public');
