@@ -60,7 +60,7 @@
                 </div>
                 
                 <script>
-                    let lockoutSeconds = {{ $seconds }};
+                    let lockoutSeconds = {{ $seconds }} ;
                     let countdownElem = document.getElementById('lockout-countdown');
                     let interval = setInterval(function () {
                         if (lockoutSeconds > 0) {
