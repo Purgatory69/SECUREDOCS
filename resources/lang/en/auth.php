@@ -1,0 +1,37 @@
+<?php
+return [
+    'hero_mid_1' => 'Effortless Access.<br/>Unwavering Security.',
+    'hero_mid_2' => 'Time to fortify your files.<br/>The future of document trust is here!',
+    'try_for_free' => 'Try for FREE!',
+    'footer_1' => 'Organize, access, and protect your documents!',
+    'footer_2' => 'Encrypt with blockchain technology!',
+    'footer_3' => 'Need a hand? Use our smart AI assistant!',
+    
+    'login_header' => 'Login',
+    'login_title' => 'Login to your account!',
+    'email' => 'EMAIL',
+    'password' => 'PASSWORD',
+    'forgot_password' => 'Forgot Password?',
+    'login' => 'LOGIN',
+    'login_biometrics' => 'LOGIN WITH BIOMETRICS',
+    'signup_prompt' => 'Don\'t have an account?',
+    'signup' => 'Sign Up!',
+
+    'register_header' => 'Register',
+    'signup_title' => 'Create a SecureDocs account!',
+    'personal_info' => 'PERSONAL INFORMATION',
+    'name' => 'NAME',
+    'create_password' => 'CREATE A PASSWORD',
+    'confirm_password' => 'CONFIRM PASSWORD',
+    'register' => 'REGISTER',
+    'have_an_account' => 'Already have an account?',
+    'login_here' => 'Log in!',
+
+    'forgot_password_header' => 'Reset your Password!',
+    'forgot_password_title' => 'FORGOT YOUR PASSWORD?',
+    'type_email_here' => 'No problem! Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.',
+    'password_reset_btn' => 'EMAIL PASSWORD RESET LINK',
+
+    'basic-subscription' => 'Basic Subscription',
+    'premium' => 'Premium',
+];

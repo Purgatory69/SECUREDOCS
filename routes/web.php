@@ -17,6 +17,17 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+Route::get('/set-language/{language}', function ($language) {
+    $validLanguages = ['en', 'fil'];
+    
+    if (in_array($language, $validLanguages)) {
+        session(['app_locale' => $language]);
+        return redirect()->back();
+    }
+    
+    return redirect()->back();
+})->name('language.switch');
+
 // WebAuthn authentication routes
 Route::post('/webauthn/login/options', [WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
 Route::post('/webauthn/login/verify', [WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
@@ -48,7 +59,7 @@ Route::middleware([
         Route::post('/approve/{id}', [AdminController::class, 'approveUser'])->name('approve');
         Route::post('/revoke/{id}', [AdminController::class, 'revokeUser'])->name('revoke');
         Route::post('/users/{user}/premium-settings', [AdminController::class, 'updatePremiumSettings'])->name('users.premium-settings');
-        Route::get('/analytics', [ActivityController::class, 'getSystemAnalytics'])->name('analytics');
+        Route::get('/analytics', [\App\Http\Controllers\ActivityController::class, 'getSystemAnalytics'])->name('analytics');
         Route::get('/db-schema.json', [SchemaController::class, 'get'])->name('db-schema.json');
     });
 
@@ -130,8 +141,6 @@ Route::middleware([
     // Security events routes
     Route::get('/security-events', [App\Http\Controllers\ActivityController::class, 'getSecurityEvents'])->name('security.events');
     
-    
-
 
     // Security routes
     Route::prefix('security')->name('security.')->group(function () {

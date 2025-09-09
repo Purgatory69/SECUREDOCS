@@ -27,15 +27,23 @@ class NotificationManager {
     }
 
     init() {
+        // Guard: if required DOM nodes are missing, skip setup gracefully
+        if (!this.bell || !this.dropdown || !this.list || !this.badge) {
+            console.debug('[Notifications] UI elements not found. Skipping NotificationManager initialization.');
+            return;
+        }
+
         // Event listeners
         this.bell.addEventListener('click', (e) => {
             e.stopPropagation();
             this.toggleDropdown();
         });
 
-        this.markAllReadBtn.addEventListener('click', () => {
-            this.markAllAsRead();
-        });
+        if (this.markAllReadBtn) {
+            this.markAllReadBtn.addEventListener('click', () => {
+                this.markAllAsRead();
+            });
+        }
 
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
@@ -49,7 +57,7 @@ class NotificationManager {
         this.updateUnreadCount();
 
         // Poll for new notifications every 30 seconds
-        setInterval(() => {
+        this._poller = setInterval(() => {
             this.updateUnreadCount();
         }, 30000);
     }
@@ -201,6 +209,7 @@ class NotificationManager {
     }
 
     updateBadge(count) {
+        if (!this.badge) return;
         if (count > 0) {
             this.badge.textContent = count > 99 ? '99+' : count;
             this.badge.classList.remove('hidden');
@@ -289,7 +298,7 @@ class NotificationManager {
                 },
                 credentials: 'same-origin',
                 body: JSON.stringify({
-                    user_id: window.currentUserId, // Assume this is set globally
+                    user_id: window.currentUserId || window.userId, // Fallback to userId
                     type,
                     title,
                     message,
