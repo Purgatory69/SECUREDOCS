@@ -13,7 +13,7 @@ import { initializeFileFolderManagement, loadUserFiles, loadTrashItems } from '.
 import { loadBlockchainItems } from './modules/blockchain-page.js';
 import { initializeUi, initializeTooltips } from './modules/ui.js';
 import { initializeSearch } from './modules/search.js';
-import { setupBlockchainLazyInit } from './modules/blockchain.js';
+// import { setupBlockchainLazyInit } from './modules/blockchain.js';
 import { NotificationManager } from './modules/notifications.js';
 
 // --- Supabase Client Check ---
@@ -41,7 +41,8 @@ function initializeApp() {
     // --- Initialize All Imported Modules ---
     initializeN8nChat();
     initializeUploadModal();
-    setupBlockchainLazyInit();
+    // Disabled for now: do not auto-open the Blockchain modal on sidebar click.
+    // setupBlockchainLazyInit();
     
     // Modules requiring dependencies are initialized here.
     initializeSearch(loadUserFiles);
