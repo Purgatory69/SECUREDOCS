@@ -80,11 +80,11 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', 'en'),
+    'locale' => 'en',
+    'fallback_locale' => 'en',
+    'supported_locales' => ['en', 'fil'],
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
-
-    'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
+    // 'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
 
     /*
     |--------------------------------------------------------------------------
@@ -137,6 +137,7 @@ return [
     */
     'providers' => [
         // Laravel Framework Service Providers...
+        
         Illuminate\Auth\AuthServiceProvider::class,
         Illuminate\Broadcasting\BroadcastServiceProvider::class,
         Illuminate\Bus\BusServiceProvider::class,
@@ -146,6 +147,7 @@ return [
         Illuminate\Database\DatabaseServiceProvider::class,
         Illuminate\Encryption\EncryptionServiceProvider::class,
         Illuminate\Filesystem\FilesystemServiceProvider::class,
+        App\Providers\LocaleServiceProvider::class,
         Illuminate\Foundation\Providers\FoundationServiceProvider::class,
         Illuminate\Hashing\HashServiceProvider::class,
         Illuminate\Mail\MailServiceProvider::class,
@@ -170,8 +172,8 @@ return [
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
         App\Providers\WebAuthnServiceProvider::class,
-        // App\Providers\FortifyServiceProvider::class, 
-        // App\Providers\JetstreamServiceProvider::class, 
+        App\Providers\FortifyServiceProvider::class, 
+        App\Providers\JetstreamServiceProvider::class, 
     ],
 
     /*

@@ -175,6 +175,7 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         loadTrashItems();
     });
 
+<<<<<<< HEAD
     blockchainLink?.addEventListener('click', (e) => {
         e.preventDefault();
         headerTitle.textContent = 'Blockchain Storage';
@@ -183,6 +184,17 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         blockchainLink.classList.add('bg-primary', 'text-white');
         loadBlockchainItems();
     });
+=======
+    // In initializeViewToggling, after adding the event listeners:
+    if (myDocumentsLink) {
+        headerTitle.textContent = 'My Documents';
+        newButton.style.display = 'block';
+        myDocumentsLink.classList.add('bg-primary','text-white');   // active on load
+        trashLink?.classList.remove('bg-primary','text-white');
+        loadUserFiles(state.lastMainSearch, 1, null);
+    }
+  
+>>>>>>> origin/language-feature
 }
 
 // Initialize tooltips for elements with data-tooltip attribute
