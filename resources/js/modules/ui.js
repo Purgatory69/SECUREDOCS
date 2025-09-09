@@ -111,12 +111,14 @@ export function initializeUserProfile() {
         profileDropdown.classList.toggle('opacity-0');
         profileDropdown.classList.toggle('invisible');
         profileDropdown.classList.toggle('translate-y-[-10px]');
+        // Also toggle scale for a smoother pop animation and to avoid staying scaled down
+        profileDropdown.classList.toggle('scale-95');
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', function (event) {
         if (!profileDropdown.contains(event.target) && !userProfileBtn.contains(event.target)) {
-            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
         }
     });
 }
@@ -165,6 +167,16 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, state) {
         myDocumentsLink.classList.remove('bg-primary', 'text-white');
         loadTrashItems();
     });
+
+    // In initializeViewToggling, after adding the event listeners:
+    if (myDocumentsLink) {
+        headerTitle.textContent = 'My Documents';
+        newButton.style.display = 'block';
+        myDocumentsLink.classList.add('bg-primary','text-white');   // active on load
+        trashLink?.classList.remove('bg-primary','text-white');
+        loadUserFiles(state.lastMainSearch, 1, null);
+    }
+  
 }
 
 // Initialize tooltips for elements with data-tooltip attribute
