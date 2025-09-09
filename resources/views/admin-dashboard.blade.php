@@ -15,10 +15,10 @@
         {{-- Admin Profile/Logout --}}
         <div class="flex items-center ml-auto gap-4">
             <div class="relative inline-block">
-                <div id="userProfileBtn" class="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center text-base cursor-pointer z-20">
+                <div id="userProfileBtn" class="w-10 h-10 rounded-full bg-red-500 text-white flex items-center justify-center text-base cursor-pointer hover:bg-red-600 transition-colors">
                     {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
                 </div>
-                <div id="profileDropdown" class="absolute top-[54px] right-0 w-[280px] bg-white rounded-lg shadow-lg z-10 overflow-hidden transition-all duration-300 opacity-0 invisible translate-y-[-10px]">
+                <div id="profileDropdown" class="absolute top-full right-0 mt-2 w-[280px] bg-white rounded-lg shadow-xl border border-gray-200 z-50 overflow-hidden transition-all duration-200 opacity-0 invisible transform translate-y-[-10px] scale-95">
                     <div class="p-4 border-b border-border-color flex items-center">
                         <div class="w-12 h-12 rounded-full bg-red-500 text-white flex items-center justify-center text-xl mr-4">
                             {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
@@ -144,30 +144,5 @@
             </table>
         </div>
     </main>
-
-    {{-- Profile Dropdown JS (can be moved to a separate JS file if preferred) --}}
-    <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const userProfileBtn = document.getElementById('userProfileBtn');
-            const profileDropdown = document.getElementById('profileDropdown');
-            const overlay = document.getElementById('overlay'); // Assuming you might add an overlay like in dashboard
-
-            if (userProfileBtn && profileDropdown) {
-                userProfileBtn.addEventListener('click', function (event) {
-                    event.stopPropagation();
-                    profileDropdown.classList.toggle('opacity-0');
-                    profileDropdown.classList.toggle('invisible');
-                    profileDropdown.classList.toggle('translate-y-[-10px]');
-                    if (overlay) overlay.classList.toggle('hidden');
-                });
-
-                document.addEventListener('click', function (event) {
-                    if (!profileDropdown.contains(event.target) && !userProfileBtn.contains(event.target)) {
-                        profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
-                        if (overlay) overlay.classList.add('hidden');
-                    }
-                });
-            }
-        });
-    </script>
+    {{-- Profile dropdown handled by resources/js/modules/ui.js --}}
 @endsection

@@ -35,21 +35,34 @@
 <div class="fixed bottom-6 right-6 z-50">
     <div class="relative">
         <!-- Toggle Button -->
-        <button id="language-toggle" class="bg-[#3c3f58] hover:bg-gray-600 text-white p-3 rounded-full shadow-lg transition-colors">
+        <button id="language-toggle" class="bg-[#3c3f58] text-white p-3 rounded-full shadow-lg transition
+            style="transition: background-color 0.2s;"
+            onmouseover="this.style.backgroundColor='#55597C';"
+            onmouseout="this.style.backgroundColor='';">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
             </svg>
         </button>
-        
+
         <!-- Dropdown Menu -->
         <div id="language-dropdown" class="absolute bottom-full right-0 mb-2 hidden bg-[#3c3f58] rounded-lg shadow-xl overflow-hidden min-w-[140px]">
-            <a href="{{ route('language.switch', 'en') }}" 
-               class="flex items-center px-4 py-3 text-sm transition-colors hover:bg-gray-600 {{ app()->getLocale() == 'en' ? 'bg-[#f89c00] text-black font-bold' : 'text-white' }}">
+            <a href="{{ route('language.switch', 'en') }}"
+                class="flex items-center px-4 py-3 text-sm transition-colors {{ app()->getLocale() == 'en' ? 'bg-[#f89c00] text-black font-bold' : 'text-white' }}"
+                @if(app()->getLocale() != 'en')
+                    style="transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#55597C';"
+                    onmouseout="this.style.backgroundColor='';"
+                @endif>
                 <span class="mr-2">🇺🇸</span>
                 English
             </a>
-            <a href="{{ route('language.switch', 'fil') }}" 
-               class="flex items-center px-4 py-3 text-sm transition-colors hover:bg-gray-600 {{ app()->getLocale() == 'fil' ? 'bg-[#f89c00] text-black font-bold' : 'text-white' }}">
+            <a href="{{ route('language.switch', 'fil') }}"
+                class="flex items-center px-4 py-3 text-sm transition-colors {{ app()->getLocale() == 'fil' ? 'bg-[#f89c00] text-black font-bold' : 'text-white' }}"
+                @if(app()->getLocale() != 'fil')
+                    style="transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#55597C';"
+                    onmouseout="this.style.backgroundColor='';"
+                @endif>
                 <span class="mr-2">🇵🇭</span>
                 Filipino
             </a>
