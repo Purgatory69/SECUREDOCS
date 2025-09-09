@@ -171,6 +171,16 @@ class UserController extends Controller
     }
 
     /**
+     * Show the user dashboard.
+     *
+     * @return \Illuminate\View\View
+     */
+    public function dashboard()
+    {
+        return view('user-dashboard');
+    }
+
+    /**
      * Return public user info for chat widget or API.
      *
      * @param int $id

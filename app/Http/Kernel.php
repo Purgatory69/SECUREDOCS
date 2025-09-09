@@ -35,12 +35,14 @@ class Kernel extends HttpKernel
             \Illuminate\View\Middleware\ShareErrorsFromSession::class,
             \App\Http\Middleware\VerifyCsrfToken::class,
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\SetStatementTimeout::class,
         ],
 
         'api' => [
             // \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
             'throttle:api',
             \Illuminate\Routing\Middleware\SubstituteBindings::class,
+            \App\Http\Middleware\SetStatementTimeout::class,
         ],
     ];
 
@@ -49,10 +51,11 @@ class Kernel extends HttpKernel
      *
      * These middleware may be assigned to groups or used individually.
      *
-     * @var array
+     * @var array<string, class-string|string>
      */
     protected $routeMiddleware = [
         'redirect.role' => \App\Http\Middleware\RedirectIfHasRole::class,
+        'role' => \App\Http\Middleware\RoleMiddleware::class,
         'auth' => \App\Http\Middleware\Authenticate::class,
         'auth.basic' => \Illuminate\Auth\Middleware\AuthenticateWithBasicAuth::class,
         'auth.webauthn' => \App\Http\Middleware\WebAuthnAuthenticated::class,

@@ -21,11 +21,14 @@ return [
         'scheme' => 'https',
     ],
 
-    // 'n8n' => [
-    //     'webhook_url' => env('N8N_WEBHOOK_URL'),
-    //     'default_chat_webhook' => env('N8N_DEFAULT_CHAT_WEBHOOK_URL', 'YOUR_DEFAULT_CHAT_WEBHOOK_URL'),
-    //     'premium_chat_webhook' => env('N8N_PREMIUM_CHAT_WEBHOOK_URL', 'YOUR_PREMIUM_CHAT_WEBHOOK_URL'),
-    // ],
+    'n8n' => [
+        //webhook for vectorization
+        'webhook_url' => env('N8N_WEBHOOK_URL'),
+        'default_chat_webhook' => env('N8N_DEFAULT_CHAT_WEBHOOK_URL'),
+        'premium_chat_webhook' => env('N8N_PREMIUM_CHAT_WEBHOOK_URL'),
+        // Used by SendFileToN8n job; maps to general webhook for premium processing
+        'premium_webhook_url' => env('N8N_WEBHOOK_URL'),
+    ],
 
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
@@ -49,8 +52,8 @@ return [
     ],
     'supabase' => [
         'url' => env('SUPABASE_URL'),
-        'key' => env('SUPABASE_KEY'),
-        // Any other Supabase configurations...
+        'key' => env('SUPABASE_KEY'), // anon/public key for frontend
+        'service_key' => env('SUPABASE_SERVICE_ROLE_KEY'), // service role for backend operations
     ],
 
 ];

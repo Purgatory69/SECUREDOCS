@@ -3,19 +3,35 @@
 namespace App\Http\Controllers;
 
 use App\Models\File;
+use App\Models\User;
+use App\Services\BlockchainStorage\BlockchainStorageManager;
+use App\Services\BlockchainStorage\BlockchainPreflightValidator;
+use App\Services\VectorStoreManager;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\Rule;
 use GuzzleHttp\Client;
-use Illuminate\Support\Facades\Storage;
 use GuzzleHttp\Exception\RequestException;
 use Illuminate\Support\Str;
 
 class FileController extends Controller
 {
+    protected BlockchainStorageManager $blockchainManager;
+    protected BlockchainPreflightValidator $validator;
+    protected VectorStoreManager $vectorManager;
+
+    public function __construct(BlockchainStorageManager $blockchainManager, BlockchainPreflightValidator $validator, VectorStoreManager $vectorManager)
+    {
+        $this->blockchainManager = $blockchainManager;
+        $this->validator = $validator;
+        $this->vectorManager = $vectorManager;
+    }
     /**
      * Display a listing of the resource.
      */
@@ -27,7 +43,12 @@ class FileController extends Controller
         $search = $request->query('q');
 
         // Explicitly exclude soft-deleted items to ensure trashed files don't appear in main list
-        $query = $user->files()->whereNull('deleted_at');
+        // Also exclude blockchain-only files (file_path starts with 'ipfs://')
+        $query = $user->files()->whereNull('deleted_at')
+            ->where(function($q) {
+                $q->whereNull('file_path')
+                  ->orWhere('file_path', 'not like', 'ipfs://%');
+            });
 
         // Apply parent filter robustly
         if ($request->has('parent_id')) {
@@ -104,7 +125,7 @@ class FileController extends Controller
         $publicUrl = "{$supabaseUrl}/storage/v1/object/public/docs/{$filePath}";
 
         try {
-            $client = new \GuzzleHttp\Client();
+            $client = new Client();
             $response = $client->get($publicUrl);
             
             $content = $response->getBody()->getContents();
@@ -129,6 +150,59 @@ class FileController extends Controller
     }
 
     /**
+     * Restore vectors for a file (clear soft-delete flags in vector DB)
+     */
+    public function restoreVectors(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            // Allow restoring vectors even if the file is currently in trash
+            $file = $user->files()->withTrashed()->findOrFail($id);
+
+            if (!$file->isVectorized()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File is not vectorized'
+                ], 400);
+            }
+
+            $restored = $this->vectorManager->restoreHidden($file->id, $user->id);
+
+            if (!$restored) {
+                Log::warning('Failed to restore vectors (soft-deleted) for file', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id,
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to restore vectors'
+                ], 500);
+            }
+
+            Log::info('Vectors restored (soft-delete cleared) for file', [
+                'file_id' => $file->id,
+                'user_id' => $user->id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Vectors restored successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error restoring vectors for file', [
+                'file_id' => $id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to restore vectors'
+            ], 500);
+        }
+    }
+    /**
      * Store a newly created resource in storage.
      */
     public function store(Request $request): JsonResponse
@@ -151,6 +225,7 @@ class FileController extends Controller
             'file_size' => 'sometimes|integer',
             'file_type' => 'sometimes|string',
             'mime_type' => 'sometimes|string',
+            'processing_type' => 'sometimes|string|in:standard,blockchain,vectorize,hybrid',
         ]);
 
         $parentId = $validated['parent_id'] ?? null;
@@ -185,7 +260,529 @@ class FileController extends Controller
             'mime_type' => $validated['mime_type'] ?? ($isFolder ? 'inode/directory' : 'application/octet-stream'),
         ]);
 
+        // Handle post-upload processing based on processing_type
+        $processingType = $validated['processing_type'] ?? 'standard';
+        if (!$isFolder && $processingType !== 'standard') {
+            $this->handlePostUploadProcessing($item, $processingType, $user);
+        }
+
         return response()->json($item, 201);
+    }
+
+    /**
+     * Remove file from vector database
+     */
+    public function removeFromVector(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $file = $user->files()->findOrFail($id);
+
+            if (!$file->isVectorized()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File is not vectorized'
+                ], 400);
+            }
+
+            // Remove vectors using VectorStoreManager
+            $vectorsRemoved = $this->vectorManager->unvector($file->id, $user->id);
+
+            if (!$vectorsRemoved) {
+                Log::warning('Failed to remove vectors from database', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to remove file from vector database'
+                ], 500);
+            }
+
+            Log::info('File removed from vector database', [
+                'file_id' => $file->id,
+                'user_id' => $user->id,
+                'vectors_removed' => $vectorsRemoved
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File removed from vector database',
+                'file' => $file->fresh()
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to remove file from vector database', [
+                'file_id' => $id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove file from vector database'
+            ], 500);
+        }
+    }
+
+    /**
+     * Add a file to the AI vector database by sending it to N8N webhook
+     */
+    public function addToVector(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $file = $user->files()->findOrFail($id);
+
+            // Check if file is already vectorized
+            if ($file->isVectorized()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File is already vectorized'
+                ], 400);
+            }
+
+            // Check if user is premium
+            if (!$user->is_premium) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Premium subscription required for AI vectorization'
+                ], 403);
+            }
+
+            // Get N8N webhook URL
+            $n8nWebhookUrl = config('services.n8n.premium_webhook_url');
+            if (empty($n8nWebhookUrl)) {
+                Log::error('N8n webhook URL not configured', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id
+                ]);
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Vectorization service is not available'
+                ], 503);
+            }
+
+            Log::info('Starting file vectorization via N8n webhook', [
+                'file_id' => $file->id,
+                'user_id' => $user->id,
+                'file_name' => $file->file_name,
+                'webhook_url' => $n8nWebhookUrl
+            ]);
+
+            // Prepare payload similar to upload flow
+            $payload = array_merge($file->toArray(), [
+                'user_id_for_n8n' => $user->id,
+                'processing_type' => 'vectorization',
+                'timestamp' => now()->toISOString(),
+                'source' => 'manual_add_to_vector'
+            ]);
+
+            // Send to N8N webhook
+            $response = Http::timeout(30)->post($n8nWebhookUrl, $payload);
+
+            if ($response->successful()) {
+                Log::info('N8n vectorization webhook call successful', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id,
+                    'response_status' => $response->status()
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'File sent for vectorization processing',
+                    'file' => $file->fresh()
+                ]);
+            } else {
+                Log::error('N8n vectorization webhook call failed', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id,
+                    'response_status' => $response->status(),
+                    'response_body' => $response->body()
+                ]);
+
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to send file for vectorization'
+                ], 500);
+            }
+
+        } catch (\Exception $e) {
+            Log::error('Exception during add to vector', [
+                'file_id' => $id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'An error occurred while adding to vector database',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle vectorization completion notification from N8N
+     */
+    public function handleVectorizationComplete(Request $request): JsonResponse
+    {
+        try {
+            $fileId = $request->input('file_id');
+            $userId = $request->input('user_id');
+            $status = $request->input('status');
+            
+            Log::info('Received vectorization completion notification', [
+                'file_id' => $fileId,
+                'user_id' => $userId,
+                'status' => $status,
+                'payload' => $request->all()
+            ]);
+
+            if (!$fileId || !$userId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Missing file_id or user_id'
+                ], 400);
+            }
+
+            // Find the file and mark as vectorized
+            $file = File::find($fileId);
+            if (!$file) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File not found'
+                ], 404);
+            }
+
+            // Mark file as vectorized if status is completed
+            if ($status === 'completed') {
+                $file->markAsVectorized([
+                    'n8n_completion_timestamp' => now()->toISOString(),
+                    'notification_received' => true
+                ]);
+
+                // Find user and send notification
+                $user = User::find($userId);
+                if ($user) {
+                    // Create database notification
+                    $user->notifications()->create([
+                        'type' => 'vectorization_complete',
+                        'title' => 'AI Vectorization Complete',
+                        'message' => "File '{$file->file_name}' has been successfully added to AI vector database",
+                        'data' => [
+                            'file_id' => $fileId,
+                            'file_name' => $file->file_name,
+                            'action' => 'vectorization_complete'
+                        ]
+                    ]);
+                }
+
+                Log::info('File marked as vectorized from N8N completion', [
+                    'file_id' => $fileId,
+                    'user_id' => $userId,
+                    'file_name' => $file->file_name
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Vectorization completion processed'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error handling vectorization completion', [
+                'error' => $e->getMessage(),
+                'payload' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error processing completion notification'
+            ], 500);
+        }
+    }
+
+    /**
+     * Remove file from blockchain storage
+     */
+    public function removeFromBlockchain(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $file = $user->files()->findOrFail($id);
+
+            if (!$file->isStoredOnBlockchain()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File is not stored on blockchain'
+                ], 400);
+            }
+
+            // Use blockchain manager to remove file
+            $result = $this->blockchainManager->removeFile($file);
+
+            if ($result) {
+                Log::info('File removed from blockchain storage', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id,
+                    'ipfs_hash' => $file->ipfs_hash
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'File removed from blockchain storage successfully'
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove file from blockchain storage'
+            ], 500);
+        } catch (\Exception $e) {
+            Log::error('Failed to remove file from blockchain storage', [
+                'file_id' => $id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove file from blockchain storage'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get file processing status
+     */
+    public function getProcessingStatus(File $file): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            if ($file->user_id !== $user->id) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            $status = $file->getProcessingStatus();
+            // Include whether vectors are currently soft-deleted (hidden)
+            $status['vectors_soft_deleted'] = $file->isVectorized()
+                ? $this->vectorManager->areVectorsSoftDeleted($file->id, $user->id)
+                : false;
+
+            return response()->json([
+                'success' => true,
+                'status' => $status
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get processing status: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Download blockchain file to Supabase storage
+     */
+    public function downloadFromBlockchain(File $file): JsonResponse
+    {
+        try {
+            if ($file->user_id !== Auth::id()) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+            }
+
+            if (!$file->isStoredOnBlockchain()) {
+                return response()->json(['success' => false, 'message' => 'File is not on blockchain'], 400);
+            }
+
+            // Download from IPFS and save to Supabase
+            $provider = $this->blockchainManager->provider($file->blockchain_provider);
+            $content = $provider->getFile($file->ipfs_hash);
+            
+            if (!$content) {
+                return response()->json(['success' => false, 'message' => 'Failed to download from blockchain'], 500);
+            }
+
+            // Save to Supabase storage
+            $path = 'files/' . Auth::id() . '/' . uniqid() . '_' . $file->file_name;
+            Storage::put($path, $content);
+
+            // Update file record
+            $file->update(['file_path' => $path]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File downloaded to Supabase storage'
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Download failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Handle post-upload processing for blockchain and n8n workflows
+{{ ... }}
+     */
+    protected function handlePostUploadProcessing(File $file, string $processingType, $user): void
+    {
+        try {
+            Log::info('Starting post-upload processing', [
+                'file_id' => $file->id,
+                'processing_type' => $processingType,
+                'user_id' => $user->id
+            ]);
+
+            switch ($processingType) {
+                case 'blockchain':
+                    $this->processBlockchainUpload($file, $user);
+                    break;
+                
+                case 'vectorize':
+                    $this->processN8nVectorization($file, $user);
+                    break;
+                
+                case 'hybrid':
+                    $this->processBlockchainUpload($file, $user);
+                    $this->processN8nVectorization($file, $user);
+                    break;
+            }
+        } catch (\Exception $e) {
+            Log::error('Post-upload processing failed', [
+                'file_id' => $file->id,
+                'processing_type' => $processingType,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Process blockchain upload
+     */
+    protected function processBlockchainUpload(File $file, $user): void
+    {
+        try {
+            // Create UploadedFile from existing file
+            $filePath = Storage::path($file->file_path);
+            
+            if (!file_exists($filePath)) {
+                Log::error('File not found for blockchain upload', [
+                    'file_id' => $file->id,
+                    'file_path' => $file->file_path
+                ]);
+                return;
+            }
+
+            $uploadedFile = new UploadedFile(
+                $filePath,
+                $file->file_name,
+                $file->mime_type,
+                null,
+                true // Mark as test to avoid validation errors
+            );
+
+            // Upload to blockchain with tracking
+            $result = $this->blockchainManager->uploadFileWithTracking(
+                $file, 
+                $uploadedFile, 
+                $user
+            );
+
+            if ($result['success']) {
+                Log::info('Blockchain upload successful during post-processing', [
+                    'file_id' => $file->id,
+                    'ipfs_hash' => $result['ipfs_hash']
+                ]);
+                
+                // File should already be updated by uploadFileWithTracking, but ensure consistency
+                $file->refresh();
+            } else {
+                Log::error('Blockchain upload failed during post-processing', [
+                    'file_id' => $file->id,
+                    'error' => $result['error'] ?? 'Unknown error'
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception during blockchain upload processing', [
+                'file_id' => $file->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+    }
+
+    /**
+     * Process n8n vectorization via direct webhook call
+     */
+    protected function processN8nVectorization(File $file, $user): void
+    {
+        try {
+            // Check if user is premium
+            if (!$user->is_premium) {
+                Log::info('N8n vectorization skipped: User is not premium', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id
+                ]);
+                return;
+            }
+
+            $n8nWebhookUrl = config('services.n8n.premium_webhook_url');
+            
+            if (empty($n8nWebhookUrl)) {
+                Log::error('N8n webhook URL not configured', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id
+                ]);
+                return;
+            }
+
+            Log::info('Starting N8n vectorization via direct webhook', [
+                'file_id' => $file->id,
+                'user_id' => $user->id,
+                'webhook_url' => $n8nWebhookUrl
+            ]);
+
+            // Prepare payload with file metadata
+            $payload = array_merge($file->toArray(), [
+                'user_id_for_n8n' => $user->id,
+                'processing_type' => 'vectorization',
+                'timestamp' => now()->toISOString()
+            ]);
+
+            // Make direct HTTP call to n8n webhook
+            $response = Http::timeout(30)->post($n8nWebhookUrl, $payload);
+
+            if ($response->successful()) {
+                // Mark file as vectorized
+                $responseData = $response->json();
+                $file->markAsVectorized([
+                    'webhook_response' => $responseData,
+                    'processing_timestamp' => now()->toISOString(),
+                    'webhook_url' => $n8nWebhookUrl
+                ]);
+
+                Log::info('N8n vectorization webhook call successful', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id,
+                    'response_status' => $response->status()
+                ]);
+            } else {
+                Log::error('N8n vectorization webhook call failed', [
+                    'file_id' => $file->id,
+                    'user_id' => $user->id,
+                    'response_status' => $response->status(),
+                    'response_body' => $response->body()
+                ]);
+            }
+        } catch (\Exception $e) {
+            Log::error('Exception during N8n vectorization webhook call', [
+                'file_id' => $file->id,
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+        }
     }
 
     /**
@@ -251,6 +848,17 @@ class FileController extends Controller
         if (!empty($file->file_path)) {
             $this->moveFileToTrashStorage($file);
         }
+        
+        // Soft-hide vectors if file is vectorized
+        if ($file->isVectorized()) {
+            $vectorsHidden = $this->vectorManager->softHide($file->id, $file->user_id);
+            Log::info('Vectors soft-hidden for trashed file', [
+                'file_id' => $file->id,
+                'user_id' => $file->user_id,
+                'vectors_hidden' => $vectorsHidden
+            ]);
+        }
+        
         $file->delete(); // Soft delete
     }
 
@@ -279,7 +887,7 @@ class FileController extends Controller
     private function moveFileToTrashStorage($file)
     {
         $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_SERVICE_KEY');
+        $supabaseKey = config('services.supabase.service_key');
         $bucketName = 'docs';
 
         if (!$supabaseUrl || !$supabaseKey || empty($file->file_path)) {
@@ -467,6 +1075,19 @@ class FileController extends Controller
                     $allChildren = $this->getAllChildren($file, true);
                     $allChildren->push($file);
 
+                    // Clean up vectors for all vectorized files in folder
+                    $vectorizedFiles = $allChildren->where('is_folder', false)->filter(function($item) {
+                        return $item->isVectorized();
+                    });
+                    
+                    foreach($vectorizedFiles as $vectorizedFile) {
+                        $this->vectorManager->unvector($vectorizedFile->id, $vectorizedFile->user_id);
+                        Log::info('Vectors removed for force-deleted file', [
+                            'file_id' => $vectorizedFile->id,
+                            'user_id' => $vectorizedFile->user_id
+                        ]);
+                    }
+
                     $filesToDeleteFromStorage = $allChildren->where('is_folder', false)->where('file_path', '!=', '');
                     if ($filesToDeleteFromStorage->isNotEmpty()) {
                         $this->deleteFilesFromStorage($filesToDeleteFromStorage);
@@ -477,6 +1098,15 @@ class FileController extends Controller
                         $item->forceDelete();
                     }
                 } else {
+                    // Clean up vectors for single file if vectorized
+                    if ($file->isVectorized()) {
+                        $this->vectorManager->unvector($file->id, $file->user_id);
+                        Log::info('Vectors removed for force-deleted file', [
+                            'file_id' => $file->id,
+                            'user_id' => $file->user_id
+                        ]);
+                    }
+                    
                     if (!empty($file->file_path)) {
                         $this->deleteFilesFromStorage(collect([$file]));
                     }
@@ -515,6 +1145,21 @@ class FileController extends Controller
             $this->moveFileFromTrashStorage($item);
         }
 
+        // Restore vectors if file was vectorized (but keep them soft-deleted until user explicitly requests)
+        if (!$item->is_folder && $item->isVectorized()) {
+            $hasVectors = $this->vectorManager->hasVectors($item->id, $item->user_id);
+            $hasSoftDeletedVectors = $this->vectorManager->areVectorsSoftDeleted($item->id, $item->user_id);
+            
+            if ($hasVectors && $hasSoftDeletedVectors) {
+                // For now, keep vectors soft-deleted until user explicitly chooses to restore them
+                // This prevents accidental re-exposure to AI without user consent
+                Log::info('File restored but vectors remain soft-deleted pending user confirmation', [
+                    'file_id' => $item->id,
+                    'user_id' => $item->user_id
+                ]);
+            }
+        }
+
         // Restore the item itself
         $item->restore();
     }
@@ -525,7 +1170,7 @@ class FileController extends Controller
     private function moveFileFromTrashStorage($file)
     {
         $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_SERVICE_KEY');
+        $supabaseKey = config('services.supabase.service_key');
         $bucketName = 'docs';
 
         if (!$supabaseUrl || !$supabaseKey || empty($file->file_path) || !Str::startsWith($file->file_path, 'trash/')) {
@@ -577,7 +1222,7 @@ class FileController extends Controller
         }
 
         $supabaseUrl = env('SUPABASE_URL');
-        $supabaseKey = env('SUPABASE_SERVICE_KEY');
+        $supabaseKey = config('services.supabase.service_key');
         $bucketName = 'docs';
 
         if (!$supabaseUrl || !$supabaseKey) {

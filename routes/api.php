@@ -4,6 +4,8 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\N8nNotificationController;
 use App\Http\Controllers\WebsiteRefreshController;
+use App\Http\Controllers\FileController;
+use App\Http\Controllers\SchemaController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -35,3 +37,11 @@ Route::prefix('refresh')->group(function () {
     // Server-Sent Events for real-time refresh
     Route::get('/sse', [WebsiteRefreshController::class, 'sseRefreshEvents']);
 });
+
+// Vectorization completion webhook
+Route::post('/vectorization-complete', [FileController::class, 'handleVectorizationComplete']);
+
+// Database schema (live) endpoint (admin-only via Sanctum)
+Route::get('/db-schema', [SchemaController::class, 'get'])
+    ->middleware(['auth:sanctum', 'role:admin'])
+    ->name('api.db-schema');

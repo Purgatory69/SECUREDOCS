@@ -18,10 +18,11 @@ export function init() {
   async function apiFetch(url, options = {}) {
     const headers = {
       'X-Requested-With': 'XMLHttpRequest',
+      'Accept': 'application/json',
       ...(options.headers || {}),
       ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
     };
-    const resp = await fetch(url, { ...options, headers });
+    const resp = await fetch(url, { credentials: 'include', ...options, headers });
     if (!resp.ok) {
       throw new Error(`Request failed: ${resp.status}`);
     }
@@ -241,7 +242,7 @@ export function init() {
   function unpinFromIPFS(id) {
     const f = blockchainFiles.find(x => x.id === id);
     if (!f) return;
-    if (!confirm(`Unpin "${f.name}" from IPFS?`)) return;
+    if (!window.confirm(`Unpin "${f.name}" from IPFS?`)) return;
     apiFetch(`/blockchain/unpin/${id}`, { method: 'DELETE' })
       .then((res) => {
         if (!res?.success) throw new Error(res?.message || 'Unpin failed');
@@ -306,8 +307,13 @@ export function init() {
         fd.append('provider', provider);
         const res = await fetch('/blockchain/upload', {
           method: 'POST',
-          headers: csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : undefined,
+          headers: {
+            ...(csrfToken ? { 'X-CSRF-TOKEN': csrfToken } : {}),
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json'
+          },
           body: fd,
+          credentials: 'include',
         });
         const json = await res.json();
         if (res.ok && json?.success) successCount += 1;
@@ -374,7 +380,6 @@ export function setupBlockchainLazyInit() {
     // The event listener is attached only once.
     blockchainLink.addEventListener('click', (event) => {
         event.preventDefault();
-        console.log('Opening blockchain storage...');
         
         // The `open` function is already defined in this module.
         // It ensures the module is initialized and opens the modal.

@@ -9,7 +9,7 @@ return [
     |
     | This option controls the default blockchain storage provider that will
     | be used for premium users. You may change this to any of the supported
-    | providers: 'pinata', 'filecoin', 'storj', 'arweave'
+    | providers: 'pinata', 'storj', 'arweave'
     |
     */
 
@@ -43,17 +43,6 @@ return [
             ]
         ],
 
-        'filecoin' => [
-            'name' => 'Filecoin',
-            'enabled' => env('FILECOIN_ENABLED', false),
-            'api_key' => env('FILECOIN_API_KEY'),
-            'api_url' => env('FILECOIN_API_URL'),
-            'pricing' => [
-                'currency' => 'USD', 
-                'per_gb_monthly' => 0.19, // Very cheap!
-                'free_tier_gb' => 0,
-            ]
-        ],
 
         'storj' => [
             'name' => 'Storj DCS',

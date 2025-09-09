@@ -2,9 +2,13 @@
 
 namespace App\Models;
 
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class File extends Model
 {
@@ -28,6 +32,8 @@ class File extends Model
         'blockchain_url',
         'is_blockchain_stored',
         'blockchain_metadata',
+        'is_vectorized',
+        'vectorized_at',
     ];
 
     /**
@@ -39,6 +45,8 @@ class File extends Model
         'is_folder' => 'boolean',
         'is_blockchain_stored' => 'boolean',
         'blockchain_metadata' => 'array',
+        'is_vectorized' => 'boolean',
+        'vectorized_at' => 'datetime',
     ];
     
     /**
@@ -134,5 +142,85 @@ class File extends Model
     public function scopeBlockchainProvider($query, string $provider)
     {
         return $query->where('blockchain_provider', $provider);
+    }
+
+    /**
+     * Check if this file is vectorized.
+     */
+    public function isVectorized(): bool
+    {
+        return $this->is_vectorized && !is_null($this->vectorized_at);
+    }
+
+    /**
+     * Scope to get only vectorized files.
+     */
+    public function scopeVectorized($query)
+    {
+        return $query->whereRaw('is_vectorized IS TRUE')
+                    ->whereNotNull('vectorized_at');
+    }
+
+    /**
+     * Scope to get files that can be vectorized (not folders, not already vectorized).
+     */
+    public function scopeCanBeVectorized($query)
+    {
+        return $query->whereRaw('is_folder IS FALSE')
+                    ->whereRaw('is_vectorized IS FALSE');
+    }
+
+    /**
+     * Scope to get files that can be uploaded to blockchain (not folders, not already on blockchain).
+     */
+    public function scopeCanBeBlockchainStored($query)
+    {
+        return $query->whereRaw('is_folder IS FALSE')
+                    ->whereRaw('is_blockchain_stored IS FALSE');
+    }
+
+    /**
+     * Mark file as vectorized.
+     */
+    public function markAsVectorized(array $metadata = []): bool
+    {
+        return $this->update([
+            'is_vectorized' => true,
+            'vectorized_at' => now(),
+        ]);
+    }
+
+    /**
+     * Mark file as not vectorized (for removal).
+     */
+    public function markAsNotVectorized(): bool
+    {
+        $result = $this->update([
+            'is_vectorized' => DB::raw('FALSE'),
+            'vectorized_at' => null,
+        ]);
+        
+        Log::info('markAsNotVectorized called', [
+            'file_id' => $this->id,
+            'update_result' => $result,
+            'is_vectorized_before' => $this->getOriginal('is_vectorized'),
+            'is_vectorized_after' => $this->fresh()->is_vectorized ?? 'null'
+        ]);
+        
+        return $result;
+    }
+
+    /**
+     * Get file processing status summary.
+     */
+    public function getProcessingStatus(): array
+    {
+        return [
+            'blockchain_stored' => $this->isStoredOnBlockchain(),
+            'vectorized' => $this->isVectorized(),
+            'blockchain_provider' => $this->blockchain_provider,
+            'ipfs_hash' => $this->ipfs_hash,
+            'vectorized_at' => $this->vectorized_at?->format('Y-m-d H:i:s'),
+        ];
     }
 }

@@ -177,6 +177,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json',
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({ email: userEmail }),
             });
 
@@ -284,6 +285,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             'Accept': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'
                         },
+                        credentials: 'same-origin',
                         body: JSON.stringify(attestationResponseForServer),
                     });
 
@@ -391,6 +393,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-CSRF-TOKEN': csrfToken,
                     'Accept': 'application/json'
                 },
+                credentials: 'same-origin',
                 body: JSON.stringify({ name: deviceName }) // Assuming backend expects 'name'
             })
             .then(response => {
@@ -469,6 +472,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest'
                     },
+                    credentials: 'same-origin',
                     body: JSON.stringify({
                         name: deviceName,
                         credential: publicKeyCredential  // Send the complete credential object
