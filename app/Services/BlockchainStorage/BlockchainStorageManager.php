@@ -20,11 +20,7 @@ class BlockchainStorageManager
         if (config('blockchain.providers.pinata.enabled')) {
             $this->providers['pinata'] = PinataService::class;
         }
-        
         // Future providers can be added here
-        // if (config('blockchain.providers.filecoin.enabled')) {
-        //     $this->providers['filecoin'] = FilecoinService::class;
-        // }
     }
 
     /**
@@ -107,7 +103,6 @@ class BlockchainStorageManager
                     'blockchain_provider' => $providerName,
                     'ipfs_hash' => $result['ipfs_hash'],
                     'blockchain_url' => $result['gateway_url'],
-                    'is_blockchain_stored' => true,
                     'blockchain_metadata' => [
                         'provider' => $providerName,
                         'pin_size' => $result['pin_size'] ?? null,
@@ -115,6 +110,10 @@ class BlockchainStorageManager
                         'gateway_url' => $result['gateway_url'],
                     ]
                 ]);
+                
+                // Set boolean field separately to ensure proper casting
+                $file->is_blockchain_stored = true;
+                $file->save();
 
                 Log::info('Blockchain upload completed successfully', [
                     'file_id' => $file->id,

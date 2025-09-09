@@ -36,7 +36,7 @@
                                         <form action="{{ route('webauthn.keys.destroy', $credential->id) }}" method="POST" class="inline">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return confirm('Are you sure you want to remove this security key?')">
+                                            <button type="submit" class="text-red-600 hover:text-red-900" onclick="return window.confirm('Are you sure you want to remove this security key?')">
                                                 Remove
                                             </button>
                                         </form>

@@ -26,6 +26,7 @@ let state = {
     lastItems: [],
     delegatedListenersBound: false,
     containerRef: null,
+    processingStatusCache: {},
 };
 
 // CSRF helper: safely read token from meta or cookie
@@ -34,6 +35,35 @@ function getCsrfToken() {
     if (meta && meta.content) return meta.content;
     const match = document.cookie.match(/XSRF-TOKEN=([^;]+)/);
     return match ? decodeURIComponent(match[1]) : '';
+}
+
+// Processing status helper with simple in-memory cache
+async function getProcessingStatus(fileId) {
+    try {
+        if (state.processingStatusCache && state.processingStatusCache[fileId]) {
+            return state.processingStatusCache[fileId];
+        }
+        const response = await fetch(`/files/${fileId}/processing-status`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-XSRF-TOKEN': getCsrfToken(),
+            },
+            credentials: 'same-origin'
+        });
+        if (!response.ok) {
+            // Best-effort; don't block menu rendering
+            return null;
+        }
+        const data = await response.json().catch(() => null);
+        if (!data) return null;
+        state.processingStatusCache[fileId] = data;
+        return data;
+    } catch (_) {
+        return null;
+    }
 }
 
 // --- Local UI helpers for this module ---
@@ -183,7 +213,7 @@ export function initializeFileFolderManagement(initialState) {
             loadUserFiles,
             navigateToFolder,
             state
-        };
+        }
     }
 }
 
@@ -232,39 +262,23 @@ export async function loadTrashItems() {
         console.error('Items container not found');
         return;
     }
-    // Mark trash view so actions menu renders Restore/Force Delete
-    itemsContainer.dataset.view = 'trash';
 
     try {
-        itemsContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">Loading trash...</div>';
+        // Mark container as trash view for context-sensitive actions
+        itemsContainer.dataset.view = 'trash';
+        itemsContainer.innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
 
-        const response = await fetch('/files/trash', {
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
-            },
-            credentials: 'same-origin'
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
-        }
-
+        const response = await fetch('/files/trash');
+        if (!response.ok) throw new Error('Failed to fetch trash items');
+        
         const data = await response.json();
-        const items = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
-
-        itemsContainer.innerHTML = '';
-
-        if (items.length === 0) {
-            itemsContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">Trash is empty.</div>';
-            return;
+        
+        if (!data.success) {
+            throw new Error(data.message || 'Failed to load trash items');
         }
 
-        renderFiles(items);
-        // Re-initialize tooltips after rendering new content
-        initializeTooltips();
+        const items = data.data || [];
+        displayItems(items, 'trash');
     } catch (error) {
         console.error('Error loading trash items:', error);
         itemsContainer.innerHTML = `
@@ -523,7 +537,11 @@ function createListRow(item) {
     return row;
 }
 
-function renderFiles(items) {
+function findItemById(itemId) {
+    return state.lastItems?.find(item => item.id == itemId) || null;
+}
+
+export function renderFiles(items) {
     const container = document.getElementById('filesContainer');
     if (!container) return;
 
@@ -595,6 +613,9 @@ function showActionsMenu(button, itemId) {
     document.querySelectorAll('.actions-menu').forEach(m => m.remove());
     document.querySelectorAll('.actions-menu-btn[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
 
+    // Get the container to check current view
+    const container = document.getElementById('filesContainer');
+
     // Create a dark-themed context menu
     const menu = document.createElement('div');
     menu.className = 'actions-menu absolute bg-[#1F2235] text-gray-200 rounded-lg shadow-lg border border-[#4A4D6A] py-2 z-50 min-w-[160px] max-h-64 overflow-auto';
@@ -608,7 +629,19 @@ function showActionsMenu(button, itemId) {
     menu.style.pointerEvents = 'auto';
     
     const inTrashView = (document.getElementById('filesContainer')?.dataset.view === 'trash');
-    console.debug('[actions-menu] open', { itemId, inTrashView });
+    
+    // Find the item data to check vectorization and blockchain status
+    const itemData = findItemById(itemId);
+    // Robust boolean coercion: handle true/false, 1/0, 'true'/'false', '1'/'0'
+    const asBool = (v) => (v === true || v === 1 || v === '1' || v === 'true');
+    const isFolder = asBool(itemData?.is_folder);
+    const isBlockchainStored = asBool(itemData?.is_blockchain_stored);
+    // Align with backend File::isVectorized(): flag true AND vectorized_at not null
+    const isVectorized = asBool(itemData?.is_vectorized) && itemData?.vectorized_at != null;
+    const isDeleted = !!itemData?.deleted_at;
+    
+    console.debug('[actions-menu] open', { itemId, inTrashView, isVectorized, isBlockchainStored, isFolder, isDeleted });
+    
     if (inTrashView) {
         menu.innerHTML = `
             <button type="button" class="actions-menu-item w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white flex items-center" data-action="restore" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Restore" data-tooltip="Restore">
@@ -625,7 +658,7 @@ function showActionsMenu(button, itemId) {
             </button>
         `;
     } else {
-        menu.innerHTML = `
+        let menuItems = `
             <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white flex items-center" data-action="delete" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Delete" data-tooltip="Delete">
                 <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
@@ -639,7 +672,136 @@ function showActionsMenu(button, itemId) {
                 Rename
             </button>
         `;
+
+        // Add blockchain transfer options based on current view and storage location
+        if (!isFolder) {
+            const inBlockchainView = (container?.dataset.view === 'blockchain');
+            
+            if (inBlockchainView && isBlockchainStored) {
+                // In blockchain view - add comprehensive blockchain actions
+                menuItems += `
+                    <div class="border-t border-[#4A4D6A] my-1"></div>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-purple-400 hover:bg-[#2A2D47] hover:text-purple-300 flex items-center" data-action="download-from-blockchain" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Download to Supabase storage" data-tooltip="Download to Supabase storage">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+                        </svg>
+                        Download to Supabase
+                    </button>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-[#2A2D47] hover:text-blue-300 flex items-center" data-action="view-on-ipfs" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="View on IPFS Gateway" data-tooltip="View on IPFS Gateway">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        View on IPFS Gateway
+                    </button>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-[#2A2D47] hover:text-green-300 flex items-center" data-action="copy-ipfs-hash" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Copy IPFS Hash" data-tooltip="Copy IPFS Hash">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                        Copy IPFS Hash
+                    </button>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-[#2A2D47] hover:text-yellow-300 flex items-center" data-action="blockchain-info" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Blockchain Information" data-tooltip="Blockchain Information">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Blockchain Info
+                    </button>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-indigo-400 hover:bg-[#2A2D47] hover:text-indigo-300 flex items-center" data-action="share-ipfs-link" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Share IPFS Link" data-tooltip="Share IPFS Link">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                        </svg>
+                        Share IPFS Link
+                    </button>
+                    <div class="border-t border-[#4A4D6A] my-1"></div>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-[#2A2D47] hover:text-red-300 flex items-center" data-action="remove-from-blockchain" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from blockchain" data-tooltip="Remove from blockchain">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Remove from Blockchain
+                    </button>
+                `;
+            } else if (!inBlockchainView && !isBlockchainStored) {
+                // In main view and file is not on blockchain - add upload to blockchain option
+                menuItems += `
+                    <div class="border-t border-[#4A4D6A] my-1"></div>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-[#2A2D47] hover:text-blue-300 flex items-center" data-action="upload-to-blockchain" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Upload to blockchain storage" data-tooltip="Upload to blockchain storage">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        Upload to Blockchain
+                    </button>
+                `;
+            }
+        }
+
+        // Add vector management option if not a folder
+        if (!isFolder) {
+            if (isVectorized) {
+                console.debug('[DEBUG] Adding vector removal button for item:', itemId, { isVectorized, isFolder });
+                menuItems += `
+                    <div class="border-t border-[#4A4D6A] my-1"></div>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-[#2A2D47] hover:text-orange-300 flex items-center" data-action="remove-from-vector" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from AI vector database" data-tooltip="Remove from AI vector database">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Remove from AI Vector DB
+                    </button>
+                `;
+            } else {
+                console.debug('[DEBUG] Adding vector add button for item:', itemId, { isVectorized, isFolder });
+                menuItems += `
+                    <div class="border-t border-[#4A4D6A] my-1"></div>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-[#2A2D47] hover:text-green-300 flex items-center" data-action="add-to-vector" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Add to AI vector database" data-tooltip="Add to AI vector database">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add to AI Vector DB
+                    </button>
+                `;
+            }
+        } else {
+            console.debug('[DEBUG] NOT adding vector buttons for folder:', itemId, { isVectorized, isFolder });
+        }
+
+        // Add blockchain removal option if file is stored on blockchain, not a folder, AND not in blockchain view
+        const inBlockchainView = (container?.dataset.view === 'blockchain');
+        if (!isFolder && isBlockchainStored && !inBlockchainView) {
+            menuItems += `
+                <div class="border-t border-[#4A4D6A] my-1"></div>
+                <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-[#2A2D47] hover:text-orange-300 flex items-center" data-action="remove-from-blockchain" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from blockchain storage" data-tooltip="Remove from blockchain storage">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                    </svg>
+                    Remove from Blockchain
+                </button>
+            `;
+        }
+
+        menu.innerHTML = menuItems;
     }
+    
+    // Async: check processing status to decide whether to show "Restore vectors"
+    (async () => {
+        try {
+            if (!isFolder && isVectorized) {
+                const status = await getProcessingStatus(itemId);
+                if (status?.vectors_soft_deleted) {
+                    const dividerHtml = inTrashView ? '<div class="border-t border-[#4A4D6A] my-1"></div>' : '';
+                    const restoreBtn = `
+                        ${dividerHtml}
+                        <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-[#2A2D47] hover:text-green-300 flex items-center" data-action="restore-vectors" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Restore vectors" data-tooltip="Restore vectors">
+                            <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 4l-6 6M4 20l6-6" />
+                            </svg>
+                            Restore vectors
+                        </button>
+                    `;
+                    menu.insertAdjacentHTML('beforeend', restoreBtn);
+                }
+            }
+        } catch (err) {
+            console.warn('[actions-menu] processing-status check failed', err);
+        }
+    })();
 
     // Position menu relative to button
     // Append to body to avoid nesting interactive elements (<button> inside <button>)
@@ -732,6 +894,16 @@ function showActionsMenu(button, itemId) {
         console.debug('[DIAGNOSTIC] Global click logger removed');
     }, 10000);
 
+    // Unified cleanup helper to close menu and unbind listeners (use function declaration for hoisting)
+    function cleanup() {
+        try { document.removeEventListener('click', onOutsideClick); } catch (_) {}
+        try { document.removeEventListener('keydown', onEsc); } catch (_) {}
+        try { document.removeEventListener('click', globalClickLogger, true); } catch (_) {}
+        try { menu.remove(); } catch (_) {}
+        try { button.setAttribute('aria-expanded', 'false'); } catch (_) {}
+        try { button.style.pointerEvents = prevPointerEvents || ''; } catch (_) {}
+    }
+
     // Redundant direct listeners on the delete button to bypass delegation issues
     const deleteBtn = menu.querySelector('.actions-menu-item[data-action="delete"]');
     if (deleteBtn) {
@@ -743,14 +915,9 @@ function showActionsMenu(button, itemId) {
             const id = deleteBtn.dataset.itemId;
             console.debug('[diagnostic] invoking deleteItem from direct button handler', { itemId: id });
             deleteItem(id);
-            try { document.removeEventListener('click', onMenuItemClick, true); } catch (_) {}
-            try { document.removeEventListener('pointerdown', onMenuItemPointerDown, true); } catch (_) {}
-            menu.remove();
-            button.setAttribute('aria-expanded', 'false');
-            button.style.pointerEvents = prevPointerEvents || '';
+            cleanup();
         };
-        deleteBtn.addEventListener('mousedown', directHandler, true);
-        deleteBtn.addEventListener('click', directHandler, true);
+        deleteBtn.addEventListener('click', directHandler);
     }
 
     // Direct listeners for restore and force-delete in Trash view
@@ -762,16 +929,13 @@ function showActionsMenu(button, itemId) {
             ev.stopPropagation();
             ev.stopImmediatePropagation?.();
             const id = restoreBtn.dataset.itemId;
-            console.debug('[diagnostic] invoking restoreItem from direct button handler', { itemId: id });
-            restoreItem(id);
-            try { document.removeEventListener('click', onMenuItemClick, true); } catch (_) {}
-            try { document.removeEventListener('pointerdown', onMenuItemPointerDown, true); } catch (_) {}
-            menu.remove();
-            button.setAttribute('aria-expanded', 'false');
-            button.style.pointerEvents = prevPointerEvents || '';
+            if (window.confirm('Restore this item?')) {
+                console.debug('[diagnostic] invoking restoreItem from direct button handler', { itemId: id });
+                restoreItem(id);
+            }
+            cleanup();
         };
-        restoreBtn.addEventListener('mousedown', directRestore, true);
-        restoreBtn.addEventListener('click', directRestore, true);
+        restoreBtn.addEventListener('click', directRestore);
     }
 
     const forceBtn = menu.querySelector('.actions-menu-item[data-action="force-delete"]');
@@ -782,123 +946,216 @@ function showActionsMenu(button, itemId) {
             ev.stopPropagation();
             ev.stopImmediatePropagation?.();
             const id = forceBtn.dataset.itemId;
-            console.debug('[diagnostic] invoking forceDeleteItem from direct button handler', { itemId: id });
-            forceDeleteItem(id);
-            try { document.removeEventListener('click', onMenuItemClick, true); } catch (_) {}
-            try { document.removeEventListener('pointerdown', onMenuItemPointerDown, true); } catch (_) {}
-            menu.remove();
-            button.setAttribute('aria-expanded', 'false');
-            button.style.pointerEvents = prevPointerEvents || '';
+            if (window.confirm('Delete this item permanently?')) {
+                console.debug('[diagnostic] invoking forceDeleteItem from direct button handler', { itemId: id });
+                forceDeleteItem(id);
+            }
+            cleanup();
         };
-        forceBtn.addEventListener('mousedown', directForce, true);
-        forceBtn.addEventListener('click', directForce, true);
+        forceBtn.addEventListener('click', directForce);
     }
 
-    // Use a capturing delegated listener to ensure clicks are caught reliably
-    const onMenuItemClick = (e) => {
-        const target = e.target.closest('.actions-menu-item');
-        if (!target) return;
-        if (!menu.contains(target)) return; // Only handle clicks for this menu instance
-        console.debug('[actions-menu-item] click', { action: target.dataset.action, itemId: target.dataset.itemId });
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation?.();
-
-        const action = target.dataset.action;
-        const clickedItemId = target.dataset.itemId;
-        console.debug('[actions-menu] action selected', { action, itemId: clickedItemId });
-
-        // Cleanup listeners and close menu helper
-        const cleanup = () => {
-            try { document.removeEventListener('click', onMenuItemClick, true); } catch (_) {}
-            menu.remove();
-            button.setAttribute('aria-expanded', 'false');
-            // restore trigger pointer events
-            button.style.pointerEvents = prevPointerEvents || '';
+    // Direct listeners for blockchain transfer actions
+    const downloadFromBlockchainBtn = menu.querySelector('.actions-menu-item[data-action="download-from-blockchain"]');
+    if (downloadFromBlockchainBtn) {
+        const directDownload = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'download-from-blockchain', itemId: downloadFromBlockchainBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = downloadFromBlockchainBtn.dataset.itemId;
+            if (window.confirm('Download this file from blockchain to Supabase storage?')) {
+                console.debug('[diagnostic] invoking downloadFromBlockchain from direct button handler', { itemId: id });
+                downloadFromBlockchain(id);
+            }
+            cleanup();
         };
+        downloadFromBlockchainBtn.addEventListener('click', directDownload);
+    }
 
-        switch (action) {
-            case 'delete':
-                console.debug('[diagnostic] invoking deleteItem from click', { itemId: clickedItemId });
-                deleteItem(clickedItemId);
-                cleanup();
-                return;
-            case 'restore':
-                if (confirm('Restore this item?')) {
-                    restoreItem(clickedItemId);
-                }
-                cleanup();
-                return;
-            case 'force-delete':
-                if (confirm('Permanently delete this item? This cannot be undone.')) {
-                    forceDeleteItem(clickedItemId);
-                }
-                cleanup();
-                return;
-            case 'rename':
-                showNotification('Rename functionality coming soon!', 'info');
-                cleanup();
-                return;
-            default:
-                cleanup();
-                return;
-        }
-    };
-    document.addEventListener('click', onMenuItemClick, true);
-
-    // Some environments may intercept click; handle pointerdown early for critical actions
-    const onMenuItemPointerDown = (e) => {
-        const target = e.target.closest('.actions-menu-item');
-        if (!target) return;
-        if (!menu.contains(target)) return;
-        const act = target.dataset.action;
-        if (!['delete','restore','force-delete'].includes(act)) return;
-        console.debug('[actions-menu-item] pointerdown', { action: act, itemId: target.dataset.itemId });
-        e.preventDefault();
-        e.stopPropagation();
-        e.stopImmediatePropagation?.();
-        const clickedItemId = target.dataset.itemId;
-        if (act === 'delete') {
-            console.debug('[diagnostic] invoking deleteItem from pointerdown', { itemId: clickedItemId });
-            deleteItem(clickedItemId);
-        } else if (act === 'restore') {
-            console.debug('[diagnostic] invoking restoreItem from pointerdown', { itemId: clickedItemId });
-            restoreItem(clickedItemId);
-        } else if (act === 'force-delete') {
-            console.debug('[diagnostic] invoking forceDeleteItem from pointerdown', { itemId: clickedItemId });
-            forceDeleteItem(clickedItemId);
-        }
-        try { document.removeEventListener('pointerdown', onMenuItemPointerDown, true); } catch (_) {}
-        try { document.removeEventListener('click', onMenuItemClick, true); } catch (_) {}
-        menu.remove();
-        button.setAttribute('aria-expanded', 'false');
-        button.style.pointerEvents = prevPointerEvents || '';
-    };
-    document.addEventListener('pointerdown', onMenuItemPointerDown, true);
-
-    // Close menu when clicking outside (ignore clicks on the trigger button)
-    setTimeout(() => {
-        document.addEventListener('click', function closeMenu(e) {
-            if (!menu.contains(e.target) && !button.contains(e.target)) {
-                try { document.removeEventListener('click', onMenuItemClick, true); } catch (_) {}
-                try { document.removeEventListener('pointerdown', onMenuItemPointerDown, true); } catch (_) {}
-                try { document.removeEventListener('click', globalClickLogger, true); } catch (_) {}
-                menu.remove();
-                button.setAttribute('aria-expanded', 'false');
-                // restore trigger pointer events
-                button.style.pointerEvents = prevPointerEvents || '';
-                document.removeEventListener('click', closeMenu);
+    const uploadToBlockchainBtn = menu.querySelector('.actions-menu-item[data-action="upload-to-blockchain"]');
+    if (uploadToBlockchainBtn) {
+        const directUpload = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'upload-to-blockchain', itemId: uploadToBlockchainBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = uploadToBlockchainBtn.dataset.itemId;
+            if (window.confirm('Upload this file to blockchain storage?')) {
+                console.debug('[diagnostic] invoking uploadToBlockchain from direct button handler', { itemId: id });
+                uploadToBlockchain(id);
             }
+            cleanup();
+        };
+        uploadToBlockchainBtn.addEventListener('click', directUpload);
+    }
+
+    // Blockchain-specific action handlers
+    const viewOnIpfsBtn = menu.querySelector('.actions-menu-item[data-action="view-on-ipfs"]');
+    if (viewOnIpfsBtn) {
+        viewOnIpfsBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = viewOnIpfsBtn.dataset.itemId;
+            viewOnIPFS(id);
+            cleanup();
         });
-        // Close on Escape
-        document.addEventListener('keydown', function onEsc(e) {
-            if (e.key === 'Escape') {
-                menu.remove();
-                button.setAttribute('aria-expanded', 'false');
-                document.removeEventListener('keydown', onEsc);
+    }
+
+    const copyIpfsHashBtn = menu.querySelector('.actions-menu-item[data-action="copy-ipfs-hash"]');
+    if (copyIpfsHashBtn) {
+        copyIpfsHashBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = copyIpfsHashBtn.dataset.itemId;
+            copyIPFSHash(id);
+            cleanup();
+        });
+    }
+
+    const blockchainInfoBtn = menu.querySelector('.actions-menu-item[data-action="blockchain-info"]');
+    if (blockchainInfoBtn) {
+        blockchainInfoBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = blockchainInfoBtn.dataset.itemId;
+            showBlockchainInfo(id);
+            cleanup();
+        });
+    }
+
+    const shareIpfsBtn = menu.querySelector('.actions-menu-item[data-action="share-ipfs-link"]');
+    if (shareIpfsBtn) {
+        shareIpfsBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = shareIpfsBtn.dataset.itemId;
+            shareIPFSLink(id);
+            cleanup();
+        });
+    }
+
+    const removeFromBlockchainBtn = menu.querySelector('.actions-menu-item[data-action="remove-from-blockchain"]');
+    if (removeFromBlockchainBtn) {
+        removeFromBlockchainBtn.addEventListener('click', (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = removeFromBlockchainBtn.dataset.itemId;
+            if (window.confirm('Remove this file from blockchain storage? This action cannot be undone.')) {
+                removeBlockchainItem(id);
             }
+            cleanup();
         });
-    }, 0);
+    }
+
+    // Direct listener for rename placeholder
+    const renameBtn = menu.querySelector('.actions-menu-item[data-action="rename"]');
+    if (renameBtn) {
+        const directRename = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'rename', itemId: renameBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            showNotification('Rename functionality coming soon!', 'info');
+            cleanup();
+        };
+        renameBtn.addEventListener('click', directRename);
+    }
+
+    // Direct listeners for vector actions to ensure reliability
+    const rmVectorBtn = menu.querySelector('.actions-menu-item[data-action="remove-from-vector"]');
+    console.debug('[DEBUG] Looking for vector removal button:', !!rmVectorBtn);
+    if (rmVectorBtn) {
+        console.debug('[DEBUG] Found vector removal button, attaching listener');
+        const directRmVector = (ev) => {
+            console.debug('[DEBUG] Vector removal button clicked!', ev.type, { action: 'remove-from-vector', itemId: rmVectorBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = rmVectorBtn.dataset.itemId;
+            console.debug('[DEBUG] Directly calling removeFromVectorDatabase for itemId:', id);
+            
+            try {
+                removeFromVectorDatabase(id);
+                console.debug('[DEBUG] removeFromVectorDatabase called successfully');
+            } catch (error) {
+                console.error('[DEBUG] Error calling removeFromVectorDatabase:', error);
+            }
+            cleanup();
+        };
+        rmVectorBtn.addEventListener('click', directRmVector);
+    }
+
+    const addVectorBtn = menu.querySelector('.actions-menu-item[data-action="add-to-vector"]');
+    console.debug('[DEBUG] Looking for vector add button:', !!addVectorBtn);
+    if (addVectorBtn) {
+        console.debug('[DEBUG] Found vector add button, attaching listener');
+        const directAddVector = (ev) => {
+            console.debug('[DEBUG] Vector add button clicked!', ev.type, { action: 'add-to-vector', itemId: addVectorBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = addVectorBtn.dataset.itemId;
+            console.debug('[DEBUG] Directly calling addToVectorDatabase for itemId:', id);
+            
+            try {
+                addToVectorDatabase(id);
+                console.debug('[DEBUG] addToVectorDatabase called successfully');
+            } catch (error) {
+                console.error('[DEBUG] Error calling addToVectorDatabase:', error);
+            }
+            cleanup();
+        };
+        addVectorBtn.addEventListener('click', directAddVector);
+    }
+
+    const restoreVecBtn = menu.querySelector('.actions-menu-item[data-action="restore-vectors"]');
+    if (restoreVecBtn) {
+        const directRestoreVec = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'restore-vectors', itemId: restoreVecBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = restoreVecBtn.dataset.itemId;
+            if (window.confirm('Restore previously soft-deleted vectors for this file?')) {
+                console.debug('[diagnostic] invoking restoreVectors from direct button handler', { itemId: id });
+                restoreVectors(id);
+            }
+            cleanup();
+        };
+        restoreVecBtn.addEventListener('click', directRestoreVec);
+    }
+
+    const rmBlockchainBtn = menu.querySelector('.actions-menu-item[data-action="remove-from-blockchain"]');
+    if (rmBlockchainBtn) {
+        const directRmBlockchain = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'remove-from-blockchain', itemId: rmBlockchainBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = rmBlockchainBtn.dataset.itemId;
+            if (window.confirm('Remove this file from blockchain storage? This will unpin it from IPFS but keep the original file.')) {
+                console.debug('[diagnostic] invoking removeFromBlockchain from direct button handler', { itemId: id });
+                removeFromBlockchain(id);
+            }
+            cleanup();
+        };
+        rmBlockchainBtn.addEventListener('click', directRmBlockchain);
+    }
+
+    // Bind listeners for outside/escape closing
+    function onOutsideClick(e) {
+        if (!menu.contains(e.target) && !button.contains(e.target)) {
+            cleanup();
+        }
+    }
+    document.addEventListener('click', onOutsideClick);
+    function onEsc(e) {
+        if (e.key === 'Escape') {
+            cleanup();
+        }
+    }
+    document.addEventListener('keydown', onEsc);
 }
 
 function renderPagination(meta) {
@@ -1003,37 +1260,520 @@ async function restoreItem(itemId) {
     }
 }
 
-async function forceDeleteItem(itemId) {
+// Remove blockchain items helper
+async function removeBlockchainItem(itemId) {
     try {
-        console.debug('[forceDeleteItem] Initiating force delete', { itemId });
-        const response = await fetch(`/files/${itemId}/force-delete`, {
+        const response = await fetch(`/files/${itemId}/remove-from-blockchain`, {
             method: 'DELETE',
             headers: {
-                'X-CSRF-TOKEN': getCsrfToken(),
-                'X-XSRF-TOKEN': getCsrfToken(),
-                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
                 'X-Requested-With': 'XMLHttpRequest'
             },
             credentials: 'same-origin'
         });
 
-        console.debug('[forceDeleteItem] Fetch completed', { status: response.status });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Failed to delete item permanently');
+            throw new Error(errorData.message || `Failed to remove from blockchain: ${response.status}`);
         }
 
-        showNotification('Item deleted permanently.', 'success');
-        // Refresh trash view
-        if (typeof loadTrashItems === 'function') {
-            await loadTrashItems();
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('File removed from blockchain successfully', 'success');
+            // Refresh blockchain items if we're in blockchain view
+            const container = document.getElementById('filesContainer');
+            if (container?.dataset.view === 'blockchain') {
+                await loadBlockchainItems();
+            }
+        } else {
+            throw new Error(result.message || 'Failed to remove from blockchain');
         }
+        
+    } catch (error) {
+        console.error('Error removing blockchain item:', error);
+        showNotification(`Failed to remove from blockchain: ${error.message}`, 'error');
+    }
+}
+
+// Download file from blockchain to Supabase storage
+async function downloadFromBlockchain(itemId) {
+    try {
+        showNotification('Downloading file from blockchain...', 'info');
+        
+        const response = await fetch(`/files/${itemId}/download-from-blockchain`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Failed to download from blockchain: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('File downloaded to Supabase storage successfully', 'success');
+            // Refresh the current view
+            const container = document.getElementById('filesContainer');
+            if (container?.dataset.view === 'blockchain') {
+                await loadBlockchainItems();
+            } else {
+                await loadUserFiles();
+            }
+        } else {
+            throw new Error(result.message || 'Failed to download from blockchain');
+        }
+        
+    } catch (error) {
+        console.error('Error downloading from blockchain:', error);
+        showNotification(`Failed to download from blockchain: ${error.message}`, 'error');
+    }
+}
+
+// Upload file to blockchain storage
+async function uploadToBlockchain(itemId) {
+    try {
+        showNotification('Uploading file to blockchain...', 'info');
+        
+        const response = await fetch(`/blockchain/upload-existing`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                file_id: itemId,
+                provider: 'pinata'
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || `Failed to upload to blockchain: ${response.status}`);
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('File uploaded to blockchain successfully', 'success');
+            // Refresh the current view
+            const container = document.getElementById('filesContainer');
+            if (container?.dataset.view === 'main') {
+                await loadUserFiles();
+            }
+        } else {
+            throw new Error(result.message || 'Failed to upload to blockchain');
+        }
+        
+    } catch (error) {
+        console.error('Error uploading to blockchain:', error);
+        showNotification(`Failed to upload to blockchain: ${error.message}`, 'error');
+    }
+}
+
+// View file on IPFS gateway
+function viewOnIPFS(itemId) {
+    const item = findItemById(itemId);
+    if (!item) {
+        showNotification('File not found', 'error');
+        return;
+    }
+    
+    // Extract IPFS hash from various possible sources
+    let ipfsHash = item.ipfs_hash;
+    
+    // Try to extract from blockchain_url if no direct hash
+    if (!ipfsHash && item.blockchain_url) {
+        const match = item.blockchain_url.match(/\/ipfs\/([a-zA-Z0-9]+)/);
+        if (match) {
+            ipfsHash = match[1];
+        }
+    }
+    
+    // Try to extract from file_path
+    if (!ipfsHash && item.file_path) {
+        ipfsHash = item.file_path.replace('ipfs://', '');
+    }
+    
+    if (!ipfsHash || ipfsHash.length < 10) {
+        showNotification('IPFS hash not found for this file', 'error');
+        return;
+    }
+    
+    // Always construct the proper Pinata gateway URL format
+    const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+    console.log('Opening IPFS gateway URL:', gatewayUrl);
+    
+    window.open(gatewayUrl, '_blank');
+    showNotification('Opened file on IPFS gateway', 'success');
+}
+
+// Copy IPFS hash to clipboard
+async function copyIPFSHash(itemId) {
+    const item = findItemById(itemId);
+    if (!item) {
+        showNotification('File not found', 'error');
+        return;
+    }
+    
+    const ipfsHash = item.ipfs_hash || (item.file_path ? item.file_path.replace('ipfs://', '') : null);
+    if (!ipfsHash) {
+        showNotification('IPFS hash not found for this file', 'error');
+        return;
+    }
+    
+    try {
+        await navigator.clipboard.writeText(ipfsHash);
+        showNotification('IPFS hash copied to clipboard', 'success');
+    } catch (error) {
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = ipfsHash;
+        document.body.appendChild(textArea);
+        textArea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textArea);
+        showNotification('IPFS hash copied to clipboard', 'success');
+    }
+}
+
+// Show blockchain information modal
+function showBlockchainInfo(itemId) {
+    const item = findItemById(itemId);
+    if (!item) {
+        showNotification('File not found', 'error');
+        return;
+    }
+    
+    const metadata = item.blockchain_metadata || {};
+    const ipfsHash = item.ipfs_hash || (item.file_path ? item.file_path.replace('ipfs://', '') : 'N/A');
+    
+    const infoHtml = `
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50" id="blockchainInfoModal">
+            <div class="bg-[#0D0E2F] p-6 rounded-lg max-w-md w-full mx-4 border border-[#4A4D6A]">
+                <h3 class="text-lg font-semibold text-white mb-4">Blockchain Information</h3>
+                <div class="space-y-3 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">File Name:</span>
+                        <span class="text-white">${escapeHtml(item.file_name)}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Provider:</span>
+                        <span class="text-white capitalize">${metadata.provider || 'Pinata'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Status:</span>
+                        <span class="text-green-400">${metadata.pin_status || 'Pinned'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Encrypted:</span>
+                        <span class="text-white">${metadata.encrypted ? 'Yes' : 'No'}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Redundancy:</span>
+                        <span class="text-white">${metadata.redundancy_level || 3}x</span>
+                    </div>
+                    <div class="mt-4">
+                        <span class="text-gray-400">IPFS Hash:</span>
+                        <div class="mt-1 p-2 bg-[#1A1D3A] rounded border font-mono text-xs text-gray-300 break-all">
+                            ${ipfsHash}
+                        </div>
+                    </div>
+                </div>
+                <div class="flex justify-end gap-2 mt-6">
+                    <button onclick="document.getElementById('blockchainInfoModal').remove()" 
+                        class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700">
+                        Close
+                    </button>
+                    <button onclick="copyIPFSHash(${itemId}); document.getElementById('blockchainInfoModal').remove()" 
+                        class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        Copy Hash
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', infoHtml);
+}
+
+// Share IPFS link
+async function shareIPFSLink(itemId) {
+    const item = findItemById(itemId);
+    if (!item) {
+        showNotification('File not found', 'error');
+        return;
+    }
+    
+    const ipfsHash = item.ipfs_hash || (item.file_path ? item.file_path.replace('ipfs://', '') : null);
+    if (!ipfsHash) {
+        showNotification('IPFS hash not found for this file', 'error');
+        return;
+    }
+    
+    const gatewayUrl = item.blockchain_url || `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+    const shareData = {
+        title: `SecureDocs: ${item.file_name}`,
+        text: `Check out this file on IPFS: ${item.file_name}`,
+        url: gatewayUrl
+    };
+    
+    try {
+        if (navigator.share) {
+            await navigator.share(shareData);
+            showNotification('IPFS link shared successfully', 'success');
+        } else {
+            // Fallback - copy to clipboard
+            await navigator.clipboard.writeText(gatewayUrl);
+            showNotification('IPFS gateway link copied to clipboard', 'success');
+        }
+    } catch (error) {
+        console.error('Error sharing:', error);
+        showNotification('Failed to share link', 'error');
+    }
+}
+
+async function forceDeleteItem(itemId) {
+    try {
+        console.debug('Force deleting item:', itemId);
+        const response = await fetch(`/files/${itemId}/force-delete`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to permanently delete item');
+        }
+
+        showNotification('Item permanently deleted.', 'success');
+        loadTrashItems();
     } catch (error) {
         console.error('Error permanently deleting item:', error);
         showNotification(error.message, 'error');
     }
 }
 
+async function removeFromVectorDatabase(itemId) {
+    try {
+        console.log('[VECTOR REMOVAL] Starting removal for itemId:', itemId);
+        
+        const csrfToken = getCsrfToken();
+        const url = `/files/${itemId}/remove-from-vector`;
+        console.log('[VECTOR REMOVAL] Making request to:', url);
+        
+        const response = await fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            credentials: 'same-origin'
+        });
+
+        console.log('[VECTOR REMOVAL] Response status:', response.status, response.statusText);
+        
+        let data;
+        try {
+            data = await response.json();
+            console.log('[VECTOR REMOVAL] Response data:', data);
+        } catch (e) {
+            console.error('[VECTOR REMOVAL] Failed to parse response JSON:', e);
+            throw new Error('Invalid response from server');
+        }
+
+        if (!response.ok) {
+            console.error('[VECTOR REMOVAL] Request failed with status:', response.status, data);
+            throw new Error(data.message || `HTTP ${response.status}: Failed to remove file from vector database`);
+        }
+
+        console.log('[VECTOR REMOVAL] Success! Showing notification...');
+        
+        // Show success notification
+        if (window.notificationManager) {
+            window.notificationManager.showSuccess(
+                'Vector Removed Successfully',
+                'File has been removed from AI vector database'
+            );
+        } else {
+            showNotification('File removed from AI vector database successfully!', 'success');
+        }
+        
+        // Update local state
+        try {
+            const item = state.lastItems?.find(i => i.id == itemId);
+            if (item) {
+                console.log('[VECTOR REMOVAL] Updating local state for item:', item.file_name);
+                item.is_vectorized = false;
+                item.vectorized_at = null;
+            }
+        } catch (e) {
+            console.debug('[VECTOR REMOVAL] Local state update failed (non-fatal):', e);
+        }
+        
+        console.log('[VECTOR REMOVAL] Reloading file list...');
+        loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+        
+    } catch (error) {
+        console.error('[VECTOR REMOVAL] Error removing file from vector database:', error);
+        
+        if (window.notificationManager) {
+            window.notificationManager.showError(
+                'Vector Removal Failed',
+                error.message || 'Failed to remove file from vector database'
+            );
+        } else {
+            showNotification(error.message || 'Failed to remove file from vector database', 'error');
+        }
+    }
+}
+
+async function addToVectorDatabase(itemId) {
+    try {
+        
+        const csrfToken = getCsrfToken();
+        const url = `/files/${itemId}/add-to-vector`;
+        
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': csrfToken
+            },
+            credentials: 'same-origin'
+        });
+        
+        let data;
+        try {
+            data = await response.json();
+        } catch (e) {
+            console.error('Failed to parse vectorization response JSON:', e);
+            throw new Error('Invalid response from server');
+        }
+
+        if (!response.ok) {
+            console.error('Vectorization request failed with status:', response.status, data);
+            throw new Error(data.message || `HTTP ${response.status}: Failed to add file to vector database`);
+        }
+        
+        // Show success notification
+        if (window.notificationManager) {
+            window.notificationManager.showSuccess(
+                'Vector Processing Started',
+                data.message || 'File sent for vectorization processing'
+            );
+        } else {
+            showNotification(data.message || 'File sent for vectorization processing', 'success');
+        }
+
+        // Optimistically update UI state for the item (if present)
+        try {
+            const item = state.lastItems?.find(i => i.id == itemId);
+            if (item) {
+                // Don't mark as fully vectorized yet, as it's processing
+            }
+        } catch (e) {
+            // non-fatal UI state update failure
+        }
+        
+        loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+        
+    } catch (error) {
+        console.error('Error adding file to vector database:', error);
+        
+        if (window.notificationManager) {
+            window.notificationManager.showError(
+                'Vector Processing Failed',
+                error.message || 'Failed to send file for vector processing'
+            );
+        } else {
+            showNotification(error.message || 'Failed to send file for vector processing', 'error');
+        }
+    }
+}
+
+async function restoreVectors(itemId) {
+    try {
+        console.debug('Restoring vectors for item:', itemId);
+        const response = await fetch(`/files/${itemId}/restore-vectors`, {
+            method: 'PATCH',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json().catch(() => ({}));
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to restore vectors');
+        }
+
+        showNotification('Vectors restored successfully.', 'success');
+        const itemsContainer = document.getElementById('filesContainer');
+        const inTrashView = (itemsContainer?.dataset.view === 'trash');
+        if (inTrashView && typeof loadTrashItems === 'function') {
+            await loadTrashItems();
+        } else {
+            loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+        }
+    } catch (error) {
+        console.error('Error restoring vectors:', error);
+        showNotification(error.message, 'error');
+    }
+}
+
+async function removeFromBlockchain(itemId) {
+    try {
+        console.debug('Removing item from blockchain storage:', itemId);
+        const response = await fetch(`/files/${itemId}/remove-from-blockchain`, {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+            },
+            credentials: 'same-origin'
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.message || 'Failed to remove file from blockchain storage');
+        }
+
+        showNotification('File removed from blockchain storage successfully.', 'success');
+        loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+    } catch (error) {
+        console.error('Error removing file from blockchain storage:', error);
+        showNotification(error.message, 'error');
+    }
+}
 
 /**
  * Loads files and folders from the server and renders them.
@@ -1085,7 +1825,7 @@ function defaultAddItemEventListeners() {
         btn.addEventListener('click', e => {
             e.stopPropagation();
             const itemId = e.currentTarget.dataset.itemId;
-            if (confirm('Move this item to Trash?')) {
+            if (window.confirm('Move this item to Trash?')) {
                 deleteItem(itemId);
             }
         });

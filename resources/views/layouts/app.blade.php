@@ -12,7 +12,7 @@
         </script>
         <!-- Styles -->
         <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
-        @vite(['resources/css/app.css', 'resources/js/app.js', 'resources/js/dashboard.js'])
+        @vite(['resources/css/app.css', 'resources/js/app.js'])
         
         <!-- Scripts -->
         <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
@@ -22,7 +22,7 @@
             window.userEmail = '{{ auth()->user()->email }}';
             window.username = '{{ auth()->user()->name }}';
             window.userIsPremium = {{ auth()->user()->is_premium ? 'true' : 'false' }};
-            // window.chatWebhookUrl = '{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}';
+            window.chatWebhookUrl = '{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}';
         </script>
         @endauth
         <script>

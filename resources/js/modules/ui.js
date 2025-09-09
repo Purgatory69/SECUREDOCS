@@ -111,12 +111,14 @@ export function initializeUserProfile() {
         profileDropdown.classList.toggle('opacity-0');
         profileDropdown.classList.toggle('invisible');
         profileDropdown.classList.toggle('translate-y-[-10px]');
+        // Also toggle scale for a smoother pop animation and to avoid staying scaled down
+        profileDropdown.classList.toggle('scale-95');
     });
 
     // Close dropdown when clicking outside
     document.addEventListener('click', function (event) {
         if (!profileDropdown.contains(event.target) && !userProfileBtn.contains(event.target)) {
-            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
         }
     });
 }
@@ -134,25 +136,32 @@ export function updateBreadcrumbsDisplay(breadcrumbs) {
 }
 
 export function initializeUi(dependencies) {
-    const { loadUserFiles, loadTrashItems, state } = dependencies;
+    const { loadUserFiles, loadTrashItems, loadBlockchainItems, state } = dependencies;
     
     initializeNewDropdown();
     initializeUserProfile();
-    initializeViewToggling(loadUserFiles, loadTrashItems, state);
+    initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state);
 }
 
-export function initializeViewToggling(loadUserFiles, loadTrashItems, state) {
+export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state) {
     const myDocumentsLink = document.getElementById('my-documents-link');
     const trashLink = document.getElementById('trash-link');
+    const blockchainLink = document.getElementById('blockchain-storage-link');
     const newButton = document.getElementById('new-button-container');
     const headerTitle = document.getElementById('header-title');
+
+    function clearActiveStates() {
+        myDocumentsLink?.classList.remove('bg-primary', 'text-white');
+        trashLink?.classList.remove('bg-primary', 'text-white');
+        blockchainLink?.classList.remove('bg-primary', 'text-white');
+    }
 
     myDocumentsLink?.addEventListener('click', (e) => {
         e.preventDefault();
         headerTitle.textContent = 'My Documents';
         newButton.style.display = 'block';
+        clearActiveStates();
         myDocumentsLink.classList.add('bg-primary', 'text-white');
-        trashLink.classList.remove('bg-primary', 'text-white');
         // Use the state object to get the last search query
         loadUserFiles(state.lastMainSearch, 1, null);
     });
@@ -161,9 +170,18 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, state) {
         e.preventDefault();
         headerTitle.textContent = 'Trash';
         newButton.style.display = 'none';
+        clearActiveStates();
         trashLink.classList.add('bg-primary', 'text-white');
-        myDocumentsLink.classList.remove('bg-primary', 'text-white');
         loadTrashItems();
+    });
+
+    blockchainLink?.addEventListener('click', (e) => {
+        e.preventDefault();
+        headerTitle.textContent = 'Blockchain Storage';
+        newButton.style.display = 'block'; // Show new button for blockchain upload
+        clearActiveStates();
+        blockchainLink.classList.add('bg-primary', 'text-white');
+        loadBlockchainItems();
     });
 }
 

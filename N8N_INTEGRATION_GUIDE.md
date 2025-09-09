@@ -179,6 +179,68 @@ curl -X POST http://127.0.0.1:8000/api/refresh/trigger \
   -d '{"source":"test","data":{"reason":"manual test"}}'
 ```
 
+## Webhook Readiness and Testing (n8n)
+
+Use these quick checks to verify your n8n webhooks are ready and correct.
+
+### 1) Confirm configured webhook URLs (from .env)
+
+PowerShell (Windows):
+
+```powershell
+# Show only N8N-related entries
+type .env | findstr N8N_
+```
+
+Expected keys (examples):
+- `N8N_WEBHOOK_URL`
+- `N8N_DEFAULT_CHAT_WEBHOOK_URL`
+- `N8N_PREMIUM_CHAT_WEBHOOK_URL`
+
+Note: Ensure the path segment matches your n8n node (e.g., `/webhook/<id>` vs `/webhook-test/<id>`), and that chat webhooks often end with `/chat`.
+
+### 2) Send a health-check POST to general workflow webhook
+
+```powershell
+# Replace with your actual N8N_WEBHOOK_URL value from .env
+$u = "http://localhost:5678/webhook/f106ab40-0651-4e2c-acc1-6591ab771828"
+Invoke-RestMethod -Method Post -Uri $u -ContentType 'application/json' -Body (
+  @{ ping = 'ok'; source = 'health-check'; timestamp = (Get-Date).ToString('o') } | ConvertTo-Json
+)
+```
+
+### 3) Send a test message to Default Chat webhook
+
+```powershell
+# Replace with your actual N8N_DEFAULT_CHAT_WEBHOOK_URL from .env
+$chat = "http://localhost:5678/webhook/0a216509-e55c-4a43-8d4a-581dffe09d18/chat"
+Invoke-RestMethod -Method Post -Uri $chat -ContentType 'application/json' -Body (
+  @{ chatInput = 'hello'; sessionId = [guid]::NewGuid().ToString(); metadata = @{ userEmail = 'test@example.com'; userName = 'Tester' } } | ConvertTo-Json
+)
+```
+
+### 4) Send a test message to Premium Chat webhook
+
+```powershell
+# Replace with your actual N8N_PREMIUM_CHAT_WEBHOOK_URL from .env
+$chat = "http://localhost:5678/webhook/e104e40e-6134-4825-a6f0-8a646d882662/chat"
+Invoke-RestMethod -Method Post -Uri $chat -ContentType 'application/json' -Body (
+  @{ chatInput = 'hello (premium)'; sessionId = [guid]::NewGuid().ToString(); metadata = @{ userId = 1; userEmail = 'premium@example.com'; isPremium = $true } } | ConvertTo-Json
+)
+```
+
+### 5) Interpreting responses
+
+- 200 OK: Webhook is reachable. Body may be JSON or text depending on your workflow (e.g., a Respond node).
+- 404 Not Found: ID/path mismatch (verify `/webhook` vs `/webhook-test` and the UUID).
+- 405 Method Not Allowed: Use POST, not GET.
+- 401/403: Your webhook may require authentication; configure node credentials/headers accordingly.
+
+### 6) If n8n is in Docker/WSL
+
+- From host PowerShell to n8n in Docker (default): `http://localhost:5678` should work.
+- From n8n to Laravel in Windows host: use `http://host.docker.internal:8000` in your n8n HTTP Request nodes.
+
 ## Troubleshooting
 
 ### Common Issues
@@ -192,7 +254,9 @@ curl -X POST http://127.0.0.1:8000/api/refresh/trigger \
    - Use `host.docker.internal` instead of `localhost` in n8n
    - Ensure both n8n and Laravel are on the same network
 
-3. **Windows Notifications Not Showing**
+3. **Windows Notifications Not ShI followed your preferences to use PowerShell type and concise test commands. Summary: Documentation updated; config and frontend wiring pending. Should I proceed with the config and layout fixes?
+
+owing**
    - Check PHP error logs: `storage/logs/laravel.log`
    - Ensure PowerShell execution policy allows scripts
 

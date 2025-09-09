@@ -180,7 +180,7 @@ async function loadSavedSearches() {
         container.querySelectorAll('.delete-search-btn').forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const searchId = e.target.dataset.searchId;
-                if (confirm('Delete this saved search?')) {
+                if (window.confirm('Delete this saved search?')) {
                     deleteSavedSearch(searchId);
                 }
             });
