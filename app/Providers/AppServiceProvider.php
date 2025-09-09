@@ -26,10 +26,18 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Blade::component('layouts.profile-dashboard', 'profile-dashboard');
-
+        
         RedirectIfAuthenticated::redirectUsing(function ($request) {
             return RouteServiceProvider::HOME;
         });
+
+        // Set locale on every request - this runs very early
+        if (request()->hasSession()) {
+            $locale = session('app_locale', 'en');
+            if (in_array($locale, ['en', 'fil'])) {
+                app()->setLocale($locale);
+            }
+        }
 
         $this->app->extend(AttestationValidator::class, function (AttestationValidator $validator) {
             return $validator->pipe(function (AttestationValidation $validation, \Closure $next) {

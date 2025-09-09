@@ -9,10 +9,13 @@ export default defineConfig({
                     'resources/js/dashboard.js', 
                     'resources/js/webauthn-handler.js', 
                     'resources/js/file-preview.js',
+<<<<<<< HEAD
                     'resources/js/modules/blockchain-upload.js',
                     'resources/js/modules/blockchain.js',
                     'resources/js/modules/file-folder.js',
                     'resources/js/modules/blockchain-page.js',
+=======
+>>>>>>> origin/language-feature
                     ],
             refresh: true,
         }),
