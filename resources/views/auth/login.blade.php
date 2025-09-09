@@ -1,12 +1,3 @@
-<<<<<<< HEAD
-<x-guest-layout>
-    <!-- <div class="min-h-screen flex flex-col justify-between bg-[#1c1d2b] px-4"> -->
-    <x-authentication-card>
-        <x-slot name="logo">
-
-            <head>
-                <title>Login</title>
-=======
 
 <!-- Back Button - Fixed Position Top Left -->
 <div class="fixed top-6 left-6 z-50 pt-4 pl-2">
@@ -82,7 +73,6 @@
             <head>
                 <title>{{ __('auth.login_header') }}</title>
                 <link rel="icon" href="/logo-white.png">
->>>>>>> origin/language-feature
             </head>
 
             <a href="{{ url('/') }}">
@@ -99,72 +89,6 @@
             </header>
         </x-slot>
 
-<<<<<<< HEAD
-                    <div class="mt-8 text-center">
-                        <p class="text-[#f89c00] text-xl font-semibold tracking-wide">Login to your account!</p>
-                    </div>
-                </header>
-            </a>
-        </x-slot>
-
-        @if ($errors->has('email'))
-            @php
-                $lockoutMessage = $errors->first('email');
-                preg_match('/(\d+) seconds?/', $lockoutMessage, $matches);
-                $seconds = $matches[1] ?? 0;
-            @endphp
-            @if ($seconds > 0)
-                <div class="font-medium text-sm text-red-600 text-center">
-                    You have been locked out due to too many failed login attempts.<br>
-                    Please try again in <span id="lockout-countdown">{{ $seconds }}</span> seconds.
-                </div>
-                <script>
-                    let lockoutSeconds = {{ $seconds }};
-                    let countdownElem = document.getElementById('lockout-countdown');
-                    let interval = setInterval(function () {
-                        if (lockoutSeconds > 0) {
-                            lockoutSeconds--;
-                            countdownElem.textContent = lockoutSeconds;
-                        }
-                        if (lockoutSeconds <= 0) {
-                            clearInterval(interval);
-                            location.reload();
-                        }
-                    }, 1000);
-                </script>
-            @endif
-        @endif
-
-        <x-validation-errors class="mb-4" />
-
-        @session('status')
-            <div class="mb-4 font-medium text-sm text-green-600 text-center">
-                {{ $value }}
-            </div>
-        @endsession
-
-        <form method="POST" action="{{ route('login') }}"
-            class="bg-[#3c3f58] rounded-4xl w-full px-8 py-2 space-y-8 flex flex-col items-center">
-            @csrf
-
-            <div class="w-4/6 min-w-[420px]">
-                <label for="email"
-                    class="block text-white text-sm font-normal mb-3 tracking-wide text-left">EMAIL</label>
-                <input id="email" name="email" type="email" required autofocus autocomplete="username"
-                    :value="old('email')"
-                    class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
-            </div>
-
-            <div class="relative w-4/6 min-w-[420px]">
-                <label for="password"
-                    class="block text-white text-sm font-normal mb-3 tracking-wide text-left">PASSWORD</label>
-                <input id="password" name="password" type="password" required autocomplete="current-password"
-                    style="padding-right: 60px;"
-                    class="w-full rounded-full py-2.5 pr-20 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
-                <button type="button" id="togglePassword" class="absolute right-3 flex items-center top-1/2 -mt-4">
-                    <img id="password-toggle-icon" src="{{ asset('eye-close.png') }}" alt="Toggle Password Visibility"
-                        class="w-8 h-8 mt-4">
-=======
         @if ($errors->has('email'))
         @php
         $lockoutMessage = $errors->first('email');
@@ -219,7 +143,6 @@
                 <input id="password" name="password" type="password" required autocomplete="current-password" style="padding-right: 60px;" class="w-full rounded-full py-2.5 pr-20 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
                 <button type="button" id="togglePassword" class="absolute right-3 flex items-center top-1/2">
                     <img id="password-toggle-icon" src="{{ asset('eye-close.png') }}" alt="Toggle Password Visibility" class="w-8 h-8">
->>>>>>> origin/language-feature
                 </button>
             </div>
 
@@ -228,11 +151,7 @@
                 const toggleButton = document.getElementById('togglePassword');
                 const toggleIcon = document.getElementById('password-toggle-icon');
 
-<<<<<<< HEAD
-                toggleButton.addEventListener('click', function () {
-=======
                 toggleButton.addEventListener('click', function() {
->>>>>>> origin/language-feature
                     const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
                     passwordInput.setAttribute('type', type);
 
@@ -246,18 +165,6 @@
 
             <div class="flex justify-end w-4/6 min-w-[420px] items-center space-x-6">
                 @if (Route::has('password.request'))
-<<<<<<< HEAD
-                    <a href="{{ route('password.request') }}"
-                        class="text-white text-sm underline tracking-wide hover:text-[#f89c00]">Forgot Password?</a>
-                @endif
-                <button type="submit"
-                    class="bg-[#f89c00] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:bg-[#d17f00] transition-colors">LOGIN</button>
-            </div>
-
-            <button type="button" id="biometric-login-button"
-                class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:bg-[#7a7ef0] transition-colors">
-                LOGIN WITH BIOMETRICS
-=======
                 <a href="{{ route('password.request') }}" class="text-white text-sm underline tracking-wide hover:text-[#f89c00]">{{ __('auth.forgot_password') }}</a>
                 @endif
                 <button type="submit" class="bg-[#f89c00] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">{{ __('auth.login') }}</button>
@@ -265,7 +172,6 @@
 
             <button type="button" id="biometric-login-button" class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">
                 {{ __('auth.login_biometrics') }}
->>>>>>> origin/language-feature
             </button>
             <p id="biometric-login-status" class="text-sm text-red-600 mt-2 text-center"></p>
 
@@ -326,8 +232,5 @@
             }
         });
     </script>
-<<<<<<< HEAD
-=======
 
->>>>>>> origin/language-feature
 </x-guest-layout>

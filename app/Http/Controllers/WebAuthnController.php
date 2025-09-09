@@ -66,7 +66,7 @@ class WebAuthnController extends Controller
      */
     public function registerOptions(AttestationRequest $request)
     {
-        return $request->toCreate($request->user());
+        return $request->toCreate();
     }
 
     /**

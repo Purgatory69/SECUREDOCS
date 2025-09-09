@@ -59,7 +59,7 @@ Route::middleware([
         Route::post('/approve/{id}', [AdminController::class, 'approveUser'])->name('approve');
         Route::post('/revoke/{id}', [AdminController::class, 'revokeUser'])->name('revoke');
         Route::post('/users/{user}/premium-settings', [AdminController::class, 'updatePremiumSettings'])->name('users.premium-settings');
-        Route::get('/analytics', [ActivityController::class, 'getSystemAnalytics'])->name('analytics');
+        Route::get('/analytics', [\App\Http\Controllers\ActivityController::class, 'getSystemAnalytics'])->name('analytics');
         Route::get('/db-schema.json', [SchemaController::class, 'get'])->name('db-schema.json');
     });
 
@@ -141,8 +141,6 @@ Route::middleware([
     // Security events routes
     Route::get('/security-events', [App\Http\Controllers\ActivityController::class, 'getSecurityEvents'])->name('security.events');
     
-    
-
 
     // Security routes
     Route::prefix('security')->name('security.')->group(function () {
@@ -198,7 +196,6 @@ Route::middleware([
     
     // User public info for chat widget
     Route::get('/user/{id}', [UserController::class, 'showPublic'])->name('user.show_public');
-<<<<<<< HEAD
 
     // Database Schema Documentation (admin only)
     Route::get('/db-schema', function () {
@@ -216,7 +213,4 @@ Route::middleware([
         Route::post('/', [App\Http\Controllers\NotificationController::class, 'store'])->name('store');
         Route::delete('/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
     });
-=======
-    
->>>>>>> origin/language-feature
 });

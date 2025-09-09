@@ -140,6 +140,7 @@ export function initializeUi(dependencies) {
     
     initializeNewDropdown();
     initializeUserProfile();
+    initializeModalSystem();
     initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state);
 }
 
@@ -175,26 +176,18 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         loadTrashItems();
     });
 
-<<<<<<< HEAD
+    // Security Dashboard feature removed
+
     blockchainLink?.addEventListener('click', (e) => {
         e.preventDefault();
         headerTitle.textContent = 'Blockchain Storage';
         newButton.style.display = 'block'; // Show new button for blockchain upload
         clearActiveStates();
         blockchainLink.classList.add('bg-primary', 'text-white');
-        loadBlockchainItems();
+        // Keep page-based blockchain view functional (if implemented)
+        try { typeof loadBlockchainItems === 'function' && loadBlockchainItems(); } catch (_) {}
+        // Intentionally do NOT open the blockchain modal.
     });
-=======
-    // In initializeViewToggling, after adding the event listeners:
-    if (myDocumentsLink) {
-        headerTitle.textContent = 'My Documents';
-        newButton.style.display = 'block';
-        myDocumentsLink.classList.add('bg-primary','text-white');   // active on load
-        trashLink?.classList.remove('bg-primary','text-white');
-        loadUserFiles(state.lastMainSearch, 1, null);
-    }
-  
->>>>>>> origin/language-feature
 }
 
 // Initialize tooltips for elements with data-tooltip attribute
@@ -244,5 +237,63 @@ function showTooltip(event) {
 
 function hideTooltip() {
     document.querySelectorAll('.tooltip').forEach(tooltip => tooltip.remove());
+}
+
+
+// ------------------------------
+// Generic Modal Helpers
+// ------------------------------
+export function openModalById(id) {
+    const el = document.getElementById(id);
+    if (!el) {
+        console.warn(`Modal #${id} not found`);
+        return;
+    }
+    el.classList.remove('hidden');
+    // prevent background scroll
+    document.documentElement.style.overflow = 'hidden';
+}
+
+export function closeModalById(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.classList.add('hidden');
+    // restore background scroll if no modals are open
+    const anyOpen = document.querySelector('.fixed.inset-0.z-50:not(.hidden)');
+    if (!anyOpen) {
+        document.documentElement.style.overflow = '';
+    }
+}
+
+export function initializeModalSystem() {
+    // Attribute-based open/close bindings
+    document.querySelectorAll('[data-modal-open]')
+        .forEach(btn => btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = btn.getAttribute('data-modal-open');
+            if (id) openModalById(id);
+        }));
+
+    document.querySelectorAll('[data-modal-close]')
+        .forEach(btn => btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const id = btn.getAttribute('data-modal-close');
+            if (id) closeModalById(id);
+        }));
+
+    // Close on ESC for whichever modal is open
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+            document.querySelectorAll('.fixed.inset-0.z-50:not(.hidden)')
+                .forEach(el => el.classList.add('hidden'));
+            document.documentElement.style.overflow = '';
+        }
+    });
+
+    // Expose globally so you can open via console or inline handlers
+    if (typeof window !== 'undefined') {
+        window.openModal = openModalById;
+        window.closeModal = closeModalById;
+    }
 }
 
