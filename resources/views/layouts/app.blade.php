@@ -6,6 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
         <title>Dashboard</title>
         <link rel="icon" href="{{ asset('logo-white.png') }}" type="image/png"/>
+         <!-- n8n Chat disabled to avoid KaTeX quirks mode warnings and resource usage -->
         <script type="module">
             import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
             window.createChat = createChat;
@@ -23,7 +24,8 @@
             window.userEmail = '{{ auth()->user()->email }}';
             window.username = '{{ auth()->user()->name }}';
             window.userIsPremium = {{ auth()->user()->is_premium ? 'true' : 'false' }};
-            window.chatWebhookUrl = '{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}';
+            // window.chatWebhookUrl disabled with n8n chat to prevent loading the widget
+             window.chatWebhookUrl = '{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}';
         </script>
         @endauth
         <script>
@@ -31,8 +33,10 @@
             window.SUPABASE_KEY = "{{ config('services.supabase.key') }}";
         </script>
     </head>
-    <body style="background-color: #141326;" class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
-        @yield('content')
+
+    <body style="background-color: #141326;" class="h-screen @if(Route::currentRouteName() !== 'file-preview')  grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout @endif text-text-main">
+   
+    @yield('content')
         <div id="notification-container" class="fixed bottom-4 right-4 z-[1000] space-y-2"></div>
         
         @stack('scripts')
