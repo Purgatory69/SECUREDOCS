@@ -85,7 +85,7 @@ Route::middleware([
     Route::get('/files/trash', [FileController::class, 'getTrashItems']);
     Route::post('/files/create-folder', [FileController::class, 'createFolder']);
     Route::get('/files/{id}', [FileController::class, 'show'])->whereNumber('id');
-    Route::get('/files/{id}/preview', [FileController::class, 'preview'])->whereNumber('id');
+    Route::get('/files/{id}/preview', [FileController::class, 'preview'])->name('file-preview')->whereNumber('id');
     Route::delete('/files/{id}', [FileController::class, 'destroy'])->whereNumber('id');
     Route::patch('/files/{id}/restore', [FileController::class, 'restore'])->whereNumber('id');
     Route::delete('/files/{id}/force-delete', [FileController::class, 'forceDelete'])->whereNumber('id');
