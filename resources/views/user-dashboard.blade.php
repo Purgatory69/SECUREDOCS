@@ -29,7 +29,24 @@
     </style>
 
     <div class="flex items-center ml-auto gap-4">
-        <div class="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[#3C3F58]">🔔</div>
+        <div class="relative">
+            <button id="notificationBell" class="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[#3C3F58] transition-colors" title="Notifications" aria-label="Notifications">🔔</button>
+            <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
+            
+            <!-- Notification Dropdown -->
+            <div id="notificationDropdown" class="absolute right-0 mt-2 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] opacity-0 invisible translate-y-[-10px] transition-all z-50">
+                <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
+                    <div class="text-sm font-medium">Notifications</div>
+                    <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>
+                </div>
+                <div id="notificationsList" class="max-h-80 overflow-auto">
+                    <div class="p-4 text-center text-gray-400">Loading...</div>
+                </div>
+                <div class="px-4 py-2 border-t border-[#4A4D6A] text-right">
+                    <a id="viewAllNotifications" href="#" class="text-xs text-blue-400 hover:text-blue-300">View all</a>
+                </div>
+            </div>
+        </div>
         
         <div class="relative inline-block mr-2">
             <div id="userProfileBtn"
@@ -162,7 +179,7 @@
         <div class="space-y-6">
             <div id="dropZone"
                 class="border-2 border-dashed border-border-color rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors">
-                <div class="flex flex-col items-center">
+                <div id="dropZoneContent" class="flex flex-col items-center">
                     <div class="text-3xl mb-3">📄</div>
                     <p class="mb-2 text-sm">Drag and drop files here or click to browse</p>
                     <p class="text-xs text-text-secondary text-white"> Maximum file size: 100MB</p>
@@ -171,6 +188,66 @@
             </div>
 
             <div id="fileList"></div>
+
+            <!-- Processing Options (Standard / Premium) -->
+            <div id="processingOptions" class="space-y-4" style="display: none;">
+                <div class="text-sm font-medium">Processing Options</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- Standard -->
+                    <label class="cursor-pointer block">
+                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3">
+                            <input id="standardUpload" type="radio" name="processingType" value="standard" class="mt-1" checked>
+                            <div>
+                                <div class="text-sm text-white font-medium">Standard Upload</div>
+                                <div class="text-xs text-gray-400">Store file in Supabase storage</div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Blockchain (Premium) -->
+                    <label class="cursor-pointer block" data-premium-option="true">
+                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3 opacity-60 cursor-not-allowed">
+                            <input id="blockchainUpload" type="radio" name="processingType" value="blockchain" class="mt-1" disabled>
+                            <div>
+                                <div class="text-sm text-white font-medium flex items-center gap-2">
+                                    Blockchain Storage
+                                    <span id="badgeBlockchain" class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
+                                </div>
+                                <div id="descBlockchain" class="text-xs text-gray-400">Store on IPFS via Pinata (Premium required)</div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Vectorize (Premium) -->
+                    <label class="cursor-pointer block" data-premium-option="true">
+                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3 opacity-60 cursor-not-allowed">
+                            <input id="vectorizeUpload" type="radio" name="processingType" value="vectorize" class="mt-1" disabled>
+                            <div>
+                                <div class="text-sm text-white font-medium flex items-center gap-2">
+                                    AI Vectorize
+                                    <span id="badgeVectorize" class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
+                                </div>
+                                <div id="descVectorize" class="text-xs text-gray-400">Process with AI for advanced search (Premium required)</div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Hybrid (Premium) -->
+                    <label class="cursor-pointer block" data-premium-option="true">
+                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3 opacity-60 cursor-not-allowed">
+                            <input id="hybridUpload" type="radio" name="processingType" value="hybrid" class="mt-1" disabled>
+                            <div>
+                                <div class="text-sm text-white font-medium flex items-center gap-2">
+                                    Hybrid (IPFS + AI)
+                                    <span id="badgeHybrid" class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
+                                </div>
+                                <div id="descHybrid" class="text-xs text-gray-400">Store on IPFS and vectorize (Premium required)</div>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+                <div id="processingValidation" class="hidden mt-2"></div>
+            </div>
 
             <!-- <div class="space-y-3">
                         <div class="text-sm font-medium">Security Options:</div>
@@ -344,8 +421,21 @@
 
 <main style="background-color: #24243B; border-top-left-radius: 32px; margin-left: 13px;" class="p-6 overflow-y-auto">
     <input type="hidden" id="currentFolderId" value="">
-    <div id="breadcrumbsContainer" style="color: #FFFFFF;" class="mb-4 text-sm text-gray-400 ">
+    <div id="breadcrumbsContainer" style="color: #FFFFFF;" class="mb-4 text-sm text-gray-400 flex items-center">
         <!-- Breadcrumbs will be populated by JavaScript -->
+        <div id="breadcrumbsDropdown" class="relative hidden">
+            <button id="breadcrumbsMenuBtn" class="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-600 transition-colors mr-2">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                </svg>
+            </button>
+            <div id="breadcrumbsDropdownMenu" class="absolute top-full left-0 mt-1 bg-[#1F2235] border border-[#4A4D6A] rounded-lg shadow-lg z-50 min-w-[200px] hidden">
+                <!-- Hidden breadcrumb items will be populated here -->
+            </div>
+        </div>
+        <div id="breadcrumbsPath" class="flex items-center">
+            <!-- Visible breadcrumb path will be populated here -->
+        </div>
     </div>
     <h1 id="header-title" class="text-2xl text-white font-bold mb-6">My Documents</h1>
 
@@ -366,6 +456,8 @@
         <div class="p-4 text-center text-text-secondary col-span-full">Loading files...</div>
     </div>
 </main>
+
+<!-- N8N Chat floating in bottom-right -->
 <div id="n8n-chat-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;"></div>
 </div>
 
@@ -640,10 +732,15 @@
 
                 <!-- Load More Button -->
                 <div class="text-center mt-4">
-                    <button id="loadMoreActivities" class="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 text-sm hidden">
-                        Load More
+                    <button id="createFolderBtn" class="flex items-center gap-2 px-4 py-2 bg-[#2A2D47] text-gray-100 rounded-lg border border-[#4A4D6A] hover:bg-[#3C3F58] transition-colors">
+                        <span class="text-lg">📁</span>
+                        Create Folder
                     </button>
-                </div>
+                    
+                    <button data-action="ai-categorize" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl">
+                        <span class="text-lg">🤖</span>
+                        AI Categorize
+                    </button>
 
                 <!-- Tabs for Additional Views -->
                 <div class="mt-6">

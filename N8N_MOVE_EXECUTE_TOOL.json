@@ -1,0 +1,49 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Move file directly in database. Faster than API call. Requires file_id and new_parent_id from AI.",
+        "operation": "executeQuery",
+        "query": "UPDATE public.files SET parent_id = $1, updated_at = NOW() WHERE id = $2 AND user_id = $3 RETURNING id",
+        "options": {
+          "queryReplacement": "={{ [\n  $fromAI('new_parent_id'),\n  $fromAI('file_id'),\n  $json.userId\n] }}"
+        },
+        "toolParameters": [
+          {
+            "name": "file_id",
+            "type": "number",
+            "required": true,
+            "description": "ID of file to move"
+          },
+          {
+            "name": "new_parent_id",
+            "type": "number",
+            "required": true,
+            "description": "ID of destination folder"
+          }
+        ]
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [-336, 400],
+      "id": "move-execute-tool",
+      "name": "Execute: Move File",
+      "credentials": {
+        "postgres": {
+          "id": "a3afbeaFrTSHRGp4",
+          "name": "Postgres account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Execute: Move File": {
+      "ai_tool": [[]]
+    }
+  },
+  "pinData": {},
+  "meta": {
+    "instanceId": "2aef109bd8c10b91cb8e2bd8a77672a184b1b8c2f2b84edaba555f80c8071c7e"
+  }
+}

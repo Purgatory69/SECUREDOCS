@@ -10,6 +10,26 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 
+/**
+ * @property int $id
+ * @property int $user_id
+ * @property string $file_name
+ * @property string|null $mime_type
+ * @property string|null $file_path
+ * @property int|null $file_size
+ * @property int|null $parent_id
+ * @property bool $is_folder
+ * @property string|null $blockchain_provider
+ * @property string|null $ipfs_hash
+ * @property string|null $blockchain_url
+ * @property bool $is_blockchain_stored
+ * @property array|null $blockchain_metadata
+ * @property bool $is_vectorized
+ * @property \Carbon\Carbon|null $vectorized_at
+ * @property \Carbon\Carbon|null $created_at
+ * @property \Carbon\Carbon|null $updated_at
+ * @property \Carbon\Carbon|null $deleted_at
+ */
 class File extends Model
 {
     use HasFactory, SoftDeletes;

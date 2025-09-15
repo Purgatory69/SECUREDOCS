@@ -64,6 +64,7 @@ export function initializeN8nChat() {
             }
         });
     } else {
-        console.warn('`createChat` function not found or webhook URL is missing. n8n chat widget will not be loaded.');
+        // Downgrade to debug to avoid alarming users when chat is intentionally disabled
+        console.debug('n8n chat disabled: createChat not present or webhook missing.');
     }
 }

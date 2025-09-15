@@ -4,7 +4,6 @@ namespace App\Http\Controllers;
 
 use App\Models\SystemActivity;
 use App\Models\UserSession;
-use App\Models\SecurityEvent;
 use App\Models\File;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -158,11 +157,6 @@ class ActivityController extends Controller
                 ->pluck('count', 'risk_level')
                 ->toArray();
 
-            // Recent security events
-            $securityEvents = SecurityEvent::where('user_id', $userId)
-                ->recent(168) // Last 7 days
-                ->count();
-
             // Active sessions
             $activeSessions = UserSession::where('user_id', $userId)
                 ->active()
@@ -172,7 +166,6 @@ class ActivityController extends Controller
                 'activity_stats' => $stats,
                 'activity_by_type' => $activityByType,
                 'risk_distribution' => $riskDistribution,
-                'security_events_count' => $securityEvents,
                 'active_sessions' => $activeSessions,
             ]);
 
@@ -280,43 +273,7 @@ class ActivityController extends Controller
     /**
      * Get security events for user
      */
-    public function getSecurityEvents(Request $request): JsonResponse
-    {
-        try {
-            $validator = Validator::make($request->all(), [
-                'limit' => 'sometimes|integer|min:1|max:100',
-                'severity' => 'sometimes|string|in:info,warning,error,critical',
-                'resolved' => 'sometimes|boolean',
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json(['errors' => $validator->errors()], 422);
-            }
-
-            $query = SecurityEvent::where('user_id', Auth::id())
-                ->orderBy('created_at', 'desc');
-
-            if ($request->has('severity')) {
-                $query->bySeverity($request->severity);
-            }
-
-            if ($request->has('resolved')) {
-                if ($request->boolean('resolved')) {
-                    $query->resolved();
-                } else {
-                    $query->unresolved();
-                }
-            }
-
-            $limit = $request->get('limit', 20);
-            $events = $query->limit($limit)->get();
-
-            return response()->json(['security_events' => $events]);
-
-        } catch (\Exception $e) {
-            return response()->json(['error' => 'Failed to fetch security events'], 500);
-        }
-    }
+    // Removed: getSecurityEvents() — security features deprecated and routes pruned.
 
     /**
      * Export user activities (for compliance/audit purposes)
@@ -428,7 +385,6 @@ class ActivityController extends Controller
                     ->distinct('user_id')->count('user_id'),
                 'high_risk_activities' => SystemActivity::highRisk()
                     ->where('created_at', '>=', $since)->count(),
-                'security_events' => SecurityEvent::where('created_at', '>=', $since)->count(),
                 'suspicious_activities' => SystemActivity::suspicious()
                     ->where('created_at', '>=', $since)->count(),
             ];

@@ -12,10 +12,22 @@ use App\Http\Controllers\WebAuthnController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SchemaController;
+use Illuminate\Http\Request;
 
 Route::get('/', function () {
     return view('welcome');
 });
+
+// Lightweight keepalive endpoint to prevent session/CSRF from going stale on public pages like /login
+Route::get('/keepalive', function (Request $request) {
+    if ($request->boolean('regen')) {
+        try { $request->session()->regenerateToken(); } catch (\Throwable $t) {}
+        return response()->json(['token' => csrf_token()]);
+    }
+    // Touch the session without leaking data
+    try { $request->session()->put('_last_keepalive', now()->toISOString()); } catch (\Throwable $t) {}
+    return response('', 204);
+})->name('keepalive');
 
 Route::get('/set-language/{language}', function ($language) {
     $validLanguages = ['en', 'fil'];
@@ -56,11 +68,15 @@ Route::middleware([
             return redirect()->route('admin.dashboard');
         });
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-        Route::post('/approve/{id}', [AdminController::class, 'approveUser'])->name('approve');
-        Route::post('/revoke/{id}', [AdminController::class, 'revokeUser'])->name('revoke');
+        Route::get('/users', [AdminController::class, 'usersList'])->name('users');
+        Route::post('/approve/{id}', [AdminController::class, 'approve'])->name('approve');
+        Route::post('/revoke/{id}', [AdminController::class, 'revoke'])->name('revoke');
         Route::post('/users/{user}/premium-settings', [AdminController::class, 'updatePremiumSettings'])->name('users.premium-settings');
         Route::get('/analytics', [\App\Http\Controllers\ActivityController::class, 'getSystemAnalytics'])->name('analytics');
         Route::get('/db-schema.json', [SchemaController::class, 'get'])->name('db-schema.json');
+        // Admin JSON endpoints for metrics and predictive user search
+        Route::get('/metrics/users', [AdminController::class, 'metricsUsers'])->name('metrics.users');
+        Route::get('/users.json', [AdminController::class, 'usersJson'])->name('users.json');
     });
 
     // User dashboard - protected by direct middleware class
@@ -85,7 +101,7 @@ Route::middleware([
     Route::get('/files/trash', [FileController::class, 'getTrashItems']);
     Route::post('/files/create-folder', [FileController::class, 'createFolder']);
     Route::get('/files/{id}', [FileController::class, 'show'])->whereNumber('id');
-    Route::get('/files/{id}/preview', [FileController::class, 'preview'])->whereNumber('id');
+    Route::get('/files/{id}/preview', [FileController::class, 'preview'])->name('file-preview')->whereNumber('id');
     Route::delete('/files/{id}', [FileController::class, 'destroy'])->whereNumber('id');
     Route::patch('/files/{id}/restore', [FileController::class, 'restore'])->whereNumber('id');
     Route::delete('/files/{id}/force-delete', [FileController::class, 'forceDelete'])->whereNumber('id');
@@ -103,6 +119,7 @@ Route::middleware([
         Route::get('/providers', [BlockchainController::class, 'getProviders'])->name('blockchain.providers');
         Route::get('/stats', [BlockchainController::class, 'getStats'])->name('blockchain.stats');
         Route::get('/files', [BlockchainController::class, 'getFiles'])->name('blockchain.files');
+        Route::get('/storage-info', [BlockchainController::class, 'getStorageInfo'])->name('blockchain.storage-info');
         Route::post('/upload', [BlockchainController::class, 'upload'])->name('blockchain.upload');
         Route::post('/upload-existing', [BlockchainController::class, 'uploadExistingFile'])->name('upload.existing');
         Route::post('/preflight-validation', [BlockchainController::class, 'preflightValidation'])->name('preflight');
@@ -138,39 +155,7 @@ Route::middleware([
     Route::get('/sessions', [App\Http\Controllers\ActivityController::class, 'getUserSessions'])->name('sessions.user');
     Route::delete('/sessions/{session}', [App\Http\Controllers\ActivityController::class, 'revokeSession'])->name('sessions.revoke');
     
-    // Security events routes
-    Route::get('/security-events', [App\Http\Controllers\ActivityController::class, 'getSecurityEvents'])->name('security.events');
-    
-
-    // Security routes
-    Route::prefix('security')->name('security.')->group(function () {
-        // Security policies
-        Route::get('/policies', [App\Http\Controllers\SecurityController::class, 'getPolicies'])->name('policies.index');
-        Route::post('/policies', [App\Http\Controllers\SecurityController::class, 'createPolicy'])->name('policies.create');
-        Route::put('/policies/{policy}', [App\Http\Controllers\SecurityController::class, 'updatePolicy'])->name('policies.update');
-        Route::delete('/policies/{policy}', [App\Http\Controllers\SecurityController::class, 'deletePolicy'])->name('policies.delete');
-        
-        // Security violations
-        Route::get('/violations', [App\Http\Controllers\SecurityController::class, 'getViolations'])->name('violations.index');
-        Route::put('/violations/{violation}/resolve', [App\Http\Controllers\SecurityController::class, 'resolveViolation'])->name('violations.resolve');
-        
-        // Trusted devices
-        Route::get('/devices', [App\Http\Controllers\SecurityController::class, 'getTrustedDevices'])->name('devices.index');
-        Route::post('/devices/trust', [App\Http\Controllers\SecurityController::class, 'trustDevice'])->name('devices.trust');
-        Route::put('/devices/{device}/revoke', [App\Http\Controllers\SecurityController::class, 'revokeDevice'])->name('devices.revoke');
-        
-        // File encryption
-        Route::get('/encryption', [App\Http\Controllers\SecurityController::class, 'getFileEncryption'])->name('encryption.index');
-        Route::post('/files/{file}/encrypt', [App\Http\Controllers\SecurityController::class, 'encryptFile'])->name('files.encrypt');
-        Route::post('/encryption/{encryption}/rotate-key', [App\Http\Controllers\SecurityController::class, 'rotateEncryptionKey'])->name('encryption.rotate-key');
-        
-        // DLP scans
-        Route::get('/dlp-scans', [App\Http\Controllers\SecurityController::class, 'getDlpScans'])->name('dlp.index');
-        Route::put('/dlp-scans/{scan}/review', [App\Http\Controllers\SecurityController::class, 'reviewDlpScan'])->name('dlp.review');
-        
-        // Security dashboard
-        Route::get('/stats', [App\Http\Controllers\SecurityController::class, 'getSecurityStats'])->name('stats');
-    });
+    // Security features removed: security events and all /security endpoints
 
     Route::post('/folders', [App\Http\Controllers\FileController::class, 'createFolder'])->name('folders.create');
     

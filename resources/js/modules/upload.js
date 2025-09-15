@@ -145,11 +145,11 @@ async function handleFiles(files) {
             `;
         }
         
-        // Show processing options and run validation
+        // Show processing options and run validation (if processing UI exists)
         showProcessingOptions();
         await ensurePremiumStatus();
         applyPremiumUX();
-        validateProcessingOptions(file);
+        try { await validateProcessingOptions(file); } catch (_) { /* noop */ }
         document.getElementById('uploadBtn').disabled = false;
     } else {
         resetUploadForm();
@@ -269,6 +269,13 @@ async function validateProcessingOptions(file) {
     const hybridRadio = document.getElementById('hybridUpload');
     const validationDiv = document.getElementById('processingValidation');
 
+    // If the processing options UI isn't present on this page, skip validation gracefully
+    if (!blockchainRadio && !vectorizeRadio && !hybridRadio && !validationDiv) {
+        const uploadBtn = document.getElementById('uploadBtn');
+        if (uploadBtn) uploadBtn.disabled = false;
+        return;
+    }
+
     // Add event listeners for validation on change
     document.querySelectorAll('input[name="processingType"]').forEach(radio => {
         radio.addEventListener('change', () => validateSelectedOption(file));
@@ -283,9 +290,15 @@ async function validateSelectedOption(file) {
     const validationDiv = document.getElementById('processingValidation');
     const uploadBtn = document.getElementById('uploadBtn');
     
+    // If no validation UI exists, just allow upload
+    if (!validationDiv) {
+        if (uploadBtn) uploadBtn.disabled = false;
+        return;
+    }
+
     if (!selectedType || selectedType === 'standard') {
         validationDiv.classList.add('hidden');
-        uploadBtn.disabled = false;
+        if (uploadBtn) uploadBtn.disabled = false;
         return;
     }
 
@@ -298,10 +311,10 @@ async function validateSelectedOption(file) {
         displayValidationResults(validationResults, selectedType);
         
         // Enable/disable upload button based on validation
-        uploadBtn.disabled = !validationResults.canProceed;
+        if (uploadBtn) uploadBtn.disabled = !validationResults.canProceed;
     } catch (error) {
         validationDiv.innerHTML = `<div class="text-red-400">Validation failed: ${error.message}</div>`;
-        uploadBtn.disabled = true;
+        if (uploadBtn) uploadBtn.disabled = true;
     }
 }
 
@@ -366,6 +379,7 @@ async function validatePremiumProcessing(file, processingType) {
 
 function displayValidationResults(results, processingType) {
     const validationDiv = document.getElementById('processingValidation');
+    if (!validationDiv) return;
     let html = '';
 
     if (results.errors.length > 0) {

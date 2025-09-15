@@ -16,6 +16,28 @@ return Application::configure(basePath: dirname(__DIR__))
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
+            // Gracefully handle CSRF token mismatch (HTTP 419) to avoid a hard error page
+            if ($e instanceof \Illuminate\Session\TokenMismatchException) {
+                // JSON requests: respond with a clear message so clients can retry
+                if ($request->expectsJson()) {
+                    return response()->json([
+                        'message' => 'Your session expired. Please refresh and try again.',
+                        'error' => 'token_mismatch'
+                    ], 419);
+                }
+
+                // Web requests: redirect back with a friendly error and preserve input (except password)
+                // Regenerate a fresh token for the next attempt
+                try { $request->session()->regenerateToken(); } catch (\Throwable $t) {}
+
+                if ($request->is('login') && $request->method() === 'POST') {
+                    return redirect('/login')
+                        ->withErrors(['email' => 'Your session expired. Please try again.'])
+                        ->withInput($request->except('password'));
+                }
+
+                return redirect()->back()->with('error', 'Your session expired. Please try again.');
+            }
             // Handle PostgreSQL statement timeout (SQLSTATE 57014) and similar DB timeout errors
             $isDbTimeout = false;
 
