@@ -22,7 +22,7 @@ class SearchController extends Controller
             'owner', 'shared', 'folder_id', 'sort_by', 'sort_order'
         ]);
 
-        // Start with user's files (including shared files)
+        // Start with user's files (sharing removed)
         $filesQuery = $this->buildSearchQuery($user, $query, $filters);
 
         // Execute search with pagination
@@ -56,15 +56,8 @@ class SearchController extends Controller
     private function buildSearchQuery($user, $query, $filters)
     {
         $filesQuery = File::query()
-            ->where(function($q) use ($user) {
-                // User's own files
-                $q->where('user_id', $user->id)
-                  // Or files shared with user
-                  ->orWhereHas('shares', function($shareQuery) use ($user) {
-                      $shareQuery->where('shared_with_id', $user->id);
-                  });
-            })
-            ->where('deleted_at', null); // Exclude soft-deleted files
+            ->where('user_id', $user->id)
+            ->whereNull('deleted_at'); // Exclude soft-deleted files
 
         // Text search in file names and content (if indexed)
         if ($query) {
@@ -129,18 +122,7 @@ class SearchController extends Controller
             $filesQuery->where('parent_id', $filters['folder_id']);
         }
 
-        // Shared files filter
-        if (!empty($filters['shared'])) {
-            if ($filters['shared'] === 'with_me') {
-                $filesQuery->whereHas('shares', function($shareQuery) use ($user) {
-                    $shareQuery->where('shared_with_id', $user->id);
-                });
-            } elseif ($filters['shared'] === 'by_me') {
-                $filesQuery->whereHas('shares', function($shareQuery) use ($user) {
-                    $shareQuery->where('owner_id', $user->id);
-                });
-            }
-        }
+        // Shared files filter removed (feature deprecated)
 
         // Sorting
         $sortBy = $filters['sort_by'] ?? 'updated_at';
@@ -205,12 +187,16 @@ class SearchController extends Controller
     private function trackSearch($user, $query, $resultCount)
     {
         // Simple search tracking - you could expand this
-        DB::table('search_logs')->insert([
-            'user_id' => $user->id,
-            'query' => $query,
-            'result_count' => $resultCount,
-            'created_at' => now(),
-        ]);
+        try {
+            DB::table('search_logs')->insert([
+                'user_id' => $user->id,
+                'query' => $query,
+                'results_count' => $resultCount,
+                'created_at' => now(),
+            ]);
+        } catch (\Throwable $e) {
+            \Log::warning('Failed to insert search_logs: ' . $e->getMessage());
+        }
     }
 
     /**

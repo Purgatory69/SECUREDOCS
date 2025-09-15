@@ -231,6 +231,48 @@
                 });
             }
         });
+
+        // Keep session and CSRF token fresh on the login page to avoid 419 after being idle
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form[action="{{ route('login') }}"][method="POST"]');
+            const csrfInput = document.querySelector('input[name="_token"]');
+
+            // Periodic keepalive every 4 minutes
+            try {
+                setInterval(() => {
+                    fetch('{{ url('/keepalive') }}', {
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    }).catch(() => {});
+                }, 4 * 60 * 1000);
+            } catch (e) {}
+
+            // Before submit, regenerate a fresh token to prevent TokenMismatch (419)
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    try {
+                        e.preventDefault();
+                        const res = await fetch('{{ url('/keepalive') }}?regen=1', {
+                            credentials: 'same-origin',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        if (res.ok) {
+                            const data = await res.json().catch(() => null);
+                            if (data && data.token && csrfInput) {
+                                csrfInput.value = data.token;
+                            }
+                        }
+                    } catch (err) {
+                        // Ignore and continue with submit
+                    }
+                    // Submit the form (password not logged anywhere)
+                    form.submit();
+                });
+            }
+        });
     </script>
 
 </x-guest-layout>

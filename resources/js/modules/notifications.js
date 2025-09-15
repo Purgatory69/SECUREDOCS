@@ -72,14 +72,15 @@ class NotificationManager {
     }
 
     openDropdown() {
-        this.dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
-        this.dropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
+        // Make sure any hidden state is cleared across Tailwind variants
+        this.dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'hidden');
+        this.dropdown.classList.add('opacity-100', 'visible', 'translate-y-0', 'block');
         this.isOpen = true;
     }
 
     closeDropdown() {
-        this.dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
-        this.dropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+        this.dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'hidden');
+        this.dropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'block');
         this.isOpen = false;
     }
 

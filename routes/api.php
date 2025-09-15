@@ -41,6 +41,18 @@ Route::prefix('refresh')->group(function () {
 // Vectorization completion webhook
 Route::post('/vectorization-complete', [FileController::class, 'handleVectorizationComplete']);
 
+// AI Categorization endpoints
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/ai/categorize-start', [FileController::class, 'startAICategorization']);
+    Route::get('/ai/categorization-status', [FileController::class, 'getCategorizationStatus']);
+});
+
+// Public categorization status endpoint (no auth required for initial check)
+Route::get('/ai/categorization-status-public', [FileController::class, 'getCategorizationStatusPublic']);
+
+// AI status update endpoint (for AI to call)
+Route::post('/ai/categorization-update', [FileController::class, 'updateCategorizationStatus']);
+
 // Database schema (live) endpoint (admin-only via Sanctum)
 Route::get('/db-schema', [SchemaController::class, 'get'])
     ->middleware(['auth:sanctum', 'role:admin'])

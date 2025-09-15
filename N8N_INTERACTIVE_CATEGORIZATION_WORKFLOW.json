@@ -1,0 +1,631 @@
+{
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## Agent Tools for RAG + File Categorization",
+        "height": 528.85546469693,
+        "width": 583.4552380860637,
+        "color": 4
+      },
+      "id": "659fecf8-444c-48ff-84e7-ca997d893409",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -544,
+        48
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "ec384054-8b0c-46e5-a383-f51e7b92c939",
+      "name": "Postgres Chat Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1,
+      "position": [
+        -1328,
+        400
+      ],
+      "notesInFlow": false,
+      "credentials": {
+        "postgres": {
+          "id": "a3afbeaFrTSHRGp4",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "## RAG AI Agent with Chat Interface + Interactive File Categorization",
+        "height": 465,
+        "width": 1212
+      },
+      "id": "913d280c-20fa-4c46-b5c7-b49942df74eb",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -1760,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "8986b423-1bdf-4ecd-a415-036039c44174",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        -896,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9a9a245e-f1a1-4282-bb02-a81ffe629f0f",
+              "name": "chatInput",
+              "value": "={{ $json?.chatInput || $json.body.chatInput }}",
+              "type": "string"
+            },
+            {
+              "id": "b80831d8-c653-4203-8706-adedfdb98f77",
+              "name": "sessionId",
+              "value": "={{ $json?.sessionId || $json.body.sessionId}}",
+              "type": "string"
+            },
+            {
+              "id": "98b63c1a-6305-41ae-9809-7a20e83a9cf3",
+              "name": "userId",
+              "value": "={{ $json.metadata.userId }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "88c7effa-1d3b-4c97-9f7f-046b68dba296",
+      "name": "Edit Fields",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -1456,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "public": true,
+        "mode": "webhook",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "9be5e2f3-1153-4de7-876a-a52b25a0a4fe",
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -1728,
+        192
+      ],
+      "webhookId": "e104e40e-6134-4825-a6f0-8a646d882662"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}",
+        "options": {
+          "systemMessage": "=You are a personal assistant who helps answer questions from a corpus of documents AND helps organize files through intelligent categorization.\n\n**DOCUMENT ACCESS & RAG:**\nYou have an assigned user ID for filtering document access. All document retrieval and processing MUST be strictly limited to files associated with this assigned user ID. Do NOT mention the user ID in your responses to the user.\n\n**FILE CATEGORIZATION CAPABILITIES:**\nYou can help users organize their files by:\n1. **Analyzing their file structure** - Use the 'list_user_files' tool to see what files they have\n2. **Asking clarifying questions** - Understand how they want files organized\n3. **Proposing categorization plans** - Suggest folder structures and organization schemes\n4. **Executing with confirmation** - Only proceed when you're 90%+ confident and user confirms\n\n**INTERACTIVE CATEGORIZATION PROCESS:**\nWhen a user asks to categorize/organize files:\n1. First, list their files to understand the current structure\n2. Ask specific questions about their preferences:\n   - \"Do you prefer organizing by date, project, file type, or content?\"\n   - \"Should I create separate folders for work vs personal files?\"\n   - \"Any specific naming conventions you prefer?\"\n3. Propose a detailed categorization plan\n4. Wait for explicit user confirmation before executing\n5. Only execute when 90%+ confident in the plan\n\n**CONFIDENCE REQUIREMENTS:**\n- Ask follow-up questions until you understand their needs clearly\n- Never assume - always clarify ambiguous requests\n- Present categorization plans in detail before executing\n- Use phrases like \"I'm 95% confident this matches your needs\" when ready to execute\n\n**AVAILABLE TOOLS:**\n- RAG tools for document search and analysis\n- File management tools for listing, creating folders, and moving files\n- Status update tools for progress tracking\n\nAlways start with RAG for document questions. For file organization requests, start by analyzing their file structure and asking clarifying questions.\n\nAlways tell the user if you didn't find the answer. Don't make something up just to please them."
+        }
+      },
+      "id": "fbf97893-f26b-4796-8466-55961cf460b7",
+      "name": "RAG AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.6,
+      "position": [
+        -1248,
+        192
+      ]
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Use this tool to fetch all available documents based on the user's id, including the table schema if the file is a CSV or Excel file.",
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "document_metadata",
+          "mode": "list",
+          "cachedResultName": "document_metadata"
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        -1184,
+        400
+      ],
+      "id": "a5022781-976f-4411-979f-64888e32c863",
+      "name": "List Documents",
+      "credentials": {
+        "postgres": {
+          "id": "a3afbeaFrTSHRGp4",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Given a file ID, fetches the text from the document.",
+        "operation": "executeQuery",
+        "query": "SELECT \n    string_agg(content, ' ') as document_text\nFROM documents\n  WHERE metadata->>'file_id' = $1\nGROUP BY metadata->>'file_id';",
+        "options": {
+          "queryReplacement": "={{ $fromAI('file_id') }}"
+        }
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        -1040,
+        400
+      ],
+      "id": "18a0f7f6-eb53-49d3-8c59-0dd088a21b39",
+      "name": "Get File Contents",
+      "credentials": {
+        "postgres": {
+          "id": "a3afbeaFrTSHRGp4",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Run a SQL query - use this to query from the document_rows table once you know the file ID you are querying. dataset_id is the file_id and you are always using the row_data for filtering, which is a jsonb field that has all the keys from the file schema given in the document_metadata table.\n\nExample query:\n\nSELECT AVG((row_data->>'revenue')::numeric)\nFROM document_rows\nWHERE dataset_id = '123';\n\nExample query 2:\n\nSELECT \n    row_data->>'category' as category,\n    SUM((row_data->>'sales')::numeric) as total_sales\nFROM dataset_rows\nWHERE dataset_id = '123'\nGROUP BY row_data->>'category';",
+        "operation": "executeQuery",
+        "query": "{{ $fromAI('sql_query') }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        -880,
+        400
+      ],
+      "id": "634acabe-0934-4c2b-869a-7a1d45e9e600",
+      "name": "Query Document Rows",
+      "credentials": {
+        "postgres": {
+          "id": "a3afbeaFrTSHRGp4",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolName": "documents",
+        "toolDescription": "Use RAG to look up information in the knowledgebase.",
+        "tableName": {
+          "__rl": true,
+          "value": "documents",
+          "mode": "list",
+          "cachedResultName": "documents"
+        },
+        "options": {
+          "queryName": "match_documents"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreSupabase",
+      "typeVersion": 1,
+      "position": [
+        -384,
+        192
+      ],
+      "id": "43fc5b43-c7ca-4d9f-8dcc-b6206700c575",
+      "name": "Supabase Vector Store1",
+      "credentials": {
+        "supabaseApi": {
+          "id": "yHGxy5aIZ4nntX85",
+          "name": "Supabase account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-preview-05-20",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -1456,
+        400
+      ],
+      "id": "1debb264-951c-42ac-b9b5-cf1b7156faaf",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QC87Zk02ieMQryy6",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -272,
+        400
+      ],
+      "id": "44e7132f-b17b-4b4e-99c5-3825465084f4",
+      "name": "Embeddings Google Gemini",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "QC87Zk02ieMQryy6",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/api/vectorization-complete",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        -752,
+        400
+      ],
+      "id": "78cb68c6-f519-4093-a0a8-f12c95b11b4c",
+      "name": "Notify user"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "List all files for the current user to understand their file structure. This helps analyze what files need to be organized and categorized. Only shows files belonging to the authenticated user.",
+        "operation": "select",
+        "schema": {
+          "__rl": true,
+          "mode": "list",
+          "value": "public"
+        },
+        "table": {
+          "__rl": true,
+          "value": "files",
+          "mode": "list",
+          "cachedResultName": "files"
+        },
+        "where": {
+          "values": [
+            {
+              "column": "user_id",
+              "condition": "=",
+              "value": "={{ $json.userId }}"
+            },
+            {
+              "column": "deleted_at",
+              "condition": "isNull"
+            }
+          ]
+        },
+        "returnAll": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgresTool",
+      "typeVersion": 2.5,
+      "position": [
+        -608,
+        400
+      ],
+      "id": "list-user-files-tool",
+      "name": "List User Files",
+      "credentials": {
+        "postgres": {
+          "id": "a3afbeaFrTSHRGp4",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Create a new folder for organizing files. Use this when the user confirms a categorization plan. Requires folder_name parameter.",
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/api/files",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"file_name\": $fromAI('folder_name'),\n  \"is_folder\": true,\n  \"parent_id\": $fromAI('parent_id') || null\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        -464,
+        400
+      ],
+      "id": "create-folder-tool",
+      "name": "Create Folder"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Move a file to a different folder. Use this to organize files into categories after user confirmation. Requires file_id and new_parent_id parameters.",
+        "method": "PUT",
+        "url": "=http://127.0.0.1:8000/api/files/{{ $fromAI('file_id') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"parent_id\": $fromAI('new_parent_id')\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        -320,
+        400
+      ],
+      "id": "move-file-tool",
+      "name": "Move File to Folder"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Update the categorization progress status. Use this to inform the user about categorization progress. Requires user_id, status (in_progress/completed/failed), progress (0-100), and message parameters.",
+        "method": "POST",
+        "url": "http://127.0.0.1:8000/api/ai/categorization-update",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ {\n  \"user_id\": $fromAI('user_id'),\n  \"status\": $fromAI('status'),\n  \"progress\": $fromAI('progress'),\n  \"message\": $fromAI('message'),\n  \"details\": $fromAI('details') || null\n} }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        -176,
+        400
+      ],
+      "id": "update-categorization-status-tool",
+      "name": "Update Categorization Status"
+    }
+  ],
+  "connections": {
+    "Postgres Chat Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RAG AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List Documents": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get File Contents": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Document Rows": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Supabase Vector Store1": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Supabase Vector Store1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify user": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List User Files": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Folder": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Move File to Folder": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update Categorization Status": {
+      "ai_tool": [
+        [
+          {
+            "node": "RAG AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {
+    "When chat message received": [
+      {
+        "action": "sendMessage",
+        "sessionId": "f55987d3-196d-4b2c-bce4-02c0d29b27b5",
+        "chatInput": "help me organize my files",
+        "metadata": {
+          "userId": 2,
+          "userEmail": "louiejaybonghanoy@gmail.com",
+          "userName": "Louie J",
+          "isPremium": true
+        }
+      }
+    ]
+  },
+  "meta": {
+    "instanceId": "2aef109bd8c10b91cb8e2bd8a77672a184b1b8c2f2b84edaba555f80c8071c7e"
+  }
+}
