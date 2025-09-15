@@ -8,14 +8,14 @@
         <div style="padding-right: 30px;" class="flex flex-col relative">
             <div class="text-white text-l font-bold">SECURE<span class="text-[#f89c00]">DOCS</span></div>
             <div class="absolute top-full text-xs text-gray-400">
-                {{ auth()->user()->is_premium ? __('auth.premium') : __('auth.basic-subscription') }}
+                {{ auth()->user()->is_premium ? __('auth.db_premium') : __('auth.db_basic_subscription') }}
             </div>
         </div>
     </div>
 
     <div style="margin-left: -5px; outline: none;" class="flex-grow max-w-[720px] relative pl-6">
         <img src="{{ asset('magnifying-glass.png') }}" alt="Search" class="absolute top-1/2 -translate-y-1/2 w-4 h-4" style="left: 42px;">
-        <input type="text" id="mainSearchInput" placeholder="Search in SECUREDOCS"
+        <input type="text" id="mainSearchInput" placeholder="{{ __('auth.db_search') }}"
             class="w-full py-3 pl-12 pr-12 mt-4 mb-4 rounded-full border-none bg-[#3C3F58] text-base text-white focus:outline-none focus:shadow-md"
             style="color: white; outline: none; padding-right: 20px;"
             onfocus="this.style.setProperty('--placeholder-opacity', '0.5');"
@@ -57,7 +57,7 @@
                 <img src="{{ asset('user-shape.png') }}" alt="Profile" class="w-6 h-6 object-contain">
             </div>
             <div id="profileDropdown" 
-                class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-10 overflow-hidden transition-all duration-300 opacity-0 invisible translate-y-[-10px]">
+                class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-10 overflow-hidden">
                 <div class="p-4 border-border-color flex items-center">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 cursor-pointer transition"
                         style="background-color: #55597C;">
@@ -77,7 +77,7 @@
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/user-shape.png" class="mr-4 w-4 h-4 ml-1" alt="Profile Settings">
-                        <span class="text-sm">Profile Settings</span>
+                        <span class="text-sm">{{ __('auth.db_profile_settings') }}</span>
                         </a>
                     </li>
 
@@ -89,7 +89,7 @@
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/fingerprint.png" class="mr-4 w-4 h-4 ml-1" alt="Biometric Login">
-                        <span class="text-sm">Biometric Login</span>
+                        <span class="text-sm">{{ __('auth.db_biometrics') }}</span>
                         </a>
                     </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
@@ -106,7 +106,7 @@
                                 <svg class="mr-4 w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
                                 </svg>
-                                <span class="text-sm">Language</span> 
+                                <span class="text-sm">{{ __('auth.db_language') }}</span> 
                             </div> 
                             <!-- Image arrow positioned at the right -->
                             <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" class="w-2 h-2 mr-2 transition-transform duration-200" id="langCaret"> 
@@ -139,14 +139,14 @@
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/info.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
-                        <span class="text-sm">Help & Support</span>
+                        <span class="text-sm">{{ __('auth.db_help_support') }}</span>
                     </li>
                     <li class="p-4 flex items-center cursor-pointer"
                         style="transition: background-color 0.2s;"
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/pencil.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
-                        <span class="text-sm">Send Feedback</span>
+                        <span class="text-sm">{{ __('auth.db_send_feedback') }}</span>
                     </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
                 </ul>
@@ -154,13 +154,14 @@
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit"
-                            class="bg-[#f89c00] px-8 text-black font-bold py-2 rounded-full cursor-pointer hover:brightness-110 transition">Sign Out</button>
+                            class="bg-[#f89c00] px-8 text-black font-bold py-2 rounded-full cursor-pointer hover:brightness-110 transition">{{ __('auth.db_logout') }}</button>
                     </form>
                 </div>
             </div>
         </div>
     </div>
 </header>
+<body>
 
 
 
@@ -259,8 +260,7 @@
                             <input type="checkbox" id="blockchainVerify" class="mr-2">
                          <label for="blockchainVerify" class="text-sm">Add blockchain verification</label>
                         </div>
-                    </div>
--->
+                    </div> -->
             <div id="uploadProgress" class="hidden">
                 <div class="flex justify-between text-sm mb-1">
                     <span>Uploading...</span>
@@ -320,9 +320,9 @@
     <!-- Toggle button -->
     <div id="newBtn"
      class="flex items-center py-4 px-6 rounded-full shadow-sm cursor-pointer transition-all duration-200 hover:bg-[#55597C]"
-     style="background-color: #3c3f58; :hover">
+     style="background-color: #3c3f58;">
         <img src="{{ asset('add.png') }}" alt="Add" class="mr-3 w-3 h-3">
-        <span class="text-sm text-white font-medium">New</span>
+        <span class="text-sm text-white font-medium">{{ __('auth.db_upload') }}</span>
         <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" class="ml-auto w-2 h-2" id="uploadIcon">
     </div>
 
@@ -336,37 +336,36 @@
                 onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0.5rem 0.5rem 0 0;';"
                 onmouseout="this.style.cssText = 'border-radius: 0.5rem 0.5rem 0 0;';">
                 <img src="{{ asset('file.png') }}" alt="File" class="mr-4 w-4 h-4">
-                <span class="font-medium">Upload File</span>
+                <span class="font-medium">{{ __('auth.db_new_file') }}</span>
             </div>
             <div id="createFolderOption"
-                class="flex items-center px-5 py-4 cursor-pointer"
+                class="flex items-center px-5 py-4 text-sm transition-colors text-white"
                 onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0 0 0.5rem 0.5rem;';"
                 onmouseout="this.style.cssText = 'border-radius: 0 0 0.5rem 0.5rem;';">
                 <img src="{{ asset('folder-closed-black-shape.png') }}" alt="File" class="mr-4 w-4 h-4">
-                <span class="text-white text-sm font-medium">New Folder</span>
+                <span class="font-medium">{{ __('auth.db_new_folder') }}</span>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Sidebar list starts here -->
      <ul id="sidebar" class="mt-4">
         <li id="my-documents-link" 
-        class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4 
-        bg-[#2B2C61] text-white">
-        <img src="{{ asset('folder-white-shape.png') }}" alt="Documents" class="mr-4 w-5 h-5">
-        <span class="text-sm">My Documents</span>
-    </li>
+            class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4 bg-primary">
+            <img src="{{ asset('folder-white-shape.png') }}" alt="Documents" class="mr-4 w-5 h-5">
+            <span class="text-sm">{{ __('auth.db_my_documents') }}</span>
+        </li>
+
 
         <li id="trash-link" 
             class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4 
             bg-[#141326] text-white hover:brightness-110 active:bg-[#2B2C61]">
             <img src="{{ asset('delete.png') }}" alt="Trash" class="mr-4 w-5 h-5">
-            <span class="text-sm">Trash</span>
+            <span class="text-sm">{{ __('auth.db_trash') }}</span>
         </li>
         <li id="blockchain-storage-link" class="py-3 px-8 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
             <img src="{{ asset('link-symbol.png') }}" alt="Blockchain" class="mr-4 w-5 h-5">
-            <span class="text-white text-sm">Blockchain Storage</span>
+            <span class="text-white text-sm">{{ __('auth.db_blockchain_storage') }}</span>
             <span class="ml-auto px-2 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-white font-medium">PREMIUM</span>
         </li>
 
@@ -1182,7 +1181,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (dropdownName === 'profile' || dropdownName === 'all') {
             const profileDropdown = document.getElementById('profileDropdown');
             if (profileDropdown) {
-                profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+                // Animate out
+                profileDropdown.style.opacity = '0';
+                profileDropdown.style.transform = 'translateY(-10px)';
+                profileDropdown.style.pointerEvents = 'none';
+
+                // Delay hiding until after transition
+                setTimeout(() => {
+                    profileDropdown.style.visibility = 'hidden';
+                }, 200); // matches your 0.2s ease
             }
         }
         
@@ -1287,31 +1294,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Profile Dropdown Function
     function initializeProfileDropdown() {
         const toggle = document.getElementById('userProfileBtn');
         const dropdown = document.getElementById('profileDropdown');
-        
+
         if (toggle && dropdown) {
+            dropdown.style.opacity = '0';
+            dropdown.style.visibility = 'hidden';
+            dropdown.style.transform = 'translateY(-10px)';
+            dropdown.style.pointerEvents = 'none';
+            dropdown.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
+
             toggle.addEventListener('click', function(e) {
                 e.stopPropagation();
-                
                 const isCurrentlyActive = activeDropdown === 'profile';
-                
-                // Close new dropdown when profile is clicked, but not language
+
+                // Close "new" dropdown when profile is clicked
                 closeDropdown('new');
-                
-                // Toggle the profile dropdown
+                // ❌ do NOT close language here
+
                 if (isCurrentlyActive) {
                     closeDropdown('profile');
                     activeDropdown = null;
                 } else {
-                    dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+                    dropdown.style.opacity = '1';
+                    dropdown.style.visibility = 'visible';
+                    dropdown.style.transform = 'translateY(0)';
+                    dropdown.style.pointerEvents = 'auto';
                     activeDropdown = 'profile';
                 }
             });
         }
     }
+
     
     // Global click handler to close dropdowns when clicking outside
     document.addEventListener('click', function(e) {

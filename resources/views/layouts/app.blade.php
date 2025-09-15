@@ -25,7 +25,8 @@
             window.userEmail = '{{ auth()->user()->email }}';
             window.username = '{{ auth()->user()->name }}';
             window.userIsPremium = {{ auth()->user()->is_premium ? 'true' : 'false' }};
-            window.chatWebhookUrl = '{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}';
+            // window.chatWebhookUrl disabled with n8n chat to prevent loading the widget
+             window.chatWebhookUrl = '{{ auth()->user()->is_premium ? config('services.n8n.premium_chat_webhook') : config('services.n8n.default_chat_webhook') }}';
         </script>
         @endauth
         <script>
