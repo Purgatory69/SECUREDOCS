@@ -1,4 +1,4 @@
-@extends('layouts.app')
+@extends('layouts.admin')
 
 @section('content')
     {{-- Header --}}
@@ -53,21 +53,19 @@
         </div>
         <ul class="mt-2">
             <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 {{ request()->routeIs('admin.dashboard') ? 'bg-[#e8f0fe] text-primary' : 'hover:bg-bg-light' }}">
-                <span class="mr-4 text-lg w-6 text-center">👥</span> {{-- Users Icon --}}
-                <a href="{{ route('admin.dashboard') }}" class="w-full">Manage Users</a>
+                <span class="mr-4 text-lg w-6 text-center">📊</span>
+                <a href="{{ route('admin.dashboard') }}" class="w-full">Dashboard</a>
             </li>
-            <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
-                <span class="mr-4 text-lg w-6 text-center">📝</span> {{-- Registrations Icon --}}
-                {{-- Link to the same page for now, or a future specific registrations page --}}
-                <a href="{{ route('admin.dashboard') }}?filter=pending_registrations" class="w-full">Registrations</a> {{-- Example filter --}}
+            <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 {{ request()->routeIs('admin.users') ? 'bg-[#e8f0fe] text-primary' : 'hover:bg-bg-light' }}">
+                <span class="mr-4 text-lg w-6 text-center">👥</span>
+                <a href="{{ route('admin.users') }}" class="w-full">Manage Users</a>
             </li>
-            {{-- Add more admin-specific links here if needed --}}
         </ul>
     </div>
 
     {{-- Main Content --}}
     <main class="bg-gray-50 p-6 overflow-y-auto">
-        <h1 class="text-2xl font-semibold text-gray-800 mb-6">User Management</h1>
+        <h1 class="text-2xl font-semibold text-gray-800 mb-6">Dashboard</h1>
 
         @if (session('success'))
             <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
@@ -76,73 +74,202 @@
             </div>
         @endif
 
-        <div class="bg-white shadow-md rounded-lg p-6">
-            <h2 class="text-xl font-semibold text-gray-700 mb-4">All Users</h2>
-            <table class="min-w-full divide-y divide-gray-200">
-                <thead class="bg-gray-50">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Role</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Approved</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Premium Status</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Manage Premium</th>
-                    </tr>
-                </thead>
-                <tbody class="bg-white divide-y divide-gray-200">
-                    @forelse ($users as $user)
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{{ $user->name }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">{{ $user->email }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize">{{ $user->role }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if ($user->is_approved)
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Yes</span>
-                                @else
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">No</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                @if ($user->is_premium)
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Premium</span>
-                                @else
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Standard</span>
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                @if (!$user->is_approved)
-                                    <form method="POST" action="{{ route('admin.approve', $user->id) }}" class="inline">
-                                        @csrf
-                                        <button type="submit" class="text-indigo-600 hover:text-indigo-900">Approve</button>
-                                    </form>
-                                @else
-                                    <form method="POST" action="{{ route('admin.revoke', $user->id) }}" class="inline">
-                                        @csrf
-                                        <button type="submit" class="text-red-600 hover:text-red-900">Revoke</button>
-                                    </form>
-                                @endif
-                                {{-- Add other actions like Edit, Delete if needed --}}
-                            </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <form method="POST" action="{{ route('admin.user.premium_settings', $user) }}" class="space-y-1">
-                                    @csrf
-                                    <div class="flex items-center">
-                                        <input type="checkbox" name="is_premium" id="is_premium_{{ $user->id }}" value="1" {{ $user->is_premium ? 'checked' : '' }} class="mr-1 h-3 w-3 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                        <label for="is_premium_{{ $user->id }}" class="text-xs">Premium</label>
-                                    </div>
-                                    <button type="submit" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">Update</button>
-                                </form>
-                            </td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No users found.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
+        {{-- Users search removed from dashboard (now on Manage Users page) --}}
+
+        {{-- Dashboard KPIs --}}
+        <section class="mb-6">
+            <h2 class="text-xl font-semibold text-gray-700 mb-4">Dashboard</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                    <div class="text-sm text-gray-500">Total Users</div>
+                    <div class="text-3xl font-bold mt-1" id="totalUsersCount">{{ number_format($totalUsers ?? 0) }}</div>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                    <div class="text-sm text-gray-500">Premium Users</div>
+                    <div class="text-3xl font-bold mt-1 text-blue-600" id="premiumUsersCount">{{ number_format($premiumUsers ?? 0) }}</div>
+                </div>
+                <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                    <div class="text-sm text-gray-500">Standard Users</div>
+                    <div class="text-3xl font-bold mt-1 text-gray-800" id="standardUsersCount">{{ number_format($standardUsers ?? 0) }}</div>
+                </div>
+            </div>
+        </section>
+
+        {{-- Line Chart: New Users --}}
+        <section class="mb-6">
+            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-3 gap-4 flex-wrap">
+                    <h3 class="text-lg font-semibold text-gray-700">New Users</h3>
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm text-gray-600">Range</label>
+                        <select id="chartRange" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                            <option value="7d">7 days</option>
+                            <option value="30d" selected>30 days</option>
+                            <option value="90d">90 days</option>
+                            <option value="1y">1 year (daily)</option>
+                            <option value="12m">12 months (monthly)</option>
+                        </select>
+                        <label class="text-sm text-gray-600">Group</label>
+                        <select id="chartGroup" class="border border-gray-300 rounded px-2 py-1 text-sm">
+                            <option value="day" selected>Day</option>
+                            <option value="month">Month</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="relative" style="height: 280px;">
+                    <canvas id="userGrowthChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        {{-- Recent Signups --}}
+        <section class="mb-8">
+            <div class="bg-white border border-gray-200 rounded-lg p-5 shadow-sm">
+                <div class="flex items-center justify-between mb-3">
+                    <h3 class="text-lg font-semibold text-gray-700">Recent Signups</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Plan</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Created</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200" id="usersTableBody">
+                            @forelse(($recentUsers ?? []) as $ru)
+                                <tr>
+                                    <td class="px-6 py-3 text-sm text-gray-800">{{ $ru->name }}</td>
+                                    <td class="px-6 py-3 text-sm text-gray-600">{{ $ru->email }}</td>
+                                    <td class="px-6 py-3 text-sm">
+                                        @if($ru->is_premium)
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Premium</span>
+                                        @else
+                                            <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Standard</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-3 text-sm text-gray-500">{{ optional($ru->created_at)->format('Y-m-d H:i') }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">No recent signups.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        {{-- Users table moved to Admin → Manage Users page --}}
     </main>
-    {{-- Profile dropdown handled by resources/js/modules/ui.js --}}
+    <script>
+        // Profile dropdown toggle
+        document.addEventListener('DOMContentLoaded', function () {
+            const btn = document.getElementById('userProfileBtn');
+            const menu = document.getElementById('profileDropdown');
+            if (!btn || !menu) return;
+
+            const open = () => {
+                menu.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+                menu.classList.add('opacity-100', 'visible', 'translate-y-0', 'scale-100');
+            };
+            const close = () => {
+                menu.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+                menu.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
+            };
+
+            let isOpen = false;
+            const toggle = () => { isOpen ? close() : open(); isOpen = !isOpen; };
+
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                toggle();
+            });
+
+            document.addEventListener('click', (e) => {
+                if (!isOpen) return;
+                if (!menu.contains(e.target) && !btn.contains(e.target)) {
+                    close(); isOpen = false;
+                }
+            });
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape' && isOpen) { close(); isOpen = false; }
+            });
+        });
+
+        // Chart.js for user growth
+        document.addEventListener('DOMContentLoaded', function() {
+            const canvas = document.getElementById('userGrowthChart');
+            if (!canvas) return;
+            const labels = @json($labels ?? []);
+            const total = @json($seriesTotal ?? []);
+            const premium = @json($seriesPremium ?? []);
+            const standard = @json($seriesStandard ?? []);
+            const rangeSel = document.getElementById('chartRange');
+            const groupSel = document.getElementById('chartGroup');
+            const totalEl = document.getElementById('totalUsersCount');
+            const premiumEl = document.getElementById('premiumUsersCount');
+            const standardEl = document.getElementById('standardUsersCount');
+            const ensureChartJs = () => new Promise((resolve) => {
+                if (window.Chart) return resolve();
+                const s = document.createElement('script');
+                s.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+                s.onload = () => resolve();
+                document.head.appendChild(s);
+            });
+            ensureChartJs().then(() => {
+                const ctx = canvas.getContext('2d');
+                const chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels,
+                        datasets: [
+                            { label: 'Total', data: total, borderColor: '#111827', backgroundColor: 'rgba(17,24,39,0.1)', tension: 0.25 },
+                            { label: 'Premium', data: premium, borderColor: '#2563eb', backgroundColor: 'rgba(37,99,235,0.1)', tension: 0.25 },
+                            { label: 'Standard', data: standard, borderColor: '#6b7280', backgroundColor: 'rgba(107,114,128,0.1)', tension: 0.25 },
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: { y: { beginAtZero: true, ticks: { precision: 0 } } },
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+
+                const fetchMetrics = async () => {
+                    try {
+                        const r = rangeSel ? rangeSel.value : '30d';
+                        let g = groupSel ? groupSel.value : 'day';
+                        if (r === '12m') g = 'month';
+                        const res = await fetch(`{{ route('admin.metrics.users') }}?range=${encodeURIComponent(r)}&group=${encodeURIComponent(g)}`, {
+                            headers: { 'Accept': 'application/json' },
+                            credentials: 'same-origin'
+                        });
+                        if (!res.ok) return;
+                        const data = await res.json();
+                        chart.data.labels = data.labels || [];
+                        if (chart.data.datasets[0]) chart.data.datasets[0].data = data.total || [];
+                        if (chart.data.datasets[1]) chart.data.datasets[1].data = data.premium || [];
+                        if (chart.data.datasets[2]) chart.data.datasets[2].data = data.standard || [];
+                        chart.update();
+                        if (data.totals) {
+                            if (totalEl) totalEl.textContent = new Intl.NumberFormat().format(data.totals.total_users || 0);
+                            if (premiumEl) premiumEl.textContent = new Intl.NumberFormat().format(data.totals.premium_users || 0);
+                            if (standardEl) standardEl.textContent = new Intl.NumberFormat().format(data.totals.standard_users || 0);
+                        }
+                    } catch (e) { /* noop */ }
+                };
+
+                rangeSel && rangeSel.addEventListener('change', fetchMetrics);
+                groupSel && groupSel.addEventListener('change', fetchMetrics);
+            });
+        });
+        
+        // Users predictive search removed from dashboard (available on Manage Users page)
+    </script>
 @endsection

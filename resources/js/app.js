@@ -1,4 +1,6 @@
 import './bootstrap';
+import './modules/notifications.js';
+import './modules/ai-categorization.js';
 
 // Import WebAuthn scripts in the correct order
 // First import the vendor WebAuthn library to ensure it's available globally

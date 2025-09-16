@@ -268,17 +268,31 @@ export async function loadTrashItems() {
         itemsContainer.dataset.view = 'trash';
         itemsContainer.innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
 
-        const response = await fetch('/files/trash');
+        const response = await fetch('/files/trash', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
         if (!response.ok) throw new Error('Failed to fetch trash items');
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-            throw new Error(data.message || 'Failed to load trash items');
+
+        const data = await response.json().catch(() => null);
+
+        // Support both legacy array response and { success, data } shape
+        let items = [];
+        if (Array.isArray(data)) {
+            items = data;
+        } else if (data && Array.isArray(data.data)) {
+            items = data.data;
+        } else if (data && data.success && Array.isArray(data.data)) {
+            items = data.data;
+        } else if (data && data.items && Array.isArray(data.items)) {
+            items = data.items;
         }
 
-        const items = data.data || [];
-        displayItems(items, 'trash');
+        // Render using the common files renderer; folder navigation is disabled in Trash via dataset.view
+        renderFiles(items);
     } catch (error) {
         console.error('Error loading trash items:', error);
         itemsContainer.innerHTML = `

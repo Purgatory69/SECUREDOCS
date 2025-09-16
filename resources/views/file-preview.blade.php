@@ -1,9 +1,8 @@
 @extends('layouts.app')
-
 @section('content')
 <div class="min-h-screen bg-[#141326] text-white">
     <!-- Header -->
-    <header class="flex items-center justify-between p-4 bg-[#0D0E2F] border-b border-border-color">
+    <header class="flex items-center justify-between p-4 bg-[#0D0E2F]">
         <div class="flex items-center space-x-4">
             <button id="backBtn" class="p-2 hover:bg-gray-700 rounded">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -17,7 +16,7 @@
         </div>
         
         <div class="flex items-center space-x-2">
-            <button id="downloadBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-sm">Download</button>
+            <button id="downloadBtn" class="px-4 py-2 bg-[#f89c00] text-black hover:brightness-110 transition rounded text-sm">Download</button>
             <button id="moreBtn" class="p-2 hover:bg-gray-700 rounded">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path>
@@ -27,12 +26,12 @@
     </header>
 
     <!-- Preview Container -->
-    <div class="flex flex-1">
+    <div class="flex flex-1" style="background-color: #24243b;">
         <!-- Main Preview Area -->
         <main class="flex-1 p-6">
-            <div id="previewContainer" class="w-full h-full bg-white rounded-lg shadow-lg overflow-hidden">
+            <div id="previewContainer" class="w-full h-full rounded-lg shadow-lg overflow-hidden">
                 <div id="loadingSpinner" class="flex items-center justify-center h-96">
-                    <div class="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-500"></div>
+                    <div class="animate-spin rounded-full h-32 w-32 "></div>
                 </div>
                 
                 <!-- Image Preview -->
@@ -90,7 +89,7 @@
         </main>
 
         <!-- Sidebar -->
-        <aside id="sidebar" class="w-80 bg-[#1A1B3E] border-l border-border-color p-6 hidden lg:block">
+        <aside id="sidebar" style="background-color: #24243b;" class="w-80 p-6 hidden lg:block">
             <!-- File Details -->
             <div class="mb-6">
                 <h3 class="text-lg font-semibold mb-4">File Details</h3>

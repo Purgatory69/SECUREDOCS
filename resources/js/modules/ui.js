@@ -82,13 +82,16 @@ export function initializeNewDropdown() {
     const newButton = document.getElementById('newBtn');
     const newDropdown = document.getElementById('newDropdown');
 
-    newButton?.addEventListener('click', (e) => {
-        e.stopPropagation();
-        newDropdown.classList.toggle('hidden');
-        newDropdown.classList.toggle('opacity-0');
-        newDropdown.classList.toggle('invisible');
-        newDropdown.classList.toggle('translate-y-[-10px]');
-    });
+    // Guard against missing dropdown on pages that don't include it
+    if (newButton && newDropdown) {
+        newButton.addEventListener('click', (e) => {
+            e.stopPropagation();
+            newDropdown.classList.toggle('hidden');
+            newDropdown.classList.toggle('opacity-0');
+            newDropdown.classList.toggle('invisible');
+            newDropdown.classList.toggle('translate-y-[-10px]');
+        });
+    }
 
     document.addEventListener('click', (e) => {
         if (!newButton?.contains(e.target) && !newDropdown?.contains(e.target)) {
@@ -124,15 +127,111 @@ export function initializeUserProfile() {
 }
 
 export function updateBreadcrumbsDisplay(breadcrumbs) {
-    const breadcrumbsContainer = document.getElementById('breadcrumbsContainer') || document.getElementById('breadcrumbs');
-    if (!breadcrumbsContainer) return;
+    const container = document.getElementById('breadcrumbsContainer');
+    const dropdown = document.getElementById('breadcrumbsDropdown');
+    const dropdownMenu = document.getElementById('breadcrumbsDropdownMenu');
+    const pathContainer = document.getElementById('breadcrumbsPath');
+    
+    if (!container || !dropdown || !dropdownMenu || !pathContainer) return;
 
-    breadcrumbsContainer.innerHTML = breadcrumbs.map((crumb, index) => {
-        if (index === breadcrumbs.length - 1) {
-            return `<span class="text-text-primary font-semibold">${escapeHtml(crumb.name)}</span>`;
+    // Clear previous content
+    dropdownMenu.innerHTML = '';
+    pathContainer.innerHTML = '';
+
+    if (breadcrumbs.length === 0) {
+        dropdown.classList.add('hidden');
+        return;
+    }
+
+    // Google Drive-style logic: show only current folder when path is long
+    const shouldCollapse = breadcrumbs.length > 3;
+    
+    if (shouldCollapse) {
+        // Show three-dot menu
+        dropdown.classList.remove('hidden');
+        
+        // Add hidden breadcrumbs to dropdown (all except last 2)
+        const hiddenCrumbs = breadcrumbs.slice(0, -2);
+        hiddenCrumbs.forEach(crumb => {
+            const item = document.createElement('a');
+            item.href = '#';
+            item.className = 'block px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white transition-colors';
+            item.textContent = crumb.name;
+            item.dataset.folderId = crumb.id;
+            dropdownMenu.appendChild(item);
+        });
+        
+        // Show only last 2 breadcrumbs in main path
+        const visibleCrumbs = breadcrumbs.slice(-2);
+        renderBreadcrumbPath(visibleCrumbs, pathContainer);
+    } else {
+        // Show all breadcrumbs normally
+        dropdown.classList.add('hidden');
+        renderBreadcrumbPath(breadcrumbs, pathContainer);
+    }
+}
+
+function renderBreadcrumbPath(breadcrumbs, container) {
+    breadcrumbs.forEach((crumb, index) => {
+        if (index > 0) {
+            const separator = document.createElement('span');
+            separator.innerHTML = `
+                <svg class="w-3 h-3 mx-2 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
+                </svg>
+            `;
+            container.appendChild(separator);
         }
-        return `<a href="#" class="text-text-secondary hover:text-primary" data-folder-id="${crumb.id}">${escapeHtml(crumb.name)}</a> <span class="mx-2 text-text-secondary">/</span>`;
-    }).join('');
+
+        const link = document.createElement('a');
+        link.href = '#';
+        link.className = 'hover:text-white transition-colors px-2 py-1 rounded';
+        link.textContent = crumb.name;
+        link.dataset.folderId = crumb.id;
+
+        if (index === breadcrumbs.length - 1) {
+            link.className += ' text-white font-medium bg-[#3C3F58]';
+        } else {
+            link.className += ' text-gray-400 hover:bg-[#2A2D47]';
+        }
+
+        container.appendChild(link);
+    });
+}
+
+function initializeBreadcrumbsDropdown() {
+    const menuBtn = document.getElementById('breadcrumbsMenuBtn');
+    const dropdownMenu = document.getElementById('breadcrumbsDropdownMenu');
+    
+    if (!menuBtn || !dropdownMenu) return;
+    
+    menuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        dropdownMenu.classList.toggle('hidden');
+    });
+    
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!dropdownMenu.contains(e.target) && !menuBtn.contains(e.target)) {
+            dropdownMenu.classList.add('hidden');
+        }
+    });
+    
+    // Handle clicks on dropdown items
+    dropdownMenu.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A' && e.target.dataset.folderId) {
+            e.preventDefault();
+            const folderId = e.target.dataset.folderId === 'null' ? null : e.target.dataset.folderId;
+            const folderName = e.target.textContent;
+            
+            // Dispatch navigation event that will be caught by file-folder module
+            window.dispatchEvent(new CustomEvent('navigate-to-folder', {
+                detail: { folderId, folderName }
+            }));
+            
+            dropdownMenu.classList.add('hidden');
+        }
+    });
 }
 
 export function initializeUi(dependencies) {
@@ -141,6 +240,7 @@ export function initializeUi(dependencies) {
     initializeNewDropdown();
     initializeUserProfile();
     initializeModalSystem();
+    initializeBreadcrumbsDropdown();
     initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state);
 }
 
@@ -159,8 +259,8 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
 
     myDocumentsLink?.addEventListener('click', (e) => {
         e.preventDefault();
-        headerTitle.textContent = 'My Documents';
-        newButton.style.display = 'block';
+        if (headerTitle) headerTitle.textContent = 'My Documents';
+        if (newButton) newButton.style.display = 'block';
         clearActiveStates();
         myDocumentsLink.classList.add('bg-primary', 'text-white');
         // Use the state object to get the last search query
@@ -169,8 +269,8 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
 
     trashLink?.addEventListener('click', (e) => {
         e.preventDefault();
-        headerTitle.textContent = 'Trash';
-        newButton.style.display = 'none';
+        if (headerTitle) headerTitle.textContent = 'Trash';
+        if (newButton) newButton.style.display = 'none';
         clearActiveStates();
         trashLink.classList.add('bg-primary', 'text-white');
         loadTrashItems();
@@ -180,8 +280,8 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
 
     blockchainLink?.addEventListener('click', (e) => {
         e.preventDefault();
-        headerTitle.textContent = 'Blockchain Storage';
-        newButton.style.display = 'block'; // Show new button for blockchain upload
+        if (headerTitle) headerTitle.textContent = 'Blockchain Storage';
+        if (newButton) newButton.style.display = 'block'; // Show new button for blockchain upload
         clearActiveStates();
         blockchainLink.classList.add('bg-primary', 'text-white');
         // Keep page-based blockchain view functional (if implemented)

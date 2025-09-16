@@ -11,6 +11,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -122,11 +123,53 @@ class FileController extends Controller
             abort(404);
         }
 
-        $publicUrl = "{$supabaseUrl}/storage/v1/object/public/docs/{$filePath}";
+        // Handle blockchain/IPFS-stored files by redirecting to a public gateway
+        try {
+            if (Str::startsWith($filePath, 'ipfs://') || !empty($file->ipfs_hash)) {
+                $hash = $file->ipfs_hash;
+                if (empty($hash) && preg_match('/^ipfs:\/\/(.+)$/', $filePath, $m)) {
+                    $hash = $m[1] ?? null;
+                }
+
+                if (empty($hash) || $hash === 'pending') {
+                    Log::warning('IPFS preview requested but hash not ready', [
+                        'file_id' => $id,
+                        'file_path' => $filePath,
+                        'ipfs_hash' => $file->ipfs_hash,
+                    ]);
+                    abort(409, 'File is not yet available on blockchain');
+                }
+
+                $gatewayUrl = 'https://gateway.pinata.cloud/ipfs/' . $hash;
+                return redirect()->away($gatewayUrl, 302);
+            }
+        } catch (\Throwable $t) {
+            // Non-fatal; continue to Supabase proxy path
+            Log::debug('IPFS handling error, falling back to Supabase proxy', ['error' => $t->getMessage()]);
+        }
+
+        $publicUrl = "{$supabaseUrl}/storage/v1/object/public/docs/" . ltrim($filePath, '/');
 
         try {
-            $client = new Client();
-            $response = $client->get($publicUrl);
+            // In local/dev environments, Windows often lacks a proper CA bundle; disable verification only locally
+            $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
+            $client = new Client([
+                'verify' => $verifySsl,
+                'timeout' => 30,
+            ]);
+            $response = $client->get($publicUrl, [
+                'http_errors' => false,
+            ]);
+
+            $status = $response->getStatusCode();
+            if ($status < 200 || $status >= 300) {
+                Log::error('Supabase proxy returned non-2xx status', [
+                    'file_id' => $id,
+                    'status' => $status,
+                    'url' => $publicUrl,
+                ]);
+                abort(404, 'File not found or cannot be accessed');
+            }
             
             $content = $response->getBody()->getContents();
             $contentType = $response->getHeader('Content-Type')[0] ?? $file->mime_type ?? 'application/octet-stream';
@@ -143,7 +186,8 @@ class FileController extends Controller
             Log::error('Error proxying file', [
                 'file_id' => $id,
                 'file_path' => $filePath,
-                'error' => $e->getMessage()
+                'error' => $e->getMessage(),
+                'url' => $publicUrl ?? null,
             ]);
             abort(404, 'File not found or cannot be accessed');
         }
@@ -186,7 +230,8 @@ class FileController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Vectors restored successfully'
+                'message' => 'Vectors restored successfully',
+                'item' => $file
             ]);
 
         } catch (\Exception $e) {
@@ -202,15 +247,186 @@ class FileController extends Controller
             ], 500);
         }
     }
+
     /**
-     * Store a newly created resource in storage.
+     * Start AI categorization for user's files
+     */
+    public function startAICategorization(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check if categorization is already in progress
+            $currentStatus = Cache::get("ai_categorization_status_{$user->id}");
+            if ($currentStatus && $currentStatus['status'] === 'in_progress') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Categorization already in progress',
+                    'status' => $currentStatus
+                ], 409);
+            }
+
+            // Set initial status
+            $status = [
+                'status' => 'in_progress',
+                'progress' => 0,
+                'message' => 'Starting AI categorization...',
+                'started_at' => now()->toISOString(),
+                'user_id' => $user->id
+            ];
+            
+            Cache::put("ai_categorization_status_{$user->id}", $status, 3600); // 1 hour TTL
+
+            // Trigger N8N workflow for AI categorization
+            $webhookUrl = config('services.n8n.categorization_webhook_url', 'http://localhost:5678/webhook/ai-categorization');
+            
+            $payload = [
+                'user_id' => $user->id,
+                'action' => 'categorize_files',
+                'timestamp' => now()->toISOString()
+            ];
+
+            Http::timeout(30)->post($webhookUrl, $payload);
+
+            Log::info('AI categorization started', [
+                'user_id' => $user->id,
+                'webhook_url' => $webhookUrl
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'AI categorization started',
+                'status' => $status
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to start AI categorization', [
+                'user_id' => $user->id ?? null,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to start categorization'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get current categorization status for authenticated user
+     */
+    public function getCategorizationStatus(Request $request): JsonResponse
+    {
+        $user = Auth::user();
+        $status = Cache::get("ai_categorization_status_{$user->id}", [
+            'status' => 'idle',
+            'progress' => 0,
+            'message' => 'No categorization in progress'
+        ]);
+
+        return response()->json([
+            'success' => true,
+            'status' => $status
+        ]);
+    }
+
+    /**
+     * Update categorization status (called by AI)
+     */
+    public function updateCategorizationStatus(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'user_id' => 'required|integer',
+                'status' => 'required|string|in:in_progress,completed,failed',
+                'progress' => 'nullable|integer|min:0|max:100',
+                'message' => 'nullable|string',
+                'details' => 'nullable|array'
+            ]);
+
+            $userId = $validated['user_id'];
+            
+            // Verify user exists
+            $user = User::find($userId);
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            // Update status in cache
+            $currentStatus = Cache::get("ai_categorization_status_{$userId}", []);
+            
+            $newStatus = array_merge($currentStatus, [
+                'status' => $validated['status'],
+                'progress' => $validated['progress'] ?? $currentStatus['progress'] ?? 0,
+                'message' => $validated['message'] ?? $currentStatus['message'] ?? '',
+                'updated_at' => now()->toISOString(),
+                'details' => $validated['details'] ?? null
+            ]);
+
+            if ($validated['status'] === 'completed') {
+                $newStatus['completed_at'] = now()->toISOString();
+                Cache::put("ai_categorization_status_{$userId}", $newStatus, 600); // Keep for 10 mins after completion
+            } elseif ($validated['status'] === 'failed') {
+                $newStatus['failed_at'] = now()->toISOString();
+                Cache::put("ai_categorization_status_{$userId}", $newStatus, 600);
+            } else {
+                Cache::put("ai_categorization_status_{$userId}", $newStatus, 3600); // 1 hour for in-progress
+            }
+
+            Log::info('AI categorization status updated', [
+                'user_id' => $userId,
+                'status' => $validated['status'],
+                'progress' => $validated['progress']
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Status updated successfully',
+                'status' => $newStatus
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to update categorization status', [
+                'error' => $e->getMessage(),
+                'payload' => $request->all()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update status'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get categorization status without authentication (for public access)
+     */
+    public function getCategorizationStatusPublic(Request $request): JsonResponse
+    {
+        // Return idle status for unauthenticated requests
+        return response()->json([
+            'success' => true,
+            'status' => [
+                'status' => 'idle',
+                'progress' => 0,
+                'message' => 'No categorization in progress'
+            ]
+        ]);
+    }
+
+    /**
+     * Store a new file or folder
      */
     public function store(Request $request): JsonResponse
     {
-        $user = Auth::user();
-        Log::info('File store request received', ['user_id' => $user->id, 'data' => $request->all()]);
+        try {
+            $user = Auth::user();
+            Log::info('File store request received', ['user_id' => $user->id, 'data' => $request->all()]);
 
-        $validated = $request->validate([
+            $validated = $request->validate([
             'file_name' => ['required', 'string', 'max:255'],
             'parent_id' => [
                 'nullable',
@@ -266,7 +482,18 @@ class FileController extends Controller
             $this->handlePostUploadProcessing($item, $processingType, $user);
         }
 
-        return response()->json($item, 201);
+            return response()->json($item, 201);
+        } catch (\Exception $e) {
+            Log::error('Error creating file/folder', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to create file/folder'
+            ], 500);
+        }
     }
 
     /**

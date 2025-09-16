@@ -16,8 +16,19 @@ use Laravel\Sanctum\HasApiTokens;
 use Laragear\WebAuthn\WebAuthnAuthentication;
 use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
 
-
-
+/**
+ * @property int $id
+ * @property string $name
+ * @property string $email
+ * @property string|null $email_verified_at
+ * @property string $password
+ * @property string $role
+ * @property bool $is_approved
+ * @property bool $is_premium
+ * @property string|null $remember_token
+ * @property string|null $created_at
+ * @property string|null $updated_at
+ */
 class User extends Authenticatable implements WebAuthnAuthenticatable
 {
     use HasApiTokens;

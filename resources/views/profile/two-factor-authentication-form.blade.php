@@ -1,14 +1,15 @@
+<div class="settings-form-wrapper">
 <x-action-section>
     <x-slot name="title">
-        {{ __('Two Factor Authentication') }}
+        <span class="settings-title">{{ __('Two Factor Authentication') }}</span>
     </x-slot>
 
     <x-slot name="description">
-        {{ __('Add additional security to your account using two factor authentication.') }}
+        <span class="settings-description">{{ __('Add additional security to your account using two factor authentication.') }}</span>
     </x-slot>
 
     <x-slot name="content">
-        <h3 class="text-lg font-medium text-gray-900">
+        <h3 class="settings-label text-lg font-medium">
             @if ($this->enabled)
                 @if ($showingConfirmation)
                     {{ __('Finish enabling two factor authentication.') }}
@@ -20,16 +21,16 @@
             @endif
         </h3>
 
-        <div class="mt-3 max-w-xl text-sm text-gray-600">
-            <p>
+        <div class="mt-3 max-w-xl text-sm">
+            <p class="settings-description">
                 {{ __('When two factor authentication is enabled, you will be prompted for a secure, random token during authentication. You may retrieve this token from your phone\'s Google Authenticator application.') }}
             </p>
         </div>
 
         @if ($this->enabled)
             @if ($showingQrCode)
-                <div class="mt-4 max-w-xl text-sm text-gray-600">
-                    <p class="font-semibold">
+                <div class="mt-4 max-w-xl text-sm">
+                    <p class="settings-description">
                         @if ($showingConfirmation)
                             {{ __('To finish enabling two factor authentication, scan the following QR code using your phone\'s authenticator application or enter the setup key and provide the generated OTP code.') }}
                         @else
@@ -50,7 +51,7 @@
 
                 @if ($showingConfirmation)
                     <div class="mt-4">
-                        <x-label for="code" value="{{ __('Code') }}" />
+                        <x-label for="code" class="settings-label" value="{{ __('Code') }}" />
 
                         <x-input id="code" type="text" name="code" class="block mt-1 w-1/2" inputmode="numeric" autofocus autocomplete="one-time-code"
                             wire:model="code"
@@ -62,8 +63,8 @@
             @endif
 
             @if ($showingRecoveryCodes)
-                <div class="mt-4 max-w-xl text-sm text-gray-600">
-                    <p class="font-semibold">
+                <div class="mt-4 max-w-xl text-sm">
+                    <p class="settings-description font-semibold">
                         {{ __('Store these recovery codes in a secure password manager. They can be used to recover access to your account if your two factor authentication device is lost.') }}
                     </p>
                 </div>
@@ -79,7 +80,7 @@
         <div class="mt-5">
             @if (! $this->enabled)
                 <x-confirms-password wire:then="enableTwoFactorAuthentication">
-                    <x-button type="button" wire:loading.attr="disabled">
+                    <x-button type="button" class="settings-button" wire:loading.attr="disabled">
                         {{ __('Enable') }}
                     </x-button>
                 </x-confirms-password>
@@ -92,7 +93,7 @@
                     </x-confirms-password>
                 @elseif ($showingConfirmation)
                     <x-confirms-password wire:then="confirmTwoFactorAuthentication">
-                        <x-button type="button" class="me-3" wire:loading.attr="disabled">
+                        <x-button type="button" class="settings-button me-3 transition-all duration-200 focus:ring-2 focus:ring-orange-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed" wire:loading.attr="disabled">
                             {{ __('Confirm') }}
                         </x-button>
                     </x-confirms-password>
@@ -122,3 +123,20 @@
         </div>
     </x-slot>
 </x-action-section>
+
+
+<style>
+    .settings-form-wrapper .enable-2fa-button,
+    .settings-form-wrapper button.enable-2fa-button {
+        background-color: #f89c00 !important; 
+        color: #000000 !important; 
+        border-color: #f89c00 !important;
+    }
+
+    .settings-form-wrapper .enable-2fa-button *,
+    .settings-form-wrapper button.enable-2fa-button * {
+        color: #000000 !important;
+    }
+
+</style>
+</div>

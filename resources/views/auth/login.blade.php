@@ -41,7 +41,7 @@
         </button>
 
         <!-- Dropdown Menu -->
-        <div id="language-dropdown" class="absolute bottom-full right-0 mb-2 hidden bg-[#3c3f58] rounded-lg shadow-xl overflow-hidden min-w-[140px]">
+        <div id="language-dropdown" style="background-color: #3c3f58; border: 3px solid #1F1F33" class="absolute bottom-full right-0 mb-2 hidden bg-[#3c3f58] rounded-lg shadow-xl overflow-hidden min-w-[140px]">
             <a href="{{ route('language.switch', 'en') }}"
                 class="flex items-center px-4 py-3 text-sm transition-colors {{ app()->getLocale() == 'en' ? 'bg-[#f89c00] text-black font-bold' : 'text-white' }}"
                 @if(app()->getLocale() != 'en')
@@ -228,6 +228,48 @@
                     } else {
                         statusDisplay.textContent = 'Biometric login script not loaded correctly.';
                     }
+                });
+            }
+        });
+
+        // Keep session and CSRF token fresh on the login page to avoid 419 after being idle
+        document.addEventListener('DOMContentLoaded', function() {
+            const form = document.querySelector('form[action="{{ route('login') }}"][method="POST"]');
+            const csrfInput = document.querySelector('input[name="_token"]');
+
+            // Periodic keepalive every 4 minutes
+            try {
+                setInterval(() => {
+                    fetch('{{ url('/keepalive') }}', {
+                        credentials: 'same-origin',
+                        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+                    }).catch(() => {});
+                }, 4 * 60 * 1000);
+            } catch (e) {}
+
+            // Before submit, regenerate a fresh token to prevent TokenMismatch (419)
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    try {
+                        e.preventDefault();
+                        const res = await fetch('{{ url('/keepalive') }}?regen=1', {
+                            credentials: 'same-origin',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        if (res.ok) {
+                            const data = await res.json().catch(() => null);
+                            if (data && data.token && csrfInput) {
+                                csrfInput.value = data.token;
+                            }
+                        }
+                    } catch (err) {
+                        // Ignore and continue with submit
+                    }
+                    // Submit the form (password not logged anywhere)
+                    form.submit();
                 });
             }
         });
