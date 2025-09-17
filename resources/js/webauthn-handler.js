@@ -412,12 +412,23 @@ document.addEventListener('DOMContentLoaded', function() {
 
                     // Convert each credential ID in excludeCredentials from base64url to ArrayBuffer
                     if (options.excludeCredentials && Array.isArray(options.excludeCredentials)) {
-                        options.excludeCredentials = options.excludeCredentials.map(cred => ({
-                            ...cred,
-                            id: base64urlToArrayBuffer(cred.id),
-                        }));
+                        options.excludeCredentials = options.excludeCredentials
+                            .filter(cred => cred && cred.id) // Filter out invalid entries
+                            .map(cred => {
+                                try {
+                                    return {
+                                        ...cred,
+                                        id: base64urlToArrayBuffer(cred.id),
+                                        type: 'public-key'
+                                    };
+                                } catch (e) {
+                                    console.warn('Invalid credential in excludeCredentials:', cred, e);
+                                    return null;
+                                }
+                            })
+                            .filter(Boolean); // Remove any null entries
                     }
-                    
+
                     // Ensure required algorithms are present
                     if (!options.pubKeyCredParams || options.pubKeyCredParams.length === 0) {
                         options.pubKeyCredParams = [

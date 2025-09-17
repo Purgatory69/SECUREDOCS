@@ -1,6 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
+<div class = "hidden" data-page="user-dashboard"></div>
 
 <header class="col-span-2 flex items-center px-4 bg-[#141326] z-10 h-18">
     <div style="margin-bottom: 13px;" class="ml-4 flex items-center space-x-3 mr-10">
@@ -34,7 +35,7 @@
             <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
             
             <!-- Notification Dropdown -->
-            <div id="notificationDropdown" class="absolute right-0 mt-2 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] opacity-0 invisible translate-y-[-10px] transition-all z-50">
+            <div id="notificationDropdown" class="absolute right-0 mt-2 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] opacity-0 invisible translate-y-[-10px] transition-all duration-150 z-50">
                 <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
                     <div class="text-sm font-medium">Notifications</div>
                     <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>

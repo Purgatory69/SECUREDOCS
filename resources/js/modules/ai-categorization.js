@@ -8,15 +8,60 @@ class AICategorization {
         this.isActive = false;
         this.statusInterval = null;
         this.overlay = null;
-        this.apiBase = '/api/ai';
+        this.apiBase = '/api';
+        this.authHeaderName = 'Authorization';
+        this.skipAuthUntil = Date.now() + 365 * 24 * 60 * 60 * 1000; // Force public-only polling
+        this.completedHandled = false; // prevents duplicate completion notifications
         
-        this.init();
+        // Only initialize on user dashboard page
+        if (this.shouldInitialize()) {
+            this.init();
+        }
+    }
+
+    /**
+     * Check if we should initialize on this page
+     */
+    shouldInitialize() {
+        // Only run on user dashboard page
+        const currentPath = window.location.pathname;
+        const isDashboard = currentPath === '/user-dashboard' || 
+                           currentPath === '/dashboard' ||
+                           currentPath.includes('user-dashboard');
+        
+        // Also check for dashboard-specific elements
+        const hasDashboardElements = document.querySelector('[data-page="user-dashboard"]') ||
+                                   document.querySelector('.user-dashboard') ||
+                                   document.querySelector('#file-manager');
+        
+        return isDashboard || hasDashboardElements;
     }
 
     init() {
         this.createOverlay();
         this.attachEventListeners();
         this.checkInitialStatus();
+        this.startAmbientWatcher();
+    }
+
+    /**
+     * Build headers, conditionally adding Authorization if a token exists.
+     */
+    buildAuthHeaders(extra = {}) {
+        const headers = {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            ...extra,
+        };
+        try {
+            const token = localStorage.getItem('auth_token');
+            if (token && typeof token === 'string' && token.trim().length > 0) {
+                headers[this.authHeaderName] = `Bearer ${token}`;
+            }
+        } catch (_) {
+            // ignore storage errors
+        }
+        return headers;
     }
 
     /**
@@ -68,7 +113,10 @@ class AICategorization {
      * Show tamper-resistant overlay
      */
     showOverlay() {
-        if (!this.overlay) return;
+        if (!this.overlay) {
+            console.error('❌ Cannot show overlay - overlay element not found');
+            return;
+        }
         
         this.overlay.style.display = 'flex';
         document.body.style.overflow = 'hidden';
@@ -79,6 +127,7 @@ class AICategorization {
         this.preventTampering();
         
         this.isActive = true;
+        this.completedHandled = false; // reset when a new run starts
         this.startStatusPolling();
     }
 
@@ -140,33 +189,95 @@ class AICategorization {
      */
     async checkServerStatus() {
         try {
-            const response = await fetch(`${this.apiBase}/categorization-status`, {
+            let response;
+            // If we're in cooldown, skip private endpoint
+            if (Date.now() < this.skipAuthUntil) {
+                const userId = window.userId || localStorage.getItem('user_id');
+                const publicUrl = userId ? `${this.apiBase}/ai/categorization-status-public?user_id=${userId}` : `${this.apiBase}/ai/categorization-status-public`;
+                response = await fetch(publicUrl, {
+                    method: 'GET',
+                    headers: this.buildAuthHeaders(),
+                    credentials: 'include'
+                });
+            } else {
+                response = await fetch(`${this.apiBase}/ai/categorization-status`, {
                 method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
+                headers: this.buildAuthHeaders(),
+                credentials: 'include'
+                });
+            }
             
+            if (response.status === 401) {
+                // Fallback to public status if not authenticated
+                response = await fetch(`${this.apiBase}/ai/categorization-status-public`, {
+                    method: 'GET',
+                    headers: this.buildAuthHeaders(),
+                    credentials: 'include'
+                });
+            }
+
             if (response.ok) {
                 const data = await response.json();
-                const status = data.status;
+                // minimal debug to verify frontend sees state
+                if (window && window.console) {
+                    console.debug('AI status (server check):', data?.status);
+                }
                 
                 // If server says no categorization is running but overlay is active
-                if (status.status === 'idle' && this.isActive) {
+                if (data.status.status === 'idle' && this.isActive) {
                     this.hideOverlay();
                     this.removeTamperPrevention();
                 }
                 // If server says categorization is running but overlay is hidden
-                else if (status.status === 'in_progress' && !this.isActive) {
+                else if (data.status.status === 'in_progress' && !this.isActive) {
                     this.showOverlay();
-                    this.updateProgress(status);
+                    this.updateProgress(data.status);
                 }
             }
         } catch (error) {
             console.error('Status check failed:', error);
         }
+    }
+
+    /**
+     * Ambient watcher that runs even when overlay is hidden.
+     * If server reports in_progress, it will show the overlay.
+     */
+    startAmbientWatcher() {
+        if (this.ambientInterval) return;
+        this.ambientInterval = setInterval(async () => {
+            try {
+                if (this.isActive) return; // active polling handles it
+                
+                // Always use public endpoint since we set skipAuthUntil to far future
+                const userId = window.userId || localStorage.getItem('user_id');
+                const publicUrl = userId ? `${this.apiBase}/ai/categorization-status-public?user_id=${userId}` : `${this.apiBase}/ai/categorization-status-public`;
+                const resp = await fetch(publicUrl, {
+                    method: 'GET',
+                    headers: this.buildAuthHeaders(),
+                    credentials: 'include'
+                });
+                if (!resp.ok) return;
+                const data = await resp.json();
+                const status = data.status;
+                if (status?.status === 'in_progress' && !this.isActive) {
+                    this.showOverlay();
+                    this.updateProgress(status);
+                } else if (status?.status === 'completed' && this.isActive && !this.completedHandled) {
+                    this.completedHandled = true;
+                    setTimeout(() => {
+                        this.hideOverlay();
+                        this.removeTamperPrevention();
+                        this.showCompletionNotification();
+                        if (window.fileManager && window.fileManager.refreshFiles) {
+                            window.fileManager.refreshFiles();
+                        }
+                    }, 2000);
+                }
+            } catch (e) {
+                console.error('❌ Ambient watcher error:', e);
+            }
+        }, 3000); // every 3s for faster detection
     }
 
     /**
@@ -276,21 +387,46 @@ class AICategorization {
      */
     async checkStatus() {
         try {
-            const response = await fetch(`${this.apiBase}/categorization-status`, {
-                method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                credentials: 'same-origin'
-            });
+            let response;
+            // Respect cooldown to avoid spamming private endpoint with 401s
+            if (Date.now() < this.skipAuthUntil) {
+                const userId = window.userId || localStorage.getItem('user_id');
+                const publicUrl = userId 
+                    ? `${this.apiBase}/ai/categorization-status-public?user_id=${userId}`
+                    : `${this.apiBase}/ai/categorization-status-public`;
+                response = await fetch(publicUrl, {
+                    method: 'GET',
+                    headers: this.buildAuthHeaders(),
+                    credentials: 'include'
+                });
+            } else {
+                response = await fetch(`${this.apiBase}/ai/categorization-status`, {
+                    method: 'GET',
+                    headers: this.buildAuthHeaders(),
+                    credentials: 'include'
+                });
+            }
             
+            if (response.status === 401) {
+                this.skipAuthUntil = Date.now() + 5 * 60 * 1000; // enter cooldown
+                // Fallback to public endpoint with user context so we get per-user status
+                const userId = window.userId || localStorage.getItem('user_id');
+                const publicUrl = userId 
+                    ? `${this.apiBase}/ai/categorization-status-public?user_id=${userId}`
+                    : `${this.apiBase}/ai/categorization-status-public`;
+                response = await fetch(publicUrl, {
+                    method: 'GET',
+                    headers: this.buildAuthHeaders(),
+                    credentials: 'include'
+                });
+            }
             if (response.ok) {
                 const data = await response.json();
                 this.updateProgress(data.status);
                 
                 // Handle completion
-                if (data.status.status === 'completed') {
+                if (data.status.status === 'completed' && !this.completedHandled) {
+                    this.completedHandled = true;
                     setTimeout(() => {
                         this.hideOverlay();
                         this.removeTamperPrevention();
@@ -327,6 +463,9 @@ class AICategorization {
         if (messageEl) messageEl.textContent = status.message || 'Processing...';
         if (progressEl) progressEl.style.width = `${status.progress || 0}%`;
         if (percentageEl) percentageEl.textContent = status.progress || 0;
+        if (status?.status === 'in_progress') {
+            this.completedHandled = false; // allow completion handling for this run
+        }
     }
 
     /**
@@ -334,27 +473,34 @@ class AICategorization {
      */
     async checkInitialStatus() {
         try {
-            // Use public endpoint that doesn't require authentication
-            const response = await fetch(`${this.apiBase}/categorization-status-public`, {
+            console.log('🔄 Checking initial AI categorization status');
+            // Always use public endpoint since we force public-only polling
+            const userId = window.userId || localStorage.getItem('user_id');
+            const publicUrl = userId ? 
+                `${this.apiBase}/ai/categorization-status-public?user_id=${userId}` : 
+                `${this.apiBase}/ai/categorization-status-public`;
+            const response = await fetch(publicUrl, {
                 method: 'GET',
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'  
-                },
-                credentials: 'same-origin'
+                headers: this.buildAuthHeaders(),
+                credentials: 'include'
             });
+            console.log('🌐 Public status response:', response.status, response.statusText);
             
             if (response.ok) {
                 const data = await response.json();
+                console.log('📊 Initial status data:', data);
                 
                 // If categorization is in progress, show overlay
                 if (data.status.status === 'in_progress') {
+                    console.log('🚀 Showing overlay from initial check');
                     this.showOverlay();
                     this.updateProgress(data.status);
+                } else {
+                    console.log('✅ No active categorization found');
                 }
             }
         } catch (error) {
-            console.error('Initial status check failed:', error);
+            console.error('❌ Initial status check failed:', error);
         }
     }
 

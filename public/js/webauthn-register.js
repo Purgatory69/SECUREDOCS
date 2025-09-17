@@ -48,8 +48,20 @@ async function webauthnRegister(name) {
             ...options,
             challenge: '...',
             user: { ...options.user, id: '...' },
-            excludeCredentials: options.excludeCredentials ? '[...]' : '[]'
+            excludeCredentials: options.excludeCredentials ? options.excludeCredentials : '[]'
         }, null, 2));
+        
+        // Debug excludeCredentials specifically
+        if (options.excludeCredentials && options.excludeCredentials.length > 0) {
+            console.log('Debug excludeCredentials:', options.excludeCredentials.map((cred, index) => ({
+                index,
+                id: cred.id,
+                idType: typeof cred.id,
+                idLength: cred.id ? cred.id.length : 'null',
+                type: cred.type,
+                transports: cred.transports
+            })));
+        }
 
         // 2. Prepare the public key options for the WebAuthn API
         try {
@@ -60,10 +72,21 @@ async function webauthnRegister(name) {
                     ...options.user,
                     id: base64UrlToUint8Array(options.user.id),
                 },
-                excludeCredentials: options.excludeCredentials ? options.excludeCredentials.map(cred => ({
-                    ...cred,
-                    id: base64UrlToUint8Array(cred.id)
-                })) : []
+                excludeCredentials: options.excludeCredentials ? options.excludeCredentials
+                    .filter(cred => cred && cred.id) // Filter out invalid entries
+                    .map(cred => {
+                        try {
+                            return {
+                                ...cred,
+                                id: base64UrlToUint8Array(cred.id),
+                                type: 'public-key'
+                            };
+                        } catch (e) {
+                            console.warn('Invalid credential in excludeCredentials:', cred, e);
+                            return null;
+                        }
+                    })
+                    .filter(Boolean) : [] // Remove any null entries
             };
             console.log('Prepared public key options for WebAuthn API');
 

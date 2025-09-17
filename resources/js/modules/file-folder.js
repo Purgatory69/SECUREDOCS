@@ -573,12 +573,17 @@ export function renderFiles(items) {
     // Ensure container classes reflect current layout
     applyLayoutClasses(state.layout);
 
-    // Create and append elements based on current layout
+    // Create and append elements based on current layout using DocumentFragment for better performance
     const useGrid = state.layout !== 'list';
+    const fragment = document.createDocumentFragment();
+    
     items.forEach(item => {
         const element = useGrid ? createGoogleDriveCard(item) : createListRow(item);
-        container.appendChild(element);
+        fragment.appendChild(element);
     });
+    
+    // Single DOM append for all items
+    container.appendChild(fragment);
 
     // Attach event listeners for actions menu
     container.querySelectorAll('.actions-menu-btn').forEach(btn => {
@@ -1890,7 +1895,12 @@ export async function loadUserFiles(query = '', page = 1, parentId = null, creat
     // Mark main view so actions menu renders correct options
     itemsContainer.dataset.view = 'main';
 
+    // Create unique request ID to prevent race conditions
+    const requestId = Date.now() + Math.random();
+    state.currentRequestId = requestId;
+
     try {
+        // Clear immediately to prevent showing stale content
         itemsContainer.innerHTML = '<div class="p-4 text-center text-text-secondary col-span-full">Loading...</div>';
 
         let url = `/files?page=${page}`;
@@ -1906,12 +1916,25 @@ export async function loadUserFiles(query = '', page = 1, parentId = null, creat
             credentials: 'same-origin'
         });
 
+        // Check if this request is still the latest one
+        if (state.currentRequestId !== requestId) {
+            console.debug('Ignoring outdated request response');
+            return;
+        }
+
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.message || `HTTP error! Status: ${response.status}`);
         }
 
         const data = await response.json();
+        
+        // Final check before rendering to prevent race conditions
+        if (state.currentRequestId !== requestId) {
+            console.debug('Ignoring outdated request response at render time');
+            return;
+        }
+        
         itemsContainer.innerHTML = '';
 
         // Resolve helper functions (fallback to defaults if not provided)

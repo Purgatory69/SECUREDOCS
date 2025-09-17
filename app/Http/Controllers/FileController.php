@@ -104,6 +104,10 @@ class FileController extends Controller
     public function proxyFile($id)
     {
         $user = Auth::user();
+        if (!$user) {
+            abort(401, 'Unauthorized');
+        }
+        
         // Allow proxying even for trashed items so previews work from Trash view
         $file = $user->files()->withTrashed()->findOrFail($id);
         
@@ -148,49 +152,87 @@ class FileController extends Controller
             Log::debug('IPFS handling error, falling back to Supabase proxy', ['error' => $t->getMessage()]);
         }
 
-        $publicUrl = "{$supabaseUrl}/storage/v1/object/public/docs/" . ltrim($filePath, '/');
-
-        try {
-            // In local/dev environments, Windows often lacks a proper CA bundle; disable verification only locally
-            $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
-            $client = new Client([
-                'verify' => $verifySsl,
-                'timeout' => 30,
-            ]);
-            $response = $client->get($publicUrl, [
-                'http_errors' => false,
-            ]);
-
-            $status = $response->getStatusCode();
-            if ($status < 200 || $status >= 300) {
-                Log::error('Supabase proxy returned non-2xx status', [
-                    'file_id' => $id,
-                    'status' => $status,
-                    'url' => $publicUrl,
-                ]);
-                abort(404, 'File not found or cannot be accessed');
-            }
-            
-            $content = $response->getBody()->getContents();
-            $contentType = $response->getHeader('Content-Type')[0] ?? $file->mime_type ?? 'application/octet-stream';
-            
-            return response($content)
-                ->header('Content-Type', $contentType)
-                ->header('Access-Control-Allow-Origin', '*')
-                ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
-                ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
-                ->header('Content-Disposition', 'inline; filename="' . $file->file_name . '"')
-                ->header('Cache-Control', 'public, max-age=3600');
-                
-        } catch (\Exception $e) {
-            Log::error('Error proxying file', [
+        // Files are actually stored with user_id prefix, not in folder structure
+        // Database stores logical folder path, but Supabase uses user_id/timestamp_filename format
+        $actualPath = "user_{$file->user_id}/" . basename($filePath);
+        
+        // If the filename doesn't have a timestamp prefix, we need to find the actual file
+        if (!preg_match('/^\d+_/', basename($filePath))) {
+            // This is a legacy file path, try to construct the actual path
+            Log::info('Attempting to find actual file path for legacy entry', [
                 'file_id' => $id,
-                'file_path' => $filePath,
-                'error' => $e->getMessage(),
-                'url' => $publicUrl ?? null,
+                'stored_path' => $filePath,
+                'user_id' => $file->user_id,
+                'filename' => $file->file_name
             ]);
-            abort(404, 'File not found or cannot be accessed');
+            
+            // Try common patterns for the actual filename
+            $possiblePaths = [
+                "user_{$file->user_id}/" . $file->file_name,
+                "user_{$file->user_id}/1756194709899_" . $file->file_name, // Based on your URL pattern
+                // Try with various timestamp patterns that might have been used
+            ];
+        } else {
+            $possiblePaths = [$actualPath];
         }
+        
+        $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
+        $client = new Client([
+            'verify' => $verifySsl,
+            'timeout' => 10,
+        ]);
+        
+        foreach ($possiblePaths as $testPath) {
+            try {
+                $testUrl = "{$supabaseUrl}/storage/v1/object/public/docs/" . $testPath;
+                Log::info('Testing file path', [
+                    'file_id' => $id,
+                    'test_path' => $testPath,
+                    'test_url' => $testUrl
+                ]);
+                
+                $response = $client->head($testUrl, ['http_errors' => false]);
+                
+                if ($response->getStatusCode() === 200) {
+                    // File exists, get the content
+                    $response = $client->get($testUrl, ['http_errors' => false]);
+                    if ($response->getStatusCode() === 200) {
+                        $content = $response->getBody()->getContents();
+                        $contentType = $response->getHeader('Content-Type')[0] ?? $file->mime_type ?? 'application/octet-stream';
+                        
+                        Log::info('File found and served successfully', [
+                            'file_id' => $id,
+                            'successful_path' => $testPath
+                        ]);
+                        
+                        return response($content)
+                            ->header('Content-Type', $contentType)
+                            ->header('Access-Control-Allow-Origin', '*')
+                            ->header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS')
+                            ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+                            ->header('Content-Disposition', 'inline; filename="' . $file->file_name . '"')
+                            ->header('Cache-Control', 'public, max-age=3600');
+                    }
+                }
+            } catch (\Exception $e) {
+                Log::debug('Path test failed', [
+                    'file_id' => $id,
+                    'test_path' => $testPath,
+                    'error' => $e->getMessage()
+                ]);
+                continue;
+            }
+        }
+        
+        // File not found with any path strategy
+        Log::error('File not found in Supabase storage with any path strategy', [
+            'file_id' => $id,
+            'stored_path' => $filePath,
+            'user_id' => $file->user_id,
+            'paths_tried' => $possiblePaths
+        ]);
+        
+        abort(404, 'File not found in storage. The file may not have been uploaded to Supabase storage yet.');
     }
 
     /**
@@ -406,7 +448,25 @@ class FileController extends Controller
      */
     public function getCategorizationStatusPublic(Request $request): JsonResponse
     {
-        // Return idle status for unauthenticated requests
+        // Get user_id from request metadata if available
+        $userId = $request->input('user_id') ?? $request->header('X-User-ID');
+        
+        if ($userId) {
+            // Check cache for this specific user
+            $status = Cache::get("ai_categorization_status_{$userId}", [
+                'status' => 'idle',
+                'progress' => 0,
+                'message' => 'No categorization in progress',
+                'updated_at' => now()->toISOString()
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'status' => $status
+            ]);
+        }
+        
+        // Return idle status if no user context
         return response()->json([
             'success' => true,
             'status' => [

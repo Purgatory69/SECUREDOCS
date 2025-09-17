@@ -11,6 +11,10 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
+Route::middleware(['auth:sanctum'])->group(function () {
+    Route::get('/ai/categorization-status', [FileController::class, 'getCategorizationStatus']);
+});
+
 // n8n Notification API Routes
 Route::prefix('n8n')->group(function () {
     // Main endpoint for receiving notifications from n8n

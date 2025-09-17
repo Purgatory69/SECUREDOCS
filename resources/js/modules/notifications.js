@@ -66,8 +66,9 @@ class NotificationManager {
         if (this.isOpen) {
             this.closeDropdown();
         } else {
-            await this.loadNotifications();
+            // Open immediately, then load content
             this.openDropdown();
+            this.loadNotifications();
         }
     }
 

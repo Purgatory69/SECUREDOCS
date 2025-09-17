@@ -3,7 +3,7 @@
     {
       "parameters": {
         "descriptionType": "manual",
-        "toolDescription": "Create a new folder directly in database. Faster than API call. Requires folder_name and optional parent_id from AI.",
+        "toolDescription": "Create a new folder directly in the database. Requires: folder_name (string). Optional: parent_id (number).",
         "operation": "executeQuery",
         "query": "INSERT INTO public.files (user_id, file_name, file_path, is_folder, parent_id, file_type, mime_type, created_at, updated_at) VALUES ($1, $2, $2, TRUE, $3, 'folder', 'folder', NOW(), NOW()) RETURNING id",
         "options": {
@@ -20,14 +20,14 @@
             "name": "parent_id",
             "type": "number",
             "required": false,
-            "description": "ID of parent folder (null for root)"
+            "description": "ID of parent folder. Use null to create in root."
           }
         ]
       },
       "type": "n8n-nodes-base.postgresTool",
       "typeVersion": 2.5,
-      "position": [-496, 400],
-      "id": "folder-execute-tool",
+      "position": [-320, 400],
+      "id": "f3feb8d0-fdaf-48b1-bf10-6cc9be41fbba",
       "name": "Execute: Create Folder",
       "credentials": {
         "postgres": {

@@ -11,6 +11,12 @@
         <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet" />
         @vite(['resources/css/app.css', 'resources/js/app.js'])
         
+        <!-- User context for AI categorization -->
+        <script>
+            window.userId = {{ auth()->id() ?? 'null' }};
+            window.aiUsePublicStatus = true;
+        </script>
+        
         <!-- N8N Chat Widget -->
         <script type="module">
             import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
