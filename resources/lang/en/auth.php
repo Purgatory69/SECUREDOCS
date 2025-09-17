@@ -41,6 +41,7 @@ return [
     'db_language' => 'Language',
     'db_help_support' => 'Help & Support',
     'db_send_feedback' => 'Send Feedback',
+    'db_buy_premium' => 'Buy Premium',
     'db_logout' => 'Logout',
     'db_upload' => 'Upload',
     'db_new_file' => 'New File',
@@ -48,6 +49,6 @@ return [
     'db_my_documents' => 'My Documents',
     'db_trash' => 'Trash',
     'db_security' => 'Security',
-    'db_blockchain_storage' => 'Blockchain Storage',
+    'db_blockchain_storage' => 'Blockchain',
 
 ];

@@ -141,12 +141,22 @@
                         <img src="/info.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
                         <span class="text-sm">{{ __('auth.db_help_support') }}</span>
                     </li>
+                    <!--
                     <li class="p-4 flex items-center cursor-pointer"
                         style="transition: background-color 0.2s;"
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/pencil.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
                         <span class="text-sm">{{ __('auth.db_send_feedback') }}</span>
+                    </li>
+                    -->
+                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    <li class="p-4 flex items-center cursor-pointer"
+                        style="transition: background-color 0.2s;"
+                        onmouseover="this.style.backgroundColor='#55597C';"
+                        onmouseout="this.style.backgroundColor='';">
+                        <img src="/crown.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
+                        <span class="text-sm">{{ __('auth.db_buy_premium') }}</span>
                     </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
                 </ul>
@@ -366,7 +376,9 @@
         <li id="blockchain-storage-link" class="py-3 px-8 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
             <img src="{{ asset('link-symbol.png') }}" alt="Blockchain" class="mr-4 w-5 h-5">
             <span class="text-white text-sm">{{ __('auth.db_blockchain_storage') }}</span>
-            <span class="ml-auto px-2 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-white font-medium">PREMIUM</span>
+            
+            <!-- <span class="ml-auto px-2 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-white font-medium">PREMIUM</span> -->
+            <img src="/crown.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
         </li>
 
         <style>
@@ -648,7 +660,7 @@
 
 @push('scripts')
     <!-- Activity Log Modal -->
-    <div id="activityModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
+    <div id="activityModal" class="finxed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
         <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/5 shadow-lg rounded-md bg-white">
             <div class="mt-3">
                 <!-- Modal Header -->

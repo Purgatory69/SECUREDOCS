@@ -144,14 +144,14 @@ export function updateBreadcrumbsDisplay(breadcrumbs) {
     }
 
     // Google Drive-style logic: show only current folder when path is long
-    const shouldCollapse = breadcrumbs.length > 3;
+    const shouldCollapse = breadcrumbs.length > 4;
     
     if (shouldCollapse) {
         // Show three-dot menu
         dropdown.classList.remove('hidden');
         
         // Add hidden breadcrumbs to dropdown (all except last 2)
-        const hiddenCrumbs = breadcrumbs.slice(0, -2);
+        const hiddenCrumbs = breadcrumbs.slice(0, -3);
         hiddenCrumbs.forEach(crumb => {
             const item = document.createElement('a');
             item.href = '#';
@@ -162,7 +162,7 @@ export function updateBreadcrumbsDisplay(breadcrumbs) {
         });
         
         // Show only last 2 breadcrumbs in main path
-        const visibleCrumbs = breadcrumbs.slice(-2);
+        const visibleCrumbs = breadcrumbs.slice(-3);
         renderBreadcrumbPath(visibleCrumbs, pathContainer);
     } else {
         // Show all breadcrumbs normally
