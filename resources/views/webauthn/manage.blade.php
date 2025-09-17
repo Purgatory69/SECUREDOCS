@@ -106,6 +106,25 @@
                 options.user.id = base64urlToArrayBuffer(options.user.id);
             }
             
+            // Handle excludeCredentials
+            if (options.excludeCredentials && Array.isArray(options.excludeCredentials)) {
+                options.excludeCredentials = options.excludeCredentials
+                    .filter(cred => cred && cred.id)
+                    .map(cred => {
+                        try {
+                            return {
+                                ...cred,
+                                id: base64urlToArrayBuffer(cred.id),
+                                type: 'public-key'
+                            };
+                        } catch (e) {
+                            console.warn('Invalid credential in excludeCredentials:', cred, e);
+                            return null;
+                        }
+                    })
+                    .filter(Boolean);
+            }
+            
             // Ensure required parameters are set
             options.authenticatorSelection = options.authenticatorSelection || {
                 requireResidentKey: false,

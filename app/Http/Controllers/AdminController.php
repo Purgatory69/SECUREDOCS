@@ -3,6 +3,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
 
@@ -99,11 +100,11 @@ class AdminController extends Controller
      */
     public function approve($id)
     {
-        $user = User::findOrFail($id);
-        $user->is_approved = true;
-        $user->save();
+        DB::table('users')
+            ->where('id', $id)
+            ->update(['is_approved' => DB::raw('true')]);
 
-        return redirect()->route('admin.dashboard')->with('success', 'User approved successfully.');
+        return redirect()->route('admin.users')->with('success', 'User approved successfully.');
     }
 
     /**
@@ -111,11 +112,11 @@ class AdminController extends Controller
      */
     public function revoke($id)
     {
-        $user = User::findOrFail($id);
-        $user->is_approved = false;
-        $user->save();
+        DB::table('users')
+            ->where('id', $id)
+            ->update(['is_approved' => DB::raw('false')]);
 
-        return redirect()->route('admin.dashboard')->with('success', 'User approval revoked successfully.');
+        return redirect()->route('admin.users')->with('success', 'User approval revoked successfully.');
     }
 
     /**
@@ -123,16 +124,14 @@ class AdminController extends Controller
      */
     public function updateUser(Request $request, User $user)
     {
-        $request->validate([
-            'is_premium' => 'sometimes|boolean',
-        ]);
-
         // Handle checkbox for is_premium (if it's not present, it means false)
-        $user->is_premium = $request->has('is_premium');
+        $isPremium = $request->has('is_premium') && $request->input('is_premium') == '1';
+        
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update(['is_premium' => DB::raw($isPremium ? 'true' : 'false')]);
 
-        $user->save();
-
-        return redirect()->route('admin.dashboard')->with('success', 'User premium settings updated successfully.');
+        return redirect()->route('admin.users')->with('success', 'User premium settings updated successfully.');
     }
 
     /**

@@ -191,7 +191,7 @@ class SearchController extends Controller
             DB::table('search_logs')->insert([
                 'user_id' => $user->id,
                 'query' => $query,
-                'results_count' => $resultCount,
+                'result_count' => $resultCount,
                 'created_at' => now(),
             ]);
         } catch (\Throwable $e) {
