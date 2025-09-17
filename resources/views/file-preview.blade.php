@@ -16,12 +16,13 @@
         </div>
         
         <div class="flex items-center space-x-2">
-            <button id="downloadBtn" class="px-4 py-2 bg-[#f89c00] text-black hover:brightness-110 transition rounded text-sm">Download</button>
-            <button id="moreBtn" class="p-2 hover:bg-gray-700 rounded">
+            <button id="downloadBtn" class="mr-4 px-4 py-2 bg-[#f89c00] text-black hover:brightness-110 transition rounded text-sm">Download</button>
+            <!-- <button id="moreBtn" class="p-2 hover:bg-gray-700 rounded">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path>
                 </svg>
             </button>
+-->
         </div>
     </header>
 

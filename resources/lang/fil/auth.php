@@ -41,6 +41,7 @@ return [
     'db_language' => 'Wika',
     'db_help_support' => 'Tulong at Suporta',
     'db_send_feedback' => 'Magbigay ng Feedback',
+    'db_buy_premium' => 'Bilhin ang Premium',
     'db_logout' => 'Mag-logout',
     'db_upload' => 'Mag-Upload',
     'db_new_file' => 'Bagong File',
@@ -48,5 +49,5 @@ return [
     'db_my_documents' => 'Aking Documents',
     'db_trash' => 'Basurahan',
     'db_security' => 'Seguridad',
-    'db_blockchain_storage' => 'Blockchain Storage',
+    'db_blockchain_storage' => 'Blockchain',
 ];
