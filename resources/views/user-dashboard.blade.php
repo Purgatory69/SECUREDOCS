@@ -93,6 +93,19 @@
                         <span class="text-sm">{{ __('auth.db_biometrics') }}</span>
                         </a>
                     </li>
+
+                    <li>
+                        <a href="{{ route('profile.sessions') }}"
+                        class="p-4 flex items-center cursor-pointer"
+                        style="transition: background-color 0.2s;"
+                        onmouseover="this.style.backgroundColor='#55597C';"
+                        onmouseout="this.style.backgroundColor='';">
+                        <svg class="mr-4 w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        </svg>
+                        <span class="text-sm">Account Security</span>
+                        </a>
+                    </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
                     <!-- <li class="h-px bg-border-color my-1"></li> -->
                     <!-- ======================================= -->
@@ -422,12 +435,21 @@
                 </li> -->
     </ul>
 
-    <!-- <div class="mt-8 px-6">
-                <div class="w-full h-1 bg-gray-200 rounded overflow-hidden">
-                    <div class="h-full w-[35%] bg-primary"></div>
-                </div>
-                <div class="text-xs text-text-secondary mt-2">3.5 GB of 10 GB used</div>
-            </div> -->
+    <!-- Storage Usage Display -->
+    <div id="storageUsageContainer" class="mt-8 px-6">
+        <div class="w-full h-2 bg-gray-600 rounded overflow-hidden">
+            <div id="storageProgressBar" class="h-full transition-all duration-300 rounded" style="width: 0%; background-color: #3C3F58;"></div>
+        </div>
+        <div id="storageUsageText" class="text-xs text-gray-300 mt-2">Loading storage usage...</div>
+        <div id="upgradePrompt" class="hidden mt-2 p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-xs">
+            <div class="flex items-center justify-between">
+                <span class="text-white font-medium">Storage limit reached!</span>
+                <button id="upgradeBtn" class="bg-white text-purple-600 px-2 py-1 rounded text-xs font-bold hover:bg-gray-100 transition-colors">
+                    Upgrade to Premium
+                </button>
+            </div>
+        </div>
+    </div>
 </div>
 </div>
 

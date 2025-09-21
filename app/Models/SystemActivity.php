@@ -218,9 +218,10 @@ class SystemActivity extends Model
         ]);
     }
 
+    /* Commented out until FileComment model is created
     public static function logCommentActivity(
         string $action,
-        FileComment $comment,
+        $comment,
         string $description = null,
         array $metadata = [],
         string $riskLevel = self::RISK_LOW
@@ -251,6 +252,7 @@ class SystemActivity extends Model
             'risk_level' => $riskLevel,
         ]);
     }
+    */
 
     public static function logAuthActivity(
         string $action,
@@ -261,18 +263,41 @@ class SystemActivity extends Model
     ): self {
         $user = $user ?: Auth::user();
         
+        // Ensure we have a valid user
+        if (!$user || !$user->id) {
+            \Log::warning('SystemActivity::logAuthActivity called without valid user', [
+                'action' => $action,
+                'user_type' => $user ? get_class($user) : 'null',
+                'user_id' => $user?->id ?? 'null'
+            ]);
+            
+            // Create a fallback activity without user reference
+            return self::create([
+                'user_id' => null,
+                'activity_type' => self::TYPE_AUTH,
+                'action' => $action,
+                'entity_type' => 'system',
+                'entity_id' => null,
+                'description' => $description ?: "System auth activity: {$action}",
+                'metadata' => $metadata,
+                'ip_address' => request()->ip(),
+                'user_agent' => request()->userAgent(),
+                'risk_level' => $riskLevel,
+            ]);
+        }
+        
         $description = $description ?: self::generateAuthDescription($action, $user);
 
         return self::create([
-            'user_id' => $user?->id,
+            'user_id' => $user->id,
             'activity_type' => self::TYPE_AUTH,
             'action' => $action,
             'entity_type' => 'user',
-            'entity_id' => $user?->id,
+            'entity_id' => $user->id,
             'description' => $description,
             'metadata' => array_merge([
-                'user_name' => $user?->name,
-                'user_email' => $user?->email,
+                'user_name' => $user->name,
+                'user_email' => $user->email,
             ], $metadata),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -339,7 +364,8 @@ class SystemActivity extends Model
         }
     }
 
-    private static function generateCommentDescription(string $action, FileComment $comment, User $user): string
+    /* Commented out until FileComment model is created
+    private static function generateCommentDescription(string $action, $comment, User $user): string
     {
         $isReply = !is_null($comment->parent_comment_id);
         
@@ -354,6 +380,7 @@ class SystemActivity extends Model
             default => "{$user->name} performed '{$action}' on a comment for '{$comment->file->file_name}'",
         };
     }
+    */
 
     private static function generateAuthDescription(string $action, ?User $user): string
     {

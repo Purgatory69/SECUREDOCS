@@ -4,7 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
 use Illuminate\Auth\Events\Lockout;
+use Illuminate\Auth\Events\Login;
 use App\Listeners\SendLockoutNotification;
+use App\Listeners\HandleUserLogin;
 use Illuminate\Auth\Events\Authenticated;
 use App\Listeners\CheckUserApproved;
 
@@ -19,8 +21,8 @@ class EventServiceProvider extends ServiceProvider
         Lockout::class => [
             SendLockoutNotification::class,
         ],
-        Failed::class => [
-            FailedLoginListener::class,
+        Login::class => [
+            HandleUserLogin::class,
         ],
         Authenticated::class => [
             CheckUserApproved::class,

@@ -17,12 +17,28 @@ class BlockchainUpload extends Model
         'upload_status',
         'error_message',
         'upload_cost',
-        'provider_response'
+        'provider_response',
+        'pinata_pin_id',
+        'pinata_pin_size',
+        'pinata_gateway_url',
+        'pinata_metadata',
+        'upload_timestamp',
+        'pin_status',
+        'is_permanent_storage',
+        'permanent_storage_fee',
+        'permanent_storage_timestamp',
+        'permanent_storage_metadata'
     ];
 
     protected $casts = [
         'upload_cost' => 'decimal:4',
-        'provider_response' => 'array'
+        'provider_response' => 'array',
+        'pinata_metadata' => 'array',
+        'permanent_storage_metadata' => 'array',
+        'upload_timestamp' => 'datetime',
+        'permanent_storage_timestamp' => 'datetime',
+        'is_permanent_storage' => 'boolean',
+        'permanent_storage_fee' => 'decimal:4'
     ];
 
     /**

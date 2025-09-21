@@ -29,7 +29,7 @@ Route::get('/keepalive', function (Request $request) {
     return response('', 204);
 })->name('keepalive');
 
-Route::get('/set-language/{language}', function ($language) {
+Route::get('/set-language/{language}', action: function ($language) {
     $validLanguages = ['en', 'fil'];
     
     if (in_array($language, $validLanguages)) {
@@ -105,6 +105,8 @@ Route::middleware([
     Route::delete('/files/{id}', [FileController::class, 'destroy'])->whereNumber('id');
     Route::patch('/files/{id}/restore', [FileController::class, 'restore'])->whereNumber('id');
     Route::delete('/files/{id}/force-delete', [FileController::class, 'forceDelete'])->whereNumber('id');
+    Route::patch('/files/{id}/move', [FileController::class, 'move'])->whereNumber('id');
+    Route::get('/files/storage-usage', [FileController::class, 'getStorageUsage']);
 
 
     // Search routes
@@ -119,13 +121,15 @@ Route::middleware([
         Route::get('/providers', [BlockchainController::class, 'getProviders'])->name('blockchain.providers');
         Route::get('/stats', [BlockchainController::class, 'getStats'])->name('blockchain.stats');
         Route::get('/files', [BlockchainController::class, 'getFiles'])->name('blockchain.files');
-        Route::get('/storage-info', [BlockchainController::class, 'getStorageInfo'])->name('blockchain.storage-info');
+        Route::get('/files/{file}/history', [BlockchainController::class, 'getFileHistory'])->name('blockchain.file.history');
         Route::post('/upload', [BlockchainController::class, 'upload'])->name('blockchain.upload');
-        Route::post('/upload-existing', [BlockchainController::class, 'uploadExistingFile'])->name('upload.existing');
-        Route::post('/preflight-validation', [BlockchainController::class, 'preflightValidation'])->name('preflight');
-        Route::delete('/unpin/{file}', [BlockchainController::class, 'unpinFile'])->name('unpin.file');
+        Route::post('/unpin/{file}', [BlockchainController::class, 'unpinFile'])->name('blockchain.unpin');
         Route::post('/unpin-by-hash', [BlockchainController::class, 'unpinByHash'])->name('unpin.hash');
     });
+    Route::post('/upload-existing', [BlockchainController::class, 'uploadExistingFile'])->name('upload.existing');
+    Route::post('/preflight-validation', [BlockchainController::class, 'preflightValidation'])->name('preflight');
+    Route::delete('/unpin/{file}', [BlockchainController::class, 'unpinFile'])->name('unpin.file');
+    Route::post('/unpin-by-hash', [BlockchainController::class, 'unpinByHash'])->name('unpin.hash');
 
     // File vector and blockchain management routes
     Route::delete('/files/{file}/remove-from-vector', [FileController::class, 'removeFromVector'])->name('files.remove-from-vector');
@@ -134,6 +138,9 @@ Route::middleware([
     Route::delete('/files/{file}/remove-from-blockchain', [FileController::class, 'removeFromBlockchain'])->name('files.blockchain.remove');
     Route::get('/files/{file}/processing-status', [FileController::class, 'getProcessingStatus'])->name('files.processing.status');
     Route::post('/files/{file}/download-from-blockchain', [FileController::class, 'downloadFromBlockchain'])->name('files.download-from-blockchain');
+    Route::post('/files/{file}/enable-permanent-storage', [FileController::class, 'enablePermanentStorage'])->name('files.enable-permanent-storage');
+    Route::get('/files/processing-options', [FileController::class, 'getProcessingOptions'])->name('files.processing-options');
+    Route::get('/files/storage-usage', [FileController::class, 'getStorageUsage'])->name('files.storage-usage');
 
     // File version and history routes
     Route::get('/files/{file}/versions', [FileVersionController::class, 'getVersionHistory'])->name('files.versions');
@@ -179,8 +186,138 @@ Route::middleware([
     // File proxy for CORS-free access
     Route::get('/file-proxy/{id}', [FileController::class, 'proxyFile'])->whereNumber('id')->name('file.proxy');
     
-    // User public info for chat widget
-    Route::get('/user/{id}', [UserController::class, 'showPublic'])->name('user.show_public');
+    // User session management routes (must come before /user/{id})
+    Route::prefix('user/sessions')->group(function () {
+        Route::get('/', [App\Http\Controllers\UserSessionController::class, 'index'])->name('user.sessions.index');
+        Route::delete('/{sessionId}', [App\Http\Controllers\UserSessionController::class, 'terminate'])->name('user.sessions.terminate');
+        Route::post('/terminate-all', [App\Http\Controllers\UserSessionController::class, 'terminateAll'])->name('user.sessions.terminate-all');
+        Route::post('/{sessionId}/trust', [App\Http\Controllers\UserSessionController::class, 'trustDevice'])->name('user.sessions.trust');
+    });
+    
+    // Simple test route for sessions
+    Route::get('/user/sessions/test', function () {
+        try {
+            $user = Auth::user();
+            $sessions = \App\Models\UserSession::where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(5)
+                ->get();
+            
+            // If no sessions exist, create a current session for testing
+            if ($sessions->isEmpty()) {
+                $currentSession = \App\Models\UserSession::create([
+                    'user_id' => $user->id,
+                    'session_id' => session()->getId(),
+                    'ip_address' => request()->ip(),
+                    'user_agent' => request()->userAgent(),
+                    'device_type' => 'desktop',
+                    'browser' => 'Chrome',
+                    'platform' => 'Windows',
+                    'is_mobile' => false,
+                    'is_tablet' => false,
+                    'is_desktop' => true,
+                    'location_country' => 'Local',
+                    'location_city' => 'Development',
+                    'is_active' => true,
+                    'trusted_device' => true,
+                    'last_activity_at' => now(),
+                    'expires_at' => now()->addDays(30),
+                ]);
+                
+                $sessions = collect([$currentSession]);
+            }
+                
+            return response()->json([
+                'success' => true,
+                'count' => $sessions->count(),
+                'sessions' => $sessions->map(function ($session) {
+                    return [
+                        'id' => $session->id,
+                        'session_id' => $session->session_id,
+                        'device_type' => $session->device_type ?? 'unknown',
+                        'browser' => $session->browser ?? 'Unknown',
+                        'platform' => $session->platform ?? 'Unknown',
+                        'location' => ($session->location_city && $session->location_country) 
+                            ? "{$session->location_city}, {$session->location_country}" 
+                            : 'Unknown location',
+                        'ip_address' => $session->ip_address,
+                        'is_current' => $session->session_id === session()->getId(),
+                        'is_active' => $session->is_active ?? false,
+                        'is_suspicious' => $session->is_suspicious ?? false,
+                        'trusted_device' => $session->trusted_device ?? false,
+                        'last_activity' => $session->last_activity_at?->diffForHumans() ?? 'Unknown',
+                        'created_at' => $session->created_at?->diffForHumans() ?? 'Unknown',
+                    ];
+                })
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    });
+    
+    // Activity tracking routes (must come before /user/{id})
+    Route::get('/user/activity', [App\Http\Controllers\UserSessionController::class, 'getRecentActivity'])->name('user.activity');
+    
+    // Test route to verify activity endpoint
+    Route::get('/user/activity/test', function () {
+        return response()->json([
+            'success' => true,
+            'message' => 'Activity route is working',
+            'user_id' => Auth::id(),
+            'activities' => []
+        ]);
+    });
+    
+    // Notification preferences routes
+    Route::prefix('user/notifications')->group(function () {
+        Route::get('/preferences', [App\Http\Controllers\UserSessionController::class, 'getNotificationPreferences'])->name('user.notifications.preferences');
+        Route::put('/preferences', [App\Http\Controllers\UserSessionController::class, 'updateNotificationPreferences'])->name('user.notifications.update');
+    });
+    
+    // User public info for chat widget (must be LAST among /user/ routes)
+    Route::get('/user/{id}', [UserController::class, 'showPublic'])->whereNumber('id')->name('user.show_public');
+    
+    // Profile sessions page
+    Route::get('/profile/sessions', function () {
+        return view('profile.sessions');
+    })->name('profile.sessions');
+    
+    // Debug route for testing session system
+    Route::get('/debug/session-test', function () {
+        try {
+            $user = Auth::user();
+            $sessionId = session()->getId();
+            
+            // Test DeviceDetectionService
+            $deviceService = app(\App\Services\DeviceDetectionService::class);
+            $sessions = $deviceService->getUserSessions($user, 5);
+            
+            return response()->json([
+                'user_id' => $user->id,
+                'session_id' => $sessionId,
+                'session_id_length' => strlen($sessionId),
+                'session_id_type' => gettype($sessionId),
+                'session_name' => session()->getName(),
+                'sessions_count' => $sessions->count(),
+                'sessions' => $sessions->toArray(),
+                'notification_prefs' => [
+                    'email_notifications_enabled' => $user->email_notifications_enabled,
+                    'login_notifications_enabled' => $user->login_notifications_enabled,
+                    'security_notifications_enabled' => $user->security_notifications_enabled,
+                    'activity_notifications_enabled' => $user->activity_notifications_enabled,
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    })->name('debug.session');
 
     // Database Schema Documentation (admin only)
     Route::get('/db-schema', function () {

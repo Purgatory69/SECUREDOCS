@@ -159,6 +159,21 @@ async function handleFiles(files) {
 async function handleUpload() {
     if (!currentUploadFile) return;
 
+    // Check storage before upload
+    if (window.storageManager) {
+        const storageCheck = window.storageManager.checkStorageBeforeUpload(currentUploadFile.size);
+        if (!storageCheck.allowed) {
+            showNotification(storageCheck.message, 'error');
+            if (storageCheck.showUpgrade) {
+                // Show upgrade modal after a short delay
+                setTimeout(() => {
+                    window.storageManager.showUpgradeModal();
+                }, 1000);
+            }
+            return;
+        }
+    }
+
     const uploadBtn = document.getElementById('uploadBtn');
     const progressContainer = document.getElementById('uploadProgress');
     const progressBar = document.getElementById('progressBar');
@@ -180,6 +195,12 @@ async function handleUpload() {
 
         showNotification('File uploaded successfully!', 'success');
         hideUploadModal();
+        
+        // Trigger storage usage update
+        document.dispatchEvent(new CustomEvent('fileUploaded', { 
+            detail: { fileSize: currentUploadFile.size } 
+        }));
+        
         // Refresh file list in current folder context
         if (typeof window.loadUserFiles === 'function') {
             const parentId = document.getElementById('currentFolderId')?.value || null;
