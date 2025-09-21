@@ -15,6 +15,7 @@ import { initializeUi, initializeTooltips } from './modules/ui.js';
 import { initializeSearch } from './modules/search.js';
 // import { setupBlockchainLazyInit } from './modules/blockchain.js';
 import { NotificationManager } from './modules/notifications.js';
+import StorageUsageManager from './modules/storage-usage.js';
 
 // --- Supabase Client Check ---
 if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_KEY) {
@@ -63,6 +64,10 @@ function initializeApp() {
     // --- Initialize Notification System ---
     // Initialize the notification bell and dropdown functionality
     window.notificationManager = new NotificationManager();
+    
+    // --- Initialize Storage Usage Manager ---
+    // Initialize storage usage display and premium upgrade prompts
+    window.storageManager = new StorageUsageManager();
     
     // --- Initial Data Load ---
     // Fetches the initial set of files for the root directory.

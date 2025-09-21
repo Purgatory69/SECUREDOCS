@@ -1,0 +1,247 @@
+Table Name,Field Name,Data Type,Primary Key,Foreign Key,Nullable,Description
+users,id,BIGINT,YES,,NO,Auto-incrementing primary key
+users,name,VARCHAR(255),,,NO,Full name of the user
+users,email,VARCHAR(255),,,NO,Email address (unique)
+users,email_verified_at,TIMESTAMP,,,YES,Timestamp when email was verified
+users,password,VARCHAR(255),,,NO,Hashed password
+users,remember_token,VARCHAR(100),,,YES,Remember token for authentication
+users,created_at,TIMESTAMP,,,YES,Timestamp when user was created
+users,updated_at,TIMESTAMP,,,YES,Timestamp when user was updated
+users,two_factor_secret,TEXT,,,YES,Two-factor authentication secret
+users,two_factor_recovery_codes,TEXT,,,YES,Two-factor recovery codes
+users,two_factor_confirmed_at,TIMESTAMP,,,YES,Timestamp when 2FA was confirmed
+users,is_approved,BOOLEAN,,,YES,Whether user account is approved
+users,role,VARCHAR(255),,,NO,User role (default: 'user')
+users,is_premium,BOOLEAN,,,NO,Whether user has premium features
+users,current_team_id,BIGINT,,,YES,Current team ID if user is in a team
+users,profile_photo_path,VARCHAR(255),,,YES,Path to profile photo
+files,id,BIGINT,YES,,NO,Auto-incrementing primary key
+files,user_id,BIGINT,,users.id,NO,Foreign key to the user who owns the file
+files,file_name,VARCHAR,,,NO,Name of the file or folder
+files,file_path,VARCHAR,,,NO,Path to the file or folder
+files,file_size,VARCHAR,,,YES,Size of the file in human-readable format
+files,file_type,VARCHAR,,,YES,Type/category of the file
+files,mime_type,VARCHAR,,,YES,MIME type of the file
+files,created_at,TIMESTAMP,,,YES,Timestamp when file was created
+files,updated_at,TIMESTAMP,,,YES,Timestamp when file was last updated
+files,parent_id,BIGINT,,files.id,YES,Foreign key to parent folder (self-referential)
+files,is_folder,BOOLEAN,,,NO,Whether this is a folder (default: false)
+files,deleted_at,TIMESTAMPTZ,,,YES,Soft delete timestamp
+files,blockchain_provider,VARCHAR,,,YES,Blockchain provider used for storage
+files,ipfs_hash,VARCHAR,,,YES,IPFS hash if stored on blockchain
+files,blockchain_url,TEXT,,,YES,URL to access file on blockchain
+files,is_blockchain_stored,BOOLEAN,,,NO,Whether file is stored on blockchain
+files,blockchain_metadata,JSON,,,YES,Additional blockchain storage metadata
+files,is_vectorized,BOOLEAN,,,NO,Whether file content has been vectorized
+files,vectorized_at,TIMESTAMPTZ,,,YES,Timestamp when file was vectorized
+documents,id,BIGINT,YES,,NO,Auto-incrementing primary key
+documents,content,TEXT,,,YES,Full text content of the document
+documents,metadata,JSONB,,,YES,Additional metadata for the document
+documents,embedding,VECTOR,,,YES,Vector embedding for AI search
+documents,user_id,BIGINT,,,YES,User who owns this document
+documents,file_id,BIGINT,,files.id,YES,Foreign key to the source file
+document_metadata,id,TEXT,YES,,NO,Unique identifier for the document dataset
+document_metadata,title,TEXT,,,YES,Title of the document dataset
+document_metadata,url,TEXT,,,YES,URL or path to the document source
+document_metadata,created_at,TIMESTAMP,,,YES,Timestamp when metadata was created
+document_metadata,schema,TEXT,,,YES,Schema definition for the document structure
+document_metadata,user_id,BIGINT,,,YES,User who owns this document metadata
+document_metadata,file_id,BIGINT,,files.id,YES,Foreign key to the source file
+document_rows,id,INTEGER,YES,,NO,Auto-incrementing primary key
+document_rows,dataset_id,TEXT,,document_metadata.id,YES,Foreign key to the parent dataset
+document_rows,row_data,JSONB,,,YES,JSON data for this row
+document_rows,file_id,BIGINT,,files.id,YES,Foreign key to the source file
+blockchain_configs,id,BIGINT,YES,,NO,Auto-incrementing primary key
+blockchain_configs,user_id,BIGINT,,users.id,NO,Foreign key to the user who owns this configuration
+blockchain_configs,provider,VARCHAR(50),,,NO,Blockchain provider name
+blockchain_configs,api_key_encrypted,TEXT,,,NO,Encrypted API key for the blockchain provider
+blockchain_configs,settings,JSON,,,YES,Additional provider-specific settings in JSON format
+blockchain_configs,is_active,BOOLEAN,,,NO,Whether this configuration is currently active
+blockchain_configs,created_at,TIMESTAMP,,,YES,Timestamp when the configuration was created
+blockchain_configs,updated_at,TIMESTAMP,,,YES,Timestamp when the configuration was last updated
+blockchain_uploads,id,BIGINT,YES,,NO,Auto-incrementing primary key
+blockchain_uploads,file_id,BIGINT,,files.id,NO,Foreign key to the file being uploaded to blockchain
+blockchain_uploads,provider,VARCHAR(50),,,NO,Blockchain provider used for upload
+blockchain_uploads,ipfs_hash,VARCHAR(100),,,YES,IPFS hash of the uploaded file
+blockchain_uploads,upload_status,VARCHAR(255),,,NO,Status of the upload (pending/success/failed)
+blockchain_uploads,error_message,TEXT,,,YES,Error message if upload failed
+blockchain_uploads,upload_cost,NUMERIC,,,YES,Cost of the blockchain upload
+blockchain_uploads,provider_response,JSON,,,YES,Response from the blockchain provider
+blockchain_uploads,created_at,TIMESTAMP,,,YES,Timestamp when the upload was initiated
+blockchain_uploads,updated_at,TIMESTAMP,,,YES,Timestamp when the upload status was last updated
+system_activities,id,BIGINT,YES,,NO,Auto-incrementing primary key
+system_activities,user_id,BIGINT,,users.id,YES,Foreign key to the user performing action
+system_activities,target_user_id,BIGINT,,users.id,YES,Foreign key to target user (if applicable)
+system_activities,file_id,BIGINT,,files.id,YES,Foreign key to affected file (if applicable)
+system_activities,activity_type,VARCHAR(255),,,NO,Type of activity
+system_activities,action,VARCHAR(255),,,NO,Specific action performed
+system_activities,entity_type,VARCHAR(255),,,YES,Type of entity affected
+system_activities,entity_id,BIGINT,,,YES,ID of entity affected
+system_activities,description,TEXT,,,NO,Human-readable description of activity
+system_activities,metadata,JSONB,,,YES,Additional activity metadata
+system_activities,ip_address,INET,,,YES,IP address of the actor
+system_activities,user_agent,TEXT,,,YES,User agent of the actor
+system_activities,session_id,VARCHAR(255),,,YES,Session identifier
+system_activities,location_country,VARCHAR(255),,,YES,Country of the actor
+system_activities,location_city,VARCHAR(255),,,YES,City of the actor
+system_activities,device_type,VARCHAR(255),,,YES,Type of device used
+system_activities,browser,VARCHAR(255),,,YES,Browser used
+system_activities,risk_level,VARCHAR(255),,,YES,Risk level assessment (low/medium/high/critical)
+system_activities,requires_audit,BOOLEAN,,,YES,Whether activity requires audit
+system_activities,is_suspicious,BOOLEAN,,,YES,Whether activity is flagged as suspicious
+system_activities,created_at,TIMESTAMP,,,YES,Timestamp when activity occurred
+file_access_logs,id,BIGINT,YES,,NO,Auto-incrementing primary key
+file_access_logs,file_id,BIGINT,,files.id,NO,Foreign key to the accessed file
+file_access_logs,user_id,BIGINT,,users.id,NO,Foreign key to the user who accessed the file
+file_access_logs,session_id,VARCHAR(255),,user_sessions.session_id,YES,Foreign key to the user session
+file_access_logs,access_type,VARCHAR(255),,,NO,Type of access (view/download/edit)
+file_access_logs,access_method,VARCHAR(255),,,YES,Method used for access (web/api)
+file_access_logs,file_size_at_access,BIGINT,,,YES,File size at the time of access
+file_access_logs,file_version_at_access,VARCHAR(255),,,YES,File version identifier at access time
+file_access_logs,ip_address,INET,,,YES,IP address of the accessing client
+file_access_logs,user_agent,TEXT,,,YES,User agent string of the accessing client
+file_access_logs,referrer,TEXT,,,YES,Referrer URL
+file_access_logs,response_time_ms,INTEGER,,,YES,Response time in milliseconds
+file_access_logs,bytes_transferred,BIGINT,,,YES,Number of bytes transferred
+file_access_logs,started_at,TIMESTAMP,,,YES,Timestamp when access started
+file_access_logs,completed_at,TIMESTAMP,,,YES,Timestamp when access completed
+file_access_logs,duration_seconds,INTEGER,,,YES,Calculated duration of access in seconds
+daily_activity_stats,id,BIGINT,YES,,NO,Auto-incrementing primary key
+daily_activity_stats,user_id,BIGINT,,users.id,YES,Foreign key to the user (null for system-wide stats)
+daily_activity_stats,date,DATE,,,NO,Date for which statistics are aggregated
+daily_activity_stats,files_created,INTEGER,,,YES,Number of files created on this date
+daily_activity_stats,files_updated,INTEGER,,,YES,Number of files updated on this date
+daily_activity_stats,files_deleted,INTEGER,,,YES,Number of files deleted on this date
+daily_activity_stats,files_accessed,INTEGER,,,YES,Number of files accessed on this date
+daily_activity_stats,login_count,INTEGER,,,YES,Number of logins on this date
+daily_activity_stats,storage_used_bytes,BIGINT,,,YES,Total storage used in bytes
+daily_activity_stats,bandwidth_used_bytes,BIGINT,,,YES,Total bandwidth used in bytes
+daily_activity_stats,session_count,INTEGER,,,YES,Number of sessions on this date
+daily_activity_stats,active_time_minutes,INTEGER,,,YES,Total active time in minutes
+daily_activity_stats,unique_files_accessed,INTEGER,,,YES,Number of unique files accessed
+daily_activity_stats,created_at,TIMESTAMP,,,YES,Timestamp when record was created
+daily_activity_stats,updated_at,TIMESTAMP,,,YES,Timestamp when record was last updated
+saved_searches,id,BIGINT,YES,,NO,Auto-incrementing primary key
+saved_searches,user_id,BIGINT,,users.id,NO,Foreign key to the user who saved the search
+saved_searches,name,VARCHAR(255),,,NO,Name of the saved search
+saved_searches,query,TEXT,,,NO,Search query string
+saved_searches,filters,JSONB,,,YES,Applied filters in JSON format
+saved_searches,sort_by,VARCHAR(255),,,YES,Sort field (default: 'created_at')
+saved_searches,sort_order,VARCHAR(10),,,YES,Sort order (default: 'desc')
+saved_searches,is_default,BOOLEAN,,,NO,Whether this is the user's default search
+saved_searches,is_shared,BOOLEAN,,,NO,Whether search is shared with others
+saved_searches,created_at,TIMESTAMP,,,YES,Timestamp when search was saved
+saved_searches,updated_at,TIMESTAMP,,,YES,Timestamp when search was updated
+search_logs,id,BIGINT,YES,,NO,Auto-incrementing primary key
+search_logs,user_id,BIGINT,,users.id,YES,Foreign key to the user who performed search
+search_logs,session_id,VARCHAR(255),,,YES,Session identifier
+search_logs,query,TEXT,,,NO,Search query performed
+search_logs,filters_used,JSONB,,,YES,Filters applied during search
+search_logs,result_count,INTEGER,,,YES,Number of results returned
+search_logs,search_time_ms,INTEGER,,,YES,Search execution time in milliseconds
+search_logs,ip_address,INET,,,YES,IP address of the searcher
+search_logs,user_agent,TEXT,,,YES,User agent of the searcher
+search_logs,referrer,TEXT,,,YES,Referrer URL
+search_logs,created_at,TIMESTAMP,,,YES,Timestamp when search was performed
+notifications,id,BIGINT,YES,,NO,Auto-incrementing primary key
+notifications,user_id,BIGINT,,users.id,NO,Foreign key to the user receiving notification
+notifications,type,VARCHAR(255),,,NO,Type of notification
+notifications,title,VARCHAR(255),,,NO,Notification title
+notifications,message,TEXT,,,NO,Notification message content
+notifications,data,JSONB,,,YES,Additional notification data in JSON
+notifications,read_at,TIMESTAMPTZ,,,YES,Timestamp when notification was read
+notifications,created_at,TIMESTAMPTZ,,,NO,Timestamp when notification was created
+notifications,updated_at,TIMESTAMPTZ,,,NO,Timestamp when notification was updated
+user_sessions,id,BIGINT,YES,,NO,Auto-incrementing primary key
+user_sessions,user_id,BIGINT,,users.id,NO,Foreign key to the user
+user_sessions,session_id,VARCHAR(255),,,NO,Session identifier (unique)
+user_sessions,ip_address,INET,,,NO,IP address of the session
+user_sessions,user_agent,TEXT,,,YES,User agent string
+user_sessions,device_fingerprint,TEXT,,,YES,Device fingerprint for security
+user_sessions,location_country,VARCHAR(255),,,YES,Country location
+user_sessions,location_city,VARCHAR(255),,,YES,City location
+user_sessions,location_timezone,VARCHAR(255),,,YES,Timezone of user
+user_sessions,is_active,BOOLEAN,,,YES,Whether session is currently active
+user_sessions,last_activity_at,TIMESTAMP,,,YES,Timestamp of last activity
+user_sessions,login_method,VARCHAR(255),,,YES,Method used to login
+user_sessions,is_suspicious,BOOLEAN,,,YES,Whether session is flagged as suspicious
+user_sessions,trusted_device,BOOLEAN,,,YES,Whether device is marked as trusted
+user_sessions,created_at,TIMESTAMP,,,YES,Timestamp when session started
+user_sessions,expires_at,TIMESTAMP,,,YES,Timestamp when session expires
+user_sessions,logged_out_at,TIMESTAMP,,,YES,Timestamp when user logged out
+webauthn_credentials,id,TEXT,YES,,NO,Unique credential identifier
+webauthn_credentials,raw_id,TEXT,,,YES,Raw credential ID
+webauthn_credentials,response,JSONB,,,YES,Credential response data
+webauthn_credentials,type,VARCHAR(255),,,NO,Credential type (default: 'public-key')
+webauthn_credentials,transports,ARRAY,,,YES,Supported transport methods
+webauthn_credentials,attestation_type,VARCHAR(255),,,YES,Attestation type
+webauthn_credentials,trust_path,JSONB,,,YES,Trust path information
+webauthn_credentials,aaguid,UUID,,,YES,Authenticator GUID
+webauthn_credentials,public_key,TEXT,,,YES,Public key for authentication
+webauthn_credentials,counter,BIGINT,,,YES,Signature counter
+webauthn_credentials,user_handle,TEXT,,,YES,User handle
+webauthn_credentials,user_id,TEXT,,,NO,User identifier for WebAuthn
+webauthn_credentials,authenticatable_type,VARCHAR(255),,,NO,Type of authenticatable model
+webauthn_credentials,authenticatable_id,BIGINT,,,NO,ID of authenticatable model
+webauthn_credentials,disabled_at,TIMESTAMPTZ,,,YES,Timestamp when credential was disabled
+webauthn_credentials,created_at,TIMESTAMPTZ,,,NO,Timestamp when credential was created
+webauthn_credentials,updated_at,TIMESTAMPTZ,,,NO,Timestamp when credential was updated
+webauthn_credentials,rp_id,TEXT,,,NO,Relying party ID
+webauthn_credentials,origin,TEXT,,,NO,Origin URL
+webauthn_credentials,alias,VARCHAR(255),,,YES,Human-readable alias for credential
+webauthn_credentials,attestation_format,VARCHAR(255),,,YES,Attestation format
+password_reset_tokens,email,VARCHAR(255),YES,,NO,Email address requesting password reset
+password_reset_tokens,token,VARCHAR(255),,,NO,Reset token value
+password_reset_tokens,created_at,TIMESTAMP,,,YES,Timestamp when token was created
+personal_access_tokens,id,BIGINT,YES,,NO,Auto-incrementing primary key
+personal_access_tokens,tokenable_type,VARCHAR(255),,,NO,Type of model that owns the token
+personal_access_tokens,tokenable_id,BIGINT,,,NO,ID of model that owns the token
+personal_access_tokens,name,VARCHAR(255),,,NO,Human-readable token name
+personal_access_tokens,token,VARCHAR(64),,,NO,Token value (hashed) (unique)
+personal_access_tokens,abilities,TEXT,,,YES,Token permissions in JSON
+personal_access_tokens,last_used_at,TIMESTAMP,,,YES,Timestamp when token was last used
+personal_access_tokens,expires_at,TIMESTAMP,,,YES,Timestamp when token expires
+personal_access_tokens,created_at,TIMESTAMP,,,YES,Timestamp when token was created
+personal_access_tokens,updated_at,TIMESTAMP,,,YES,Timestamp when token was updated
+sessions,id,VARCHAR(255),YES,,NO,Session identifier
+sessions,user_id,BIGINT,,users.id,YES,Foreign key to authenticated user
+sessions,ip_address,VARCHAR(45),,,YES,IP address of the session
+sessions,user_agent,TEXT,,,YES,User agent string
+sessions,payload,TEXT,,,NO,Session data payload
+sessions,last_activity,INTEGER,,,NO,Unix timestamp of last activity
+chat_histories,id,INTEGER,YES,,NO,Auto-incrementing primary key
+chat_histories,session_id,VARCHAR(255),,,NO,Chat session identifier
+chat_histories,message,JSONB,,,NO,Chat message data in JSON format
+cache,key,VARCHAR(255),YES,,NO,Cache key identifier
+cache,value,TEXT,,,NO,Cached data value
+cache,expiration,INTEGER,,,NO,Unix timestamp when cache expires
+cache_locks,key,VARCHAR(255),YES,,NO,Cache lock key identifier
+cache_locks,owner,VARCHAR(255),,,NO,Process that owns the lock
+cache_locks,expiration,INTEGER,,,NO,Unix timestamp when lock expires
+jobs,id,BIGINT,YES,,NO,Auto-incrementing primary key
+jobs,queue,VARCHAR(255),,,NO,Queue name
+jobs,payload,TEXT,,,NO,Job payload data
+jobs,attempts,SMALLINT,,,NO,Number of attempts made
+jobs,reserved_at,INTEGER,,,YES,Timestamp when job was reserved
+jobs,available_at,INTEGER,,,NO,Timestamp when job becomes available
+jobs,created_at,INTEGER,,,NO,Timestamp when job was created
+job_batches,id,VARCHAR(255),YES,,NO,Unique batch identifier
+job_batches,name,VARCHAR(255),,,NO,Human-readable batch name
+job_batches,total_jobs,INTEGER,,,NO,Total number of jobs in batch
+job_batches,pending_jobs,INTEGER,,,NO,Number of pending jobs
+job_batches,failed_jobs,INTEGER,,,NO,Number of failed jobs
+job_batches,failed_job_ids,TEXT,,,NO,IDs of failed jobs
+job_batches,options,TEXT,,,YES,Batch options in JSON
+job_batches,cancelled_at,INTEGER,,,YES,Timestamp when batch was cancelled
+job_batches,created_at,INTEGER,,,NO,Timestamp when batch was created
+job_batches,finished_at,INTEGER,,,YES,Timestamp when batch finished
+failed_jobs,id,BIGINT,YES,,NO,Auto-incrementing primary key
+failed_jobs,uuid,VARCHAR(255),,,NO,Unique identifier for the failed job (unique)
+failed_jobs,connection,TEXT,,,NO,Queue connection name
+failed_jobs,queue,TEXT,,,NO,Queue name
+failed_jobs,payload,TEXT,,,NO,Job payload data
+failed_jobs,exception,TEXT,,,NO,Exception that caused the failure
+failed_jobs,failed_at,TIMESTAMP,,,NO,Timestamp when job failed
+migrations,id,INTEGER,YES,,NO,Auto-incrementing primary key
+migrations,migration,VARCHAR(255),,,NO,Migration filename
+migrations,batch,INTEGER,,,NO,Migration batch number

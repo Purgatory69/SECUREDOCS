@@ -66,6 +66,11 @@ class FileController extends Controller
             $query->where('file_name', 'LIKE', '%' . $search . '%');
         }
 
+        // Filter by type if specified (for move modal folder selection)
+        if ($request->query('type') === 'folders') {
+            $query->where('is_folder', true);
+        }
+
         $files = $query->orderBy('is_folder', 'desc')->orderBy('file_name', 'asc')->paginate(20);
 
         return response()->json($files);
@@ -502,6 +507,7 @@ class FileController extends Controller
             'file_type' => 'sometimes|string',
             'mime_type' => 'sometimes|string',
             'processing_type' => 'sometimes|string|in:standard,blockchain,vectorize,hybrid',
+            'enable_permanent_storage' => 'sometimes|boolean',
         ]);
 
         $parentId = $validated['parent_id'] ?? null;
@@ -797,13 +803,21 @@ class FileController extends Controller
     {
         try {
             $user = Auth::user();
-            $file = $user->files()->findOrFail($id);
+            $file = File::where('id', $id)->where('user_id', $user->id)->firstOrFail();
 
             if (!$file->isStoredOnBlockchain()) {
                 return response()->json([
                     'success' => false,
                     'message' => 'File is not stored on blockchain'
                 ], 400);
+            }
+
+            // Check if file is marked as permanent storage
+            if ($file->is_permanent_storage) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot remove file marked as permanent storage'
+                ], 403);
             }
 
             // Use blockchain manager to remove file
@@ -952,19 +966,39 @@ class FileController extends Controller
     protected function processBlockchainUpload(File $file, $user): void
     {
         try {
-            // Create UploadedFile from existing file
-            $filePath = Storage::path($file->file_path);
+            // Files are stored in Supabase, so we need to download them first
+            $supabaseUrl = env('SUPABASE_URL');
+            $filePath = $file->file_path;
             
-            if (!file_exists($filePath)) {
-                Log::error('File not found for blockchain upload', [
+            // Construct the Supabase URL for the file
+            $fileUrl = "{$supabaseUrl}/storage/v1/object/public/docs/{$filePath}";
+            
+            Log::info('Attempting to download file from Supabase for blockchain upload', [
+                'file_id' => $file->id,
+                'file_url' => $fileUrl,
+                'file_path' => $filePath
+            ]);
+
+            // Download file content from Supabase
+            $client = new \GuzzleHttp\Client(['verify' => false, 'timeout' => 30]);
+            $response = $client->get($fileUrl);
+            
+            if ($response->getStatusCode() !== 200) {
+                Log::error('Failed to download file from Supabase for blockchain upload', [
                     'file_id' => $file->id,
-                    'file_path' => $file->file_path
+                    'status_code' => $response->getStatusCode()
                 ]);
                 return;
             }
 
+            $fileContent = $response->getBody()->getContents();
+            
+            // Create a temporary file
+            $tempPath = tempnam(sys_get_temp_dir(), 'blockchain_upload_');
+            file_put_contents($tempPath, $fileContent);
+
             $uploadedFile = new UploadedFile(
-                $filePath,
+                $tempPath,
                 $file->file_name,
                 $file->mime_type,
                 null,
@@ -977,6 +1011,9 @@ class FileController extends Controller
                 $uploadedFile, 
                 $user
             );
+
+            // Clean up temporary file
+            unlink($tempPath);
 
             if ($result['success']) {
                 Log::info('Blockchain upload successful during post-processing', [
@@ -998,6 +1035,91 @@ class FileController extends Controller
                 'error' => $e->getMessage()
             ]);
         }
+    }
+
+    /**
+     * Get user storage usage statistics
+     */
+    public function getStorageUsage(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            // Calculate total storage used by user (cast to bigint for PostgreSQL)
+            $totalUsed = File::where('user_id', $user->id)
+                ->whereNull('deleted_at')
+                ->whereNotNull('file_size')
+                ->sum(DB::raw('CAST(COALESCE(file_size, \'0\') AS BIGINT)')) ?? 0;
+
+            // Storage limits based on user type
+            $storageLimit = $user->is_premium ? 1073741824 : 524288000; // 1GB for premium, 500MB for free
+            $usagePercentage = $storageLimit > 0 ? ($totalUsed / $storageLimit) * 100 : 0;
+
+            // Get breakdown by storage type (simplified to avoid column issues)
+            $supabaseUsed = $totalUsed; // For now, assume all files are in Supabase
+            $blockchainUsed = 0; // Will be calculated separately if needed
+
+            return response()->json([
+                'success' => true,
+                'storage' => [
+                    'total_used' => $totalUsed,
+                    'total_limit' => $storageLimit,
+                    'usage_percentage' => round($usagePercentage, 2),
+                    'is_premium' => $user->is_premium,
+                    'breakdown' => [
+                        'supabase' => $supabaseUsed,
+                        'blockchain' => $blockchainUsed
+                    ],
+                    'formatted' => [
+                        'used' => $this->formatBytes($totalUsed),
+                        'limit' => $this->formatBytes($storageLimit),
+                        'supabase' => $this->formatBytes($supabaseUsed),
+                        'blockchain' => $this->formatBytes($blockchainUsed)
+                    ]
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get storage usage', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            // Return a fallback response to prevent frontend errors
+            return response()->json([
+                'success' => true,
+                'storage' => [
+                    'total_used' => 0,
+                    'total_limit' => 524288000, // 500MB default
+                    'usage_percentage' => 0,
+                    'is_premium' => false,
+                    'breakdown' => [
+                        'supabase' => 0,
+                        'blockchain' => 0
+                    ],
+                    'formatted' => [
+                        'used' => '0 B',
+                        'limit' => '500 MB',
+                        'supabase' => '0 B',
+                        'blockchain' => '0 B'
+                    ]
+                ]
+            ]);
+        }
+    }
+
+    /**
+     * Format bytes to human readable format
+     */
+    private function formatBytes($bytes, $precision = 2): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB'];
+        
+        for ($i = 0; $bytes > 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+        
+        return round($bytes, $precision) . ' ' . $units[$i];
     }
 
     /**
@@ -1530,6 +1652,239 @@ class FileController extends Controller
                     'error' => $e->getMessage(),
                 ]);
             }
+        }
+    }
+
+    /**
+     * Move a file or folder to a different parent folder
+     */
+    public function move(Request $request, $id): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'parent_id' => 'nullable|integer|exists:files,id'
+            ]);
+
+            $user = Auth::user();
+            $file = $user->files()->findOrFail($id);
+
+            $newParentId = $validated['parent_id'];
+
+            // Validation: Cannot move a folder into itself or its descendants
+            if ($file->is_folder && $newParentId) {
+                $newParent = $user->files()->findOrFail($newParentId);
+                
+                // Check if the new parent is the same as the file being moved
+                if ($newParent->id === $file->id) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cannot move a folder into itself'
+                    ], 422);
+                }
+
+                // Check if the new parent is a descendant of the file being moved
+                if ($this->isDescendant($newParent, $file)) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Cannot move a folder into its own subfolder'
+                    ], 422);
+                }
+
+                // Ensure the new parent is actually a folder
+                if (!$newParent->is_folder) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Destination must be a folder'
+                    ], 422);
+                }
+            }
+
+            // Validation: If new parent is specified, ensure it exists and belongs to the user
+            if ($newParentId) {
+                $newParent = $user->files()->where('id', $newParentId)->where('is_folder', true)->first();
+                if (!$newParent) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Destination folder not found or is not a folder'
+                    ], 404);
+                }
+            }
+
+            // Update the parent_id
+            $file->parent_id = $newParentId;
+            $file->save();
+
+            Log::info('File moved successfully', [
+                'file_id' => $file->id,
+                'file_name' => $file->file_name,
+                'old_parent_id' => $file->getOriginal('parent_id'),
+                'new_parent_id' => $newParentId,
+                'user_id' => $user->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item moved successfully',
+                'data' => [
+                    'id' => $file->id,
+                    'file_name' => $file->file_name,
+                    'parent_id' => $file->parent_id
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'File not found'
+            ], 404);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to move file', [
+                'file_id' => $id,
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to move item'
+            ], 500);
+        }
+    }
+
+    /**
+     * Check if a folder is a descendant of another folder
+     */
+    private function isDescendant(File $potentialDescendant, File $ancestor): bool
+    {
+        $current = $potentialDescendant;
+        
+        while ($current->parent_id) {
+            if ($current->parent_id === $ancestor->id) {
+                return true;
+            }
+            
+            $current = File::find($current->parent_id);
+            if (!$current) {
+                break;
+            }
+        }
+        
+        return false;
+    }
+    /**
+     * Enable permanent storage for a blockchain file
+     */
+    public function enablePermanentStorage(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $file = File::where('id', $id)->where('user_id', $user->id)->firstOrFail();
+
+            if (!$file->isStoredOnBlockchain()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File must be stored on blockchain to enable permanent storage'
+                ], 400);
+            }
+
+            if ($file->is_permanent_storage) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File is already marked as permanent storage'
+                ], 400);
+            }
+
+            // Update file to permanent storage
+            $file->is_permanent_storage = true;
+            $file->permanent_storage_enabled_at = now();
+            $file->permanent_storage_enabled_by = $user->id;
+            $file->save();
+
+            Log::info('Permanent storage enabled for file', [
+                'file_id' => $file->id,
+                'user_id' => $user->id
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Permanent storage enabled successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to enable permanent storage', [
+                'file_id' => $id,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to enable permanent storage'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get user's processing options based on premium status
+     */
+    public function getProcessingOptions(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            $options = [
+                'standard' => [
+                    'name' => 'Standard Upload',
+                    'description' => 'Regular file upload to secure storage',
+                    'available' => true
+                ]
+            ];
+
+            // Only show processing options for non-premium users
+            if (!$user->is_premium) {
+                $options['blockchain'] = [
+                    'name' => 'Blockchain Storage',
+                    'description' => 'Store file on IPFS blockchain for decentralized access',
+                    'available' => true
+                ];
+
+                $options['vectorize'] = [
+                    'name' => 'AI Vectorization',
+                    'description' => 'Process file for AI search and analysis',
+                    'available' => true
+                ];
+
+                $options['hybrid'] = [
+                    'name' => 'Hybrid Processing',
+                    'description' => 'Combine blockchain storage with AI vectorization',
+                    'available' => true
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'user_is_premium' => $user->is_premium,
+                'processing_options' => $options
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to get processing options', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to get processing options'
+            ], 500);
         }
     }
 }

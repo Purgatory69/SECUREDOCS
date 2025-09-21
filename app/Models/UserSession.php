@@ -19,6 +19,12 @@ class UserSession extends Model
         'location_country',
         'location_city',
         'location_timezone',
+        'device_type',
+        'browser',
+        'platform',
+        'is_mobile',
+        'is_tablet',
+        'is_desktop',
         'is_active',
         'last_activity_at',
         'login_method',
@@ -32,6 +38,9 @@ class UserSession extends Model
         'is_active' => 'boolean',
         'is_suspicious' => 'boolean',
         'trusted_device' => 'boolean',
+        'is_mobile' => 'boolean',
+        'is_tablet' => 'boolean',
+        'is_desktop' => 'boolean',
         'last_activity_at' => 'datetime',
         'created_at' => 'datetime',
         'expires_at' => 'datetime',
@@ -147,20 +156,18 @@ class UserSession extends Model
             'is_suspicious' => true,
         ]);
 
-        // Log security event
-        SecurityEvent::create([
-            'user_id' => $this->user_id,
-            'event_type' => 'suspicious_session',
-            'severity' => 'warning',
-            'description' => $reason ?? 'Session marked as suspicious',
-            'details' => [
+        // Log activity instead of security event
+        SystemActivity::logAuthActivity(
+            'suspicious_session',
+            $reason ?? 'Session marked as suspicious',
+            [
                 'session_id' => $this->session_id,
                 'ip_address' => $this->ip_address,
                 'user_agent' => $this->user_agent,
             ],
-            'ip_address' => $this->ip_address,
-            'user_agent' => $this->user_agent,
-        ]);
+            SystemActivity::RISK_HIGH,
+            \App\Models\User::find($this->user_id)
+        );
     }
 
     public static function createForUser(User $user, array $attributes = []): self

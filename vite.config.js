@@ -17,6 +17,17 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+    build: {
+        // Optimize for faster loading
+        rollupOptions: {
+            output: {
+                // Optimize chunk splitting
+                manualChunks: {
+                    vendor: ['@supabase/supabase-js'],
+                }
+            }
+        }
+    },
     server: {
         cors: {
             origin: '*', // Or specify your application's origin, e.g., 'https://8000-firebase-securedocsimprovedgit-1748177464118.cluster-xpmcxs2fjnhg6xvn446ubtgpio.cloudworkstations.dev'

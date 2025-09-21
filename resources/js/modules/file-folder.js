@@ -690,6 +690,12 @@ function showActionsMenu(button, itemId) {
                 </svg>
                 Rename
             </button>
+            <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white flex items-center" data-action="move" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Move" data-tooltip="Move">
+                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"></path>
+                </svg>
+                Move
+            </button>
         `;
 
         // Add blockchain transfer options based on current view and storage location
@@ -729,6 +735,12 @@ function showActionsMenu(button, itemId) {
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                         </svg>
                         Share IPFS Link
+                    </button>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-cyan-400 hover:bg-[#2A2D47] hover:text-cyan-300 flex items-center" data-action="blockchain-history" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="View Blockchain History" data-tooltip="View Blockchain History">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        View History
                     </button>
                     <div class="border-t border-[#4A4D6A] my-1"></div>
                     <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-[#2A2D47] hover:text-red-300 flex items-center" data-action="remove-from-blockchain" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from blockchain" data-tooltip="Remove from blockchain">
@@ -781,18 +793,35 @@ function showActionsMenu(button, itemId) {
             console.debug('[DEBUG] NOT adding vector buttons for folder:', itemId, { isVectorized, isFolder });
         }
 
-        // Add blockchain removal option if file is stored on blockchain, not a folder, AND not in blockchain view
+        // Add blockchain-specific actions
         const inBlockchainView = (container?.dataset.view === 'blockchain');
-        if (!isFolder && isBlockchainStored && !inBlockchainView) {
-            menuItems += `
-                <div class="border-t border-[#4A4D6A] my-1"></div>
-                <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-[#2A2D47] hover:text-orange-300 flex items-center" data-action="remove-from-blockchain" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from blockchain storage" data-tooltip="Remove from blockchain storage">
-                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
-                    </svg>
-                    Remove from Blockchain
-                </button>
-            `;
+        if (!isFolder && isBlockchainStored) {
+            // Add permanent storage option if not already permanent and in blockchain view
+            const isPermanentStorage = asBool(itemData?.is_permanent_storage);
+            if (inBlockchainView && !isPermanentStorage) {
+                menuItems += `
+                    <div class="border-t border-[#4A4D6A] my-1"></div>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-purple-400 hover:bg-[#2A2D47] hover:text-purple-300 flex items-center" data-action="enable-permanent-storage" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Enable permanent storage (undeletable)" data-tooltip="Enable permanent storage (undeletable)">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Enable Permanent Storage
+                    </button>
+                `;
+            }
+
+            // Add blockchain removal option if not in blockchain view and not permanent
+            if (!inBlockchainView && !isPermanentStorage) {
+                menuItems += `
+                    <div class="border-t border-[#4A4D6A] my-1"></div>
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-[#2A2D47] hover:text-orange-300 flex items-center" data-action="remove-from-blockchain" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from blockchain storage" data-tooltip="Remove from blockchain storage">
+                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                        Remove from Blockchain
+                    </button>
+                `;
+            }
         }
 
         menu.innerHTML = menuItems;
@@ -939,6 +968,22 @@ function showActionsMenu(button, itemId) {
         deleteBtn.addEventListener('click', directHandler);
     }
 
+    // Direct listener for move action
+    const moveBtn = menu.querySelector('.actions-menu-item[data-action="move"]');
+    if (moveBtn) {
+        const directMove = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'move', itemId: moveBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = moveBtn.dataset.itemId;
+            console.debug('[diagnostic] invoking showMoveModal from direct button handler', { itemId: id });
+            showMoveModal(id);
+            cleanup();
+        };
+        moveBtn.addEventListener('click', directMove);
+    }
+
     // Direct listeners for restore and force-delete in Trash view
     const restoreBtn = menu.querySelector('.actions-menu-item[data-action="restore"]');
     if (restoreBtn) {
@@ -1054,20 +1099,38 @@ function showActionsMenu(button, itemId) {
         });
     }
 
-    const removeFromBlockchainBtn = menu.querySelector('.actions-menu-item[data-action="remove-from-blockchain"]');
-    if (removeFromBlockchainBtn) {
-        removeFromBlockchainBtn.addEventListener('click', (ev) => {
+    const rmBlockchainBtn = menu.querySelector('.actions-menu-item[data-action="remove-from-blockchain"]');
+    if (rmBlockchainBtn) {
+        const directRmBlockchain = (ev) => {
             ev.preventDefault();
             ev.stopPropagation();
-            const id = removeFromBlockchainBtn.dataset.itemId;
-            if (window.confirm('Remove this file from blockchain storage? This action cannot be undone.')) {
-                removeBlockchainItem(id);
+            const id = rmBlockchainBtn.dataset.itemId;
+            if (id && typeof window.removeFromBlockchain === 'function') {
+                window.removeFromBlockchain(id);
+            } else {
+                console.error('removeFromBlockchain function not available or item ID missing');
             }
             cleanup();
-        });
+        };
+        rmBlockchainBtn.addEventListener('click', directRmBlockchain);
     }
 
-    // Direct listener for rename placeholder
+    const enablePermanentBtn = menu.querySelector('.actions-menu-item[data-action="enable-permanent-storage"]');
+    if (enablePermanentBtn) {
+        const directEnablePermanent = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = enablePermanentBtn.dataset.itemId;
+            if (id && typeof window.enablePermanentStorage === 'function') {
+                window.enablePermanentStorage(id);
+            } else {
+                console.error('enablePermanentStorage function not available or item ID missing');
+            }
+            cleanup();
+        };
+        enablePermanentBtn.addEventListener('click', directEnablePermanent);
+    }
+
     const renameBtn = menu.querySelector('.actions-menu-item[data-action="rename"]');
     if (renameBtn) {
         const directRename = (ev) => {
@@ -1145,22 +1208,6 @@ function showActionsMenu(button, itemId) {
         restoreVecBtn.addEventListener('click', directRestoreVec);
     }
 
-    const rmBlockchainBtn = menu.querySelector('.actions-menu-item[data-action="remove-from-blockchain"]');
-    if (rmBlockchainBtn) {
-        const directRmBlockchain = (ev) => {
-            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'remove-from-blockchain', itemId: rmBlockchainBtn.dataset.itemId });
-            ev.preventDefault();
-            ev.stopPropagation();
-            ev.stopImmediatePropagation?.();
-            const id = rmBlockchainBtn.dataset.itemId;
-            if (window.confirm('Remove this file from blockchain storage? This will unpin it from IPFS but keep the original file.')) {
-                console.debug('[diagnostic] invoking removeFromBlockchain from direct button handler', { itemId: id });
-                removeFromBlockchain(id);
-            }
-            cleanup();
-        };
-        rmBlockchainBtn.addEventListener('click', directRmBlockchain);
-    }
 
     // Bind listeners for outside/escape closing
     function onOutsideClick(e) {
@@ -1241,6 +1288,12 @@ async function deleteItem(itemId) {
         }
 
         showNotification('Item moved to trash successfully.', 'success');
+        
+        // Trigger storage usage update
+        document.dispatchEvent(new CustomEvent('fileDeleted', { 
+            detail: { itemId } 
+        }));
+        
         loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
     } catch (error) {
         console.error('Error moving item to trash:', error);
@@ -1269,6 +1322,12 @@ async function restoreItem(itemId) {
         }
 
         showNotification('Item restored successfully.', 'success');
+        
+        // Trigger storage usage update
+        document.dispatchEvent(new CustomEvent('fileRestored', { 
+            detail: { itemId } 
+        }));
+        
         // Refresh trash view
         if (typeof loadTrashItems === 'function') {
             await loadTrashItems();
@@ -1972,4 +2031,219 @@ export async function loadUserFiles(query = '', page = 1, parentId = null, creat
             `;
         }
     }
+}
+
+// Move functionality
+async function showMoveModal(itemId) {
+    try {
+        // Get item details first
+        const itemResponse = await fetch(`/files/${itemId}`, {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!itemResponse.ok) {
+            throw new Error('Failed to get item details');
+        }
+
+        const itemData = await itemResponse.json();
+        const item = itemData.data || itemData;
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl max-w-md w-full shadow-2xl">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white">Move "${escapeHtml(item.file_name || item.name)}"</h3>
+                        <button type="button" class="text-gray-400 hover:text-white" id="close-move-modal">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-300 mb-3">Select destination folder:</p>
+                        <div class="bg-[#2A2D47] rounded-lg border border-[#4A4D6A] max-h-64 overflow-y-auto" id="folder-list">
+                            <div class="p-3 text-center text-gray-400">Loading folders...</div>
+                        </div>
+                    </div>
+                    
+                    <div class="flex gap-3 justify-end">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white border border-[#4A4D6A] rounded-lg hover:bg-[#2A2D47] transition-colors" id="cancel-move">
+                            Cancel
+                        </button>
+                        <button type="button" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" id="confirm-move" disabled>
+                            Move Here
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Load folders
+        await loadFoldersForMove(modal, itemId);
+
+        // Event listeners
+        const closeBtn = modal.querySelector('#close-move-modal');
+        const cancelBtn = modal.querySelector('#cancel-move');
+        const confirmBtn = modal.querySelector('#confirm-move');
+
+        const closeModal = () => {
+            modal.remove();
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        confirmBtn.addEventListener('click', async () => {
+            const selectedFolder = modal.querySelector('.folder-item.selected');
+            const destinationId = selectedFolder ? selectedFolder.dataset.folderId : null;
+            
+            try {
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Moving...';
+                
+                await moveItem(itemId, destinationId);
+                closeModal();
+                
+                // Refresh current view
+                if (window.loadUserFiles) {
+                    loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+                }
+                
+                showNotification('Item moved successfully', 'success');
+            } catch (error) {
+                console.error('Move failed:', error);
+                showNotification(error.message || 'Failed to move item', 'error');
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Move Here';
+            }
+        });
+
+    } catch (error) {
+        console.error('Failed to show move modal:', error);
+        showNotification(error.message || 'Failed to open move dialog', 'error');
+    }
+}
+
+async function loadFoldersForMove(modal, itemId) {
+    const folderList = modal.querySelector('#folder-list');
+    
+    try {
+        // Get all folders for the current user
+        const response = await fetch('/files?type=folders', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load folders');
+        }
+
+        const data = await response.json();
+        const folders = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
+
+        // Filter out the item being moved if it's a folder
+        const availableFolders = folders.filter(folder => folder.id != itemId);
+
+        folderList.innerHTML = '';
+
+        // Add root folder option
+        const rootOption = document.createElement('div');
+        rootOption.className = 'folder-item flex items-center p-3 hover:bg-[#3C3F58] cursor-pointer border-b border-[#4A4D6A] last:border-b-0';
+        rootOption.dataset.folderId = 'null';
+        rootOption.innerHTML = `
+            <svg class="w-5 h-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z"></path>
+            </svg>
+            <span class="text-gray-200">Root Folder</span>
+        `;
+        folderList.appendChild(rootOption);
+
+        // Add other folders
+        availableFolders.forEach(folder => {
+            const folderItem = document.createElement('div');
+            folderItem.className = 'folder-item flex items-center p-3 hover:bg-[#3C3F58] cursor-pointer border-b border-[#4A4D6A] last:border-b-0';
+            folderItem.dataset.folderId = folder.id;
+            folderItem.innerHTML = `
+                <svg class="w-5 h-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z"></path>
+                </svg>
+                <span class="text-gray-200">${escapeHtml(folder.file_name || folder.name)}</span>
+            `;
+            folderList.appendChild(folderItem);
+        });
+
+        if (availableFolders.length === 0) {
+            const noFolders = document.createElement('div');
+            noFolders.className = 'p-3 text-center text-gray-400';
+            noFolders.textContent = 'No folders available. You can only move to root folder.';
+            folderList.appendChild(noFolders);
+        }
+
+        // Add click handlers for folder selection
+        folderList.addEventListener('click', (e) => {
+            const folderItem = e.target.closest('.folder-item');
+            if (folderItem) {
+                // Remove previous selection
+                folderList.querySelectorAll('.folder-item').forEach(item => {
+                    item.classList.remove('selected', 'bg-blue-600');
+                });
+                
+                // Add selection to clicked item
+                folderItem.classList.add('selected', 'bg-blue-600');
+                
+                // Enable confirm button
+                const confirmBtn = modal.querySelector('#confirm-move');
+                confirmBtn.disabled = false;
+            }
+        });
+
+    } catch (error) {
+        console.error('Failed to load folders:', error);
+        folderList.innerHTML = `
+            <div class="p-3 text-center text-red-400">
+                Failed to load folders. Please try again.
+            </div>
+        `;
+    }
+}
+
+async function moveItem(itemId, destinationId) {
+    const response = await fetch(`/files/${itemId}/move`, {
+        method: 'PATCH',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': getCsrfToken()
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            parent_id: destinationId === 'null' ? null : parseInt(destinationId)
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Failed to move item (${response.status})`);
+    }
+
+    return response.json();
 }

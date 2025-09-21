@@ -54,6 +54,9 @@ class File extends Model
         'blockchain_metadata',
         'is_vectorized',
         'vectorized_at',
+        'is_permanent_storage',
+        'permanent_storage_enabled_at',
+        'permanent_storage_enabled_by',
     ];
 
     /**
@@ -67,6 +70,8 @@ class File extends Model
         'blockchain_metadata' => 'array',
         'is_vectorized' => 'boolean',
         'vectorized_at' => 'datetime',
+        'is_permanent_storage' => 'boolean',
+        'permanent_storage_enabled_at' => 'datetime',
     ];
     
     /**

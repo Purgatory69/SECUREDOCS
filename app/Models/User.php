@@ -51,6 +51,10 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
         'role',
         'is_approved',
         'is_premium',
+        'email_notifications_enabled',
+        'login_notifications_enabled',
+        'security_notifications_enabled',
+        'activity_notifications_enabled',
     ];
 
     /**
@@ -84,6 +88,10 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
         'password' => 'hashed',
         'is_approved' => 'boolean',
         'is_premium' => 'boolean',
+        'email_notifications_enabled' => 'boolean',
+        'login_notifications_enabled' => 'boolean',
+        'security_notifications_enabled' => 'boolean',
+        'activity_notifications_enabled' => 'boolean',
     ];
 
     /**

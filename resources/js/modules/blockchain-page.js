@@ -62,15 +62,18 @@ function displayBlockchainItems(items) {
         ipfs_hash: item.ipfs_hash,
         file_path: item.file_path,
         // Add blockchain-specific metadata for enhanced actions
-        blockchain_provider: item.provider || 'pinata',
-        blockchain_url: item.gateway_url,
+        blockchain_provider: item.blockchain_provider || 'pinata',
+        blockchain_url: item.blockchain_url || item.pinata_gateway_url,
+        is_permanent_storage: item.is_permanent_storage || false,
+        permanent_storage_enabled_at: item.permanent_storage_enabled_at,
         blockchain_metadata: {
-            provider: item.provider || 'pinata',
-            gateway_url: item.gateway_url,
+            provider: item.blockchain_provider || 'pinata',
+            gateway_url: item.blockchain_url || item.pinata_gateway_url,
             encrypted: item.encrypted || false,
             upload_timestamp: item.upload_timestamp,
             pin_status: 'pinned',
-            redundancy_level: 3
+            redundancy_level: 3,
+            is_permanent: item.is_permanent_storage || false
         }
     }));
 
@@ -130,6 +133,50 @@ export async function removeFromBlockchain(fileId) {
     }
 }
 
+export async function enablePermanentStorage(fileId) {
+    // Check if user is premium to customize the message
+    let message = 'Enable permanent storage for this file? This will make the file undeletable.';
+    
+    // For non-premium users, mention potential fees
+    try {
+        const response = await fetch('/files/processing-options');
+        const data = await response.json();
+        if (data.success && !data.user_is_premium) {
+            message = 'Enable permanent storage for this file? This will make the file undeletable and may incur additional fees.';
+        }
+    } catch (e) {
+        // Fallback to generic message if we can't check premium status
+        console.warn('Could not check premium status:', e);
+    }
+    
+    if (!confirm(message)) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`/files/${fileId}/enable-permanent-storage`, {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content'),
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('Permanent storage enabled successfully', 'success');
+            loadBlockchainItems(); // Refresh the list
+        } else {
+            showNotification(data.message || 'Failed to enable permanent storage', 'error');
+        }
+    } catch (error) {
+        console.error('Error enabling permanent storage:', error);
+        showNotification('Failed to enable permanent storage', 'error');
+    }
+}
+
 // Expose functions globally for onclick handlers
 window.downloadFromBlockchain = downloadFromBlockchain;
 window.removeFromBlockchain = removeFromBlockchain;
+window.enablePermanentStorage = enablePermanentStorage;
