@@ -1206,6 +1206,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }
         
+        if (dropdownName === 'notification' || dropdownName === 'all') {
+            const notificationDropdown = document.getElementById('notificationDropdown');
+            if (notificationDropdown) {
+                notificationDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+                notificationDropdown.style.pointerEvents = 'none';
+            }
+        }
+        
         if (dropdownName === 'all') {
             activeDropdown = null;
         }
@@ -1225,8 +1233,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const isCurrentlyActive = activeDropdown === 'language';
                 
-                // Only close the new dropdown when language toggle is clicked
+                // Close other dropdowns when language toggle is clicked
                 closeDropdown('new');
+                closeDropdown('profile');
+                closeDropdown('notification');
                 
                 // Toggle the language dropdown
                 if (isCurrentlyActive) {
@@ -1268,9 +1278,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 const isCurrentlyActive = activeDropdown === 'new';
                 
-                // Close both language and profile dropdowns when new button is clicked
+                // Close other dropdowns when new button is clicked
                 closeDropdown('language');
                 closeDropdown('profile');
+                closeDropdown('notification');
                 
                 // Toggle the new dropdown
                 if (isCurrentlyActive) {
@@ -1322,9 +1333,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 e.stopPropagation();
                 const isCurrentlyActive = activeDropdown === 'profile';
 
-                // Close "new" dropdown when profile is clicked
+                // Close other dropdowns when profile is clicked
                 closeDropdown('new');
-                // ❌ do NOT close language here
+                closeDropdown('language');
+                closeDropdown('notification');
 
                 if (isCurrentlyActive) {
                     closeDropdown('profile');
@@ -1340,6 +1352,39 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
+    function initializeNotificationDropdown() {
+        const toggle = document.getElementById('notificationBell');
+        const dropdown = document.getElementById('notificationDropdown');
+        
+        if (toggle && dropdown) {
+            // Set initial state with proper transitions
+            dropdown.style.transition = 'opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease';
+            dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+            dropdown.style.pointerEvents = 'none';
+            
+            toggle.addEventListener('click', function(e) {
+                e.stopPropagation();
+                
+                const isCurrentlyActive = activeDropdown === 'notification';
+                
+                // Close other dropdowns when notification bell is clicked
+                closeDropdown('new');
+                closeDropdown('language');
+                closeDropdown('profile');
+                
+                // Toggle the notification dropdown
+                if (isCurrentlyActive) {
+                    closeDropdown('notification');
+                    activeDropdown = null;
+                } else {
+                    dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+                    dropdown.style.pointerEvents = 'auto';
+                    activeDropdown = 'notification';
+                }
+            });
+        }
+    }
+
     
     // Global click handler to close dropdowns when clicking outside
     document.addEventListener('click', function(e) {
@@ -1349,6 +1394,8 @@ document.addEventListener('DOMContentLoaded', function() {
         const dropdown2 = document.getElementById('newDropdown');
         const toggle3 = document.getElementById('userProfileBtn');
         const dropdown3 = document.getElementById('profileDropdown');
+        const toggle4 = document.getElementById('notificationBell');
+        const dropdown4 = document.getElementById('notificationDropdown');
         
         const clickedInsideAnyDropdown = 
             (toggle1 && toggle1.contains(e.target)) ||
@@ -1356,7 +1403,9 @@ document.addEventListener('DOMContentLoaded', function() {
             (toggle2 && toggle2.contains(e.target)) ||
             (dropdown2 && dropdown2.contains(e.target)) ||
             (toggle3 && toggle3.contains(e.target)) ||
-            (dropdown3 && dropdown3.contains(e.target));
+            (dropdown3 && dropdown3.contains(e.target)) ||
+            (toggle4 && toggle4.contains(e.target)) ||
+            (dropdown4 && dropdown4.contains(e.target));
         
         if (!clickedInsideAnyDropdown) {
             closeDropdown('all');
@@ -1368,6 +1417,7 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeLanguageDropdown();
         initializeNewDropdown();
         initializeProfileDropdown();
+        initializeNotificationDropdown();
     }, 100);
 });
 </script>
