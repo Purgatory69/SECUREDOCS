@@ -3,17 +3,16 @@ import { showNotification } from './ui.js';
 // --- Upload Modal ---
 
 let currentUploadFile = null;
-let isPremiumUser = null; // cached premium status
 let fetchedPremiumOnce = false;
+let isPremiumUser = null;
 
 async function ensurePremiumStatus() {
     if (fetchedPremiumOnce && isPremiumUser !== null) return isPremiumUser;
     try {
-        const res = await fetch('/blockchain/storage-info');
-        const data = await res.json();
-        isPremiumUser = !!data?.user_premium;
+        // Check user premium status from user data or a simple endpoint
+        const user = window.authUser || null;
+        isPremiumUser = user?.is_premium || false;
     } catch (e) {
-        // If unavailable, assume non-premium to be safe (UI will still validate on submit)
         isPremiumUser = false;
     } finally {
         fetchedPremiumOnce = true;
@@ -24,9 +23,7 @@ async function ensurePremiumStatus() {
 function applyPremiumUX() {
     const premiumCards = document.querySelectorAll('label[data-premium-option="true"]');
     const mappings = [
-        { badge: 'badgeBlockchain', desc: 'descBlockchain', text: 'Store on IPFS via Pinata' },
-        { badge: 'badgeVectorize', desc: 'descVectorize', text: 'Process with AI for advanced search' },
-        { badge: 'badgeHybrid', desc: 'descHybrid', text: 'Store on IPFS and vectorize' },
+        { badge: 'badgeVectorize', desc: 'descVectorize', text: 'Process with AI for advanced search capabilities' },
     ];
 
     if (isPremiumUser) {
@@ -190,10 +187,21 @@ async function handleUpload() {
             progressPercentage.textContent = percentCompleted + '%';
         };
 
-        const filePath = await window.uploadFileToSupabase(currentUploadFile, onProgress);
-        await saveFileMetadata(currentUploadFile, filePath, processingType);
+        let uploadResult;
+        
+        // Route to different upload endpoints based on processing type
+        switch (processingType) {
+            case 'standard':
+                uploadResult = await handleStandardUpload(onProgress);
+                break;
+            case 'vectorize':
+                uploadResult = await handleAiVectorizeUpload(onProgress);
+                break;
+            default:
+                uploadResult = await handleStandardUpload(onProgress);
+        }
 
-        showNotification('File uploaded successfully!', 'success');
+        showNotification(uploadResult.message || 'File uploaded successfully!', 'success');
         hideUploadModal();
         
         // Trigger storage usage update
@@ -213,21 +221,120 @@ async function handleUpload() {
     }
 }
 
-async function saveFileMetadata(file, filePath, processingType = 'standard') {
-    const currentFolderIdEl = document.getElementById('currentFolderId');
-    let parentId = currentFolderIdEl?.value || null;
+// Separate upload handlers for different processing types
+
+async function handleStandardUpload(onProgress) {
+    const filePath = await window.uploadFileToSupabase(currentUploadFile, onProgress);
     
-    // Normalize parent_id: convert 'null' string to null, parse numbers
+    const currentFolderIdEl = document.getElementById('currentFolderId');
+    let parentId = normalizeParentId(currentFolderIdEl?.value);
+
+    const payload = {
+        file_name: currentUploadFile.name,
+        file_path: filePath,
+        file_size: currentUploadFile.size,
+        file_type: 'file',
+        mime_type: currentUploadFile.type || 'application/octet-stream',
+        parent_id: parentId
+    };
+
+    const response = await fetch('/files/upload/standard', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.message || 'Standard upload failed');
+    }
+    
+    return result;
+}
+
+
+async function handleAiVectorizeUpload(onProgress) {
+    const filePath = await window.uploadFileToSupabase(currentUploadFile, onProgress);
+    
+    const currentFolderIdEl = document.getElementById('currentFolderId');
+    let parentId = normalizeParentId(currentFolderIdEl?.value);
+
+    const payload = {
+        file_name: currentUploadFile.name,
+        file_path: filePath,
+        file_size: currentUploadFile.size,
+        file_type: 'file',
+        mime_type: currentUploadFile.type || 'application/octet-stream',
+        parent_id: parentId
+    };
+
+    const response = await fetch('/files/upload/ai-vectorize', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify(payload)
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.message || 'AI vectorize upload failed');
+    }
+    
+    return result;
+}
+
+
+// Helper functions
+function normalizeParentId(parentId) {
     if (parentId === 'null' || parentId === '' || parentId === 'undefined') {
-        parentId = null;
+        return null;
     } else if (parentId !== null) {
         const parsed = parseInt(parentId, 10);
         if (!isNaN(parsed)) {
-            parentId = parsed;
+            return parsed;
         } else {
-            parentId = null;
+            return null;
         }
     }
+    return null;
+}
+
+function fileToBase64(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => {
+            // Remove data:mime/type;base64, prefix
+            const base64 = reader.result.split(',')[1];
+            resolve(base64);
+        };
+        reader.onerror = error => reject(error);
+    });
+}
+
+function simulateProgress(onProgress) {
+    let progress = 0;
+    const interval = setInterval(() => {
+        progress += Math.random() * 15;
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+        }
+        onProgress({ loaded: progress, total: 100 });
+    }, 200);
+}
+
+// Legacy function for backward compatibility
+async function saveFileMetadata(file, filePath, processingType = 'standard') {
+    const currentFolderIdEl = document.getElementById('currentFolderId');
+    let parentId = normalizeParentId(currentFolderIdEl?.value);
 
     const payload = {
         file_name: file.name,
@@ -285,13 +392,11 @@ function showProcessingOptions() {
 }
 
 async function validateProcessingOptions(file) {
-    const blockchainRadio = document.getElementById('blockchainUpload');
     const vectorizeRadio = document.getElementById('vectorizeUpload');
-    const hybridRadio = document.getElementById('hybridUpload');
     const validationDiv = document.getElementById('processingValidation');
 
     // If the processing options UI isn't present on this page, skip validation gracefully
-    if (!blockchainRadio && !vectorizeRadio && !hybridRadio && !validationDiv) {
+    if (!vectorizeRadio && !validationDiv) {
         const uploadBtn = document.getElementById('uploadBtn');
         if (uploadBtn) uploadBtn.disabled = false;
         return;
@@ -347,31 +452,12 @@ async function validatePremiumProcessing(file, processingType) {
         info: []
     };
 
-    // Check user premium status and storage info
+    // Check user premium status
     try {
-        const storageResponse = await fetch('/blockchain/storage-info');
-        const storageData = await storageResponse.json();
-        
-        if (!storageData.success) {
-            results.errors.push('Unable to verify premium status');
-            return results;
-        }
-
-        const isPremium = storageData.user_premium;
-        const requirements = storageData.requirements;
+        const isPremium = await ensurePremiumStatus();
 
         // Validate based on processing type
-        if (processingType === 'blockchain' || processingType === 'hybrid') {
-            if (!isPremium) {
-                results.errors.push('Premium subscription required for blockchain storage');
-            } else if (!requirements.configured) {
-                results.errors.push('Blockchain provider not configured');
-            } else if (file.size > requirements.max_file_size) {
-                results.errors.push(`File size (${formatFileSize(file.size)}) exceeds blockchain limit (${requirements.max_file_size_human})`);
-            } else {
-                results.info.push(`Will upload to ${requirements.provider} blockchain storage`);
-            }
-        }
+        // Blockchain validation removed - use permanent storage modal instead
 
         if (processingType === 'vectorize' || processingType === 'hybrid') {
             if (!isPremium) {

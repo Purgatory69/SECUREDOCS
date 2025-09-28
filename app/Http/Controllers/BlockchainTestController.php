@@ -43,6 +43,32 @@ class BlockchainTestController extends Controller
     }
 
     /**
+     * Test Arweave connection
+     */
+    public function testArweave(): JsonResponse
+    {
+        try {
+            $result = $this->blockchainManager->testProvider('arweave');
+            
+            return response()->json([
+                'success' => $result['success'],
+                'message' => $result['message'],
+                'provider' => 'arweave',
+                'timestamp' => now()->toIso8601String(),
+                'response' => $result['response'] ?? null
+            ]);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Arweave test failed: ' . $e->getMessage(),
+                'provider' => 'arweave',
+                'timestamp' => now()->toIso8601String()
+            ], 500);
+        }
+    }
+
+    /**
      * Get available blockchain providers
      */
     public function getProviders(): JsonResponse

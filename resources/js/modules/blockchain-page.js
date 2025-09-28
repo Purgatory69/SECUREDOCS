@@ -38,11 +38,11 @@ function displayBlockchainItems(items) {
     if (!items || items.length === 0) {
         itemsContainer.innerHTML = `
             <div class="flex flex-col items-center justify-center py-16 text-center">
-                <div class="text-6xl mb-4">🔗</div>
-                <h3 class="text-lg font-medium text-white mb-2">No files on blockchain yet</h3>
-                <p class="text-gray-400 mb-4">Upload files to IPFS for decentralized storage</p>
+                <div class="text-6xl mb-4">⛓️</div>
+                <h3 class="text-lg font-medium text-white mb-2">No files on Arweave yet</h3>
+                <p class="text-gray-400 mb-4">Upload files to Arweave for permanent decentralized storage</p>
                 <button onclick="document.getElementById('uploadFileOption').click()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">
-                    Upload to Blockchain
+                    Upload to Arweave
                 </button>
             </div>
         `;

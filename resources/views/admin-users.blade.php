@@ -126,14 +126,27 @@
                                 @endif
                             </td>
                             <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <form method="POST" action="{{ route('admin.users.premium-settings', $user) }}" class="space-y-1">
-                                    @csrf
-                                    <div class="flex items-center">
-                                        <input type="checkbox" name="is_premium" id="is_premium_{{ $user->id }}" value="1" {{ $user->is_premium ? 'checked' : '' }} class="mr-1 h-3 w-3 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500">
-                                        <label for="is_premium_{{ $user->id }}" class="text-xs">Premium</label>
-                                    </div>
-                                    <button type="submit" class="px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600">Update</button>
-                                </form>
+                                <div class="flex flex-col space-y-2">
+                                    <!-- Toggle Premium Button -->
+                                    <button onclick="togglePremium({{ $user->id }}, '{{ $user->name }}', {{ $user->is_premium ? 'true' : 'false' }})" 
+                                            class="px-3 py-1 text-xs rounded transition-colors {{ $user->is_premium ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white' }}">
+                                        {{ $user->is_premium ? 'Remove Premium' : 'Grant Premium' }}
+                                    </button>
+                                    
+                                    <!-- Reset Premium Button -->
+                                    @if($user->is_premium)
+                                    <button onclick="resetPremium({{ $user->id }}, '{{ $user->name }}')" 
+                                            class="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded transition-colors">
+                                        Reset All Data
+                                    </button>
+                                    @endif
+                                    
+                                    <!-- View Details Button -->
+                                    <button onclick="viewPremiumDetails({{ $user->id }})" 
+                                            class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded transition-colors">
+                                        View Details
+                                    </button>
+                                </div>
                             </td>
                         </tr>
                     @empty
@@ -216,5 +229,92 @@
             const form = document.getElementById('adminUserSearchForm');
             form && form.addEventListener('submit', (e) => { e.preventDefault(); triggerFetch(); });
         });
+
+        // Premium Management Functions
+        function togglePremium(userId, userName, isPremium) {
+            const action = isPremium ? 'remove premium from' : 'grant premium to';
+            if (confirm(`Are you sure you want to ${action} ${userName}?`)) {
+                fetch(`/admin/users/${userId}/toggle-premium`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload(); // Refresh to update the UI
+                    } else {
+                        alert('Error: ' + (data.message || 'Something went wrong'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            }
+        }
+
+        function resetPremium(userId, userName) {
+            if (confirm(`Are you sure you want to COMPLETELY RESET all premium data for ${userName}? This will delete all their subscriptions and payments. This action cannot be undone.`)) {
+                fetch(`/admin/users/${userId}/reset-premium`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert(data.message);
+                        location.reload(); // Refresh to update the UI
+                    } else {
+                        alert('Error: ' + (data.message || 'Something went wrong'));
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('An error occurred. Please try again.');
+                });
+            }
+        }
+
+        function viewPremiumDetails(userId) {
+            fetch(`/admin/users/${userId}/premium-details`)
+                .then(response => response.json())
+                .then(data => {
+                    let details = `Premium Details for ${data.user.name}:\n\n`;
+                    details += `Status: ${data.user.is_premium ? 'Premium' : 'Standard'}\n\n`;
+                    
+                    if (data.subscriptions.length > 0) {
+                        details += 'Subscriptions:\n';
+                        data.subscriptions.forEach(sub => {
+                            details += `- ${sub.plan_name} (${sub.status}) - ${sub.amount}\n`;
+                            details += `  From ${sub.starts_at} to ${sub.ends_at}\n`;
+                        });
+                        details += '\n';
+                    }
+                    
+                    if (data.payments.length > 0) {
+                        details += 'Recent Payments:\n';
+                        data.payments.slice(0, 5).forEach(payment => {
+                            details += `- ${payment.amount} via ${payment.payment_method} (${payment.status}) - ${payment.created_at}\n`;
+                        });
+                    }
+                    
+                    if (data.subscriptions.length === 0 && data.payments.length === 0) {
+                        details += 'No subscription or payment history found.';
+                    }
+                    
+                    alert(details);
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error loading premium details.');
+                });
+        }
     </script>
 @endsection

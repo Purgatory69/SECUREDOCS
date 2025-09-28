@@ -6,6 +6,7 @@ use App\Http\Controllers\N8nNotificationController;
 use App\Http\Controllers\WebsiteRefreshController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\SchemaController;
+use App\Http\Controllers\PermanentStorageController;
 
 Route::get('/user', function (Request $request) {
     return $request->user();
@@ -61,3 +62,13 @@ Route::post('/ai/categorization-update', [FileController::class, 'updateCategori
 Route::get('/db-schema', [SchemaController::class, 'get'])
     ->middleware(['auth:sanctum', 'role:admin'])
     ->name('api.db-schema');
+
+// Permanent Storage API Routes (Premium users only)
+Route::middleware(['auth'])->prefix('permanent-storage')->group(function () {
+    Route::post('/calculate-cost', [PermanentStorageController::class, 'calculateCost']);
+    Route::post('/create-payment', [PermanentStorageController::class, 'createPayment']);
+    Route::get('/payment-status/{paymentId}', [PermanentStorageController::class, 'checkPaymentStatus']);
+    Route::post('/upload', [PermanentStorageController::class, 'uploadToArweave']);
+    Route::get('/history', [PermanentStorageController::class, 'getHistory']);
+    Route::get('/supported-options', [PermanentStorageController::class, 'getSupportedOptions']);
+});

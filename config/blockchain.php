@@ -9,11 +9,11 @@ return [
     |
     | This option controls the default blockchain storage provider that will
     | be used for premium users. You may change this to any of the supported
-    | providers: 'pinata', 'storj', 'arweave'
+    | providers: 'arweave'
     |
     */
 
-    'default' => env('BLOCKCHAIN_STORAGE_DEFAULT', 'pinata'),
+    'default' => env('BLOCKCHAIN_STORAGE_DEFAULT', 'arweave'),
 
     /*
     |--------------------------------------------------------------------------
@@ -21,50 +21,28 @@ return [
     |--------------------------------------------------------------------------
     |
     | Here you may configure the blockchain storage providers for your
-    | application. These providers will be used to store files on
     | decentralized networks like IPFS.
     |
     */
 
     'providers' => [
-        
-        'pinata' => [
-            'name' => 'Pinata (IPFS)',
-            'api_key' => env('PINATA_API_KEY'),
-            'api_secret' => env('PINATA_API_SECRET'),
-            'gateway_url' => env('PINATA_GATEWAY_URL', 'https://gateway.pinata.cloud'),
-            'api_url' => env('PINATA_API_URL', 'https://api.pinata.cloud'),
-            'enabled' => env('PINATA_ENABLED', true),
-            'max_file_size' => env('PINATA_MAX_FILE_SIZE', 104857600), // 100MB in bytes
-            'pricing' => [
-                'currency' => 'USD',
-                'per_gb_monthly' => 20.00, // Pinata pricing
-                'free_tier_gb' => 1.0,
-            ]
-        ],
-
-
-        'storj' => [
-            'name' => 'Storj DCS',
-            'enabled' => env('STORJ_ENABLED', false),
-            'access_key' => env('STORJ_ACCESS_KEY'),
-            'secret_key' => env('STORJ_SECRET_KEY'),
-            'endpoint' => env('STORJ_ENDPOINT', 'https://gateway.storjshare.io'),
-            'pricing' => [
-                'currency' => 'USD',
-                'per_gb_monthly' => 4.00,
-                'free_tier_gb' => 0,
-            ]
-        ],
-
         'arweave' => [
             'name' => 'Arweave (Permanent Storage)',
-            'enabled' => env('ARWEAVE_ENABLED', false),
+            'enabled' => env('ARWEAVE_ENABLED', true), // Enabled by default
             'gateway_url' => env('ARWEAVE_GATEWAY_URL', 'https://arweave.net'),
+            'node_url' => env('ARWEAVE_NODE_URL', 'https://arweave.net'),
+            'max_file_size' => env('ARWEAVE_MAX_FILE_SIZE', 104857600), // 100MB in bytes
             'pricing' => [
                 'currency' => 'USD',
                 'per_gb_onetime' => 2.13, // One-time payment for permanent storage
                 'free_tier_gb' => 0,
+                'min_cost_usd' => 0.01, // Minimum cost
+            ],
+            'features' => [
+                'permanent_storage' => true,
+                'immutable' => true,
+                'decentralized' => true,
+                'censorship_resistant' => true,
             ]
         ],
 
@@ -85,6 +63,19 @@ return [
         'auto_backup_to_blockchain' => env('BLOCKCHAIN_AUTO_BACKUP', false),
         'max_monthly_uploads' => env('BLOCKCHAIN_MAX_MONTHLY_UPLOADS', 1000),
     ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Business Model Settings
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for profit margins and pricing
+    |
+    */
+
+    'profit_margin' => env('BLOCKCHAIN_PROFIT_MARGIN', 25.0), // 25% profit margin
+    'minimum_charge_usd' => env('BLOCKCHAIN_MIN_CHARGE', 1.00), // $1 minimum charge
+    'processing_fee_usd' => env('BLOCKCHAIN_PROCESSING_FEE', 0.50), // $0.50 processing fee
 
     /*
     |--------------------------------------------------------------------------

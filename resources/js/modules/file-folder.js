@@ -166,7 +166,7 @@ export function initializeFileFolderManagement(initialState) {
     });
 
     // Initial breadcrumbs render
-    updateBreadcrumbsDisplay(state.breadcrumbs);
+    updateBreadcrumbsDisplay(state.breadcrumbs, 'main');
 
     // --- Layout toggle (Grid/List) ---
     const btnGrid = document.getElementById('btnGridLayout');
@@ -329,7 +329,7 @@ function navigateToFolder(folderId, folderName) {
     document.getElementById('mainSearchInput').value = '';
 
     loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
-    updateBreadcrumbsDisplay(state.breadcrumbs);
+    updateBreadcrumbsDisplay(state.breadcrumbs, 'main');
 }
 
 function getFileIcon(fileName) {
@@ -418,7 +418,8 @@ function bindDelegatedListeners() {
             const isFolder = fileCard.dataset.isFolder === 'true';
             if (!isFolder) {
                 console.debug('[file] preview click', { fileId });
-                window.location.href = `/files/${fileId}/preview`;
+                // Check if file has OTP protection before allowing preview
+                handleFilePreview(fileId);
                 return;
             }
         }
@@ -463,8 +464,18 @@ function createGoogleDriveCard(item) {
     cardElement.setAttribute('aria-label', `Open ${isFolder ? 'folder' : 'file'} ${name}`);
 
     cardElement.innerHTML = `
-        <!-- Header with three-dot menu -->
-        <div class="absolute top-2 right-2 z-10">
+        <!-- Header with OTP indicator and three-dot menu -->
+        <div class="absolute top-2 left-2 right-2 flex justify-between items-center z-9">
+            <!-- OTP Security Indicator -->
+                ${!isFolder && item.is_confidential ? `
+                <div class="bg-orange-500 text-white p-1 rounded-full" title="OTP Protected" data-tooltip="OTP Protected">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                </div>
+            ` : '<div></div>'}
+            
+            <!-- Actions Menu Button -->
             <button class="actions-menu-btn opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-[#4A4D6A]" 
                     data-item-id="${item.id}" 
                     data-tooltip="More actions"
@@ -494,6 +505,29 @@ function createGoogleDriveCard(item) {
                     ${itemDate}
                 </div>
             </div>
+            
+            <!-- Arweave Payment Button (for files only) -->
+            ${!isFolder ? `
+                <div class="mt-3 pt-2 border-t border-[#4A4D6A]">
+                    ${!item.is_blockchain_stored ? `
+                        <button data-arweave-payment="${item.id}" 
+                                class="w-full flex items-center justify-center px-3 py-2 text-xs bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-md hover:from-yellow-600 hover:to-orange-600 transition-all duration-200 font-medium"
+                                title="Upload to Arweave (Paid Storage)">
+                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            💰 Pay & Store on Arweave
+                        </button>
+                    ` : `
+                        <div class="w-full flex items-center justify-center px-3 py-2 text-xs bg-green-600 text-white rounded-md font-medium">
+                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                            </svg>
+                            ⛓️ Stored on Arweave
+                        </div>
+                    `}
+                </div>
+            ` : ''}
         </div>
 
         <!-- Hover overlay for selection -->
@@ -698,6 +732,19 @@ function showActionsMenu(button, itemId) {
             </button>
         `;
 
+        // Add OTP Security option for files (not folders)
+        if (!isFolder) {
+            menuItems += `
+                <div class="border-t border-[#4A4D6A] my-1"></div>
+                <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-[#2A2D47] hover:text-orange-300 flex items-center" data-action="otp-security" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="OTP Security" data-tooltip="OTP Security">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                    </svg>
+                    OTP Security
+                </button>
+            `;
+        }
+
         // Add blockchain transfer options based on current view and storage location
         if (!isFolder) {
             const inBlockchainView = (container?.dataset.view === 'blockchain');
@@ -764,15 +811,15 @@ function showActionsMenu(button, itemId) {
             }
         }
 
-        // Add vector management option if not a folder
-        if (!isFolder) {
+        // Add vector database actions for non-folder items (Premium only)
+        if (!isFolder && window.userIsPremium) {
             if (isVectorized) {
-                console.debug('[DEBUG] Adding vector removal button for item:', itemId, { isVectorized, isFolder });
+                console.debug('[DEBUG] Adding vector remove button for item:', itemId, { isVectorized, isFolder });
                 menuItems += `
                     <div class="border-t border-[#4A4D6A] my-1"></div>
-                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-orange-400 hover:bg-[#2A2D47] hover:text-orange-300 flex items-center" data-action="remove-from-vector" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from AI vector database" data-tooltip="Remove from AI vector database">
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-[#2A2D47] hover:text-red-300 flex items-center" data-action="remove-from-vector" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from AI vector database" data-tooltip="Remove from AI vector database">
                         <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
                         </svg>
                         Remove from AI Vector DB
                     </button>
@@ -789,6 +836,18 @@ function showActionsMenu(button, itemId) {
                     </button>
                 `;
             }
+        } else if (!isFolder && !window.userIsPremium) {
+            // Show upgrade prompt for non-premium users
+            console.debug('[DEBUG] Adding premium upgrade prompt for AI Vector DB');
+            menuItems += `
+                <div class="border-t border-[#4A4D6A] my-1"></div>
+                <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-yellow-400 hover:bg-[#2A2D47] hover:text-yellow-300 flex items-center opacity-60" onclick="showPremiumUpgradeModal('ai')" role="menuitem" tabindex="-1" title="Upgrade to Premium for AI features">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add to AI Vector DB 
+                </button>
+            `;
         } else {
             console.debug('[DEBUG] NOT adding vector buttons for folder:', itemId, { isVectorized, isFolder });
         }
@@ -982,6 +1041,22 @@ function showActionsMenu(button, itemId) {
             cleanup();
         };
         moveBtn.addEventListener('click', directMove);
+    }
+
+    // Direct listener for OTP security action
+    const otpSecurityBtn = menu.querySelector('.actions-menu-item[data-action="otp-security"]');
+    if (otpSecurityBtn) {
+        const directOtpSecurity = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'otp-security', itemId: otpSecurityBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = otpSecurityBtn.dataset.itemId;
+            console.debug('[diagnostic] invoking showOtpSecurityModal from direct button handler', { itemId: id });
+            showOtpSecurityModal(id);
+            cleanup();
+        };
+        otpSecurityBtn.addEventListener('click', directOtpSecurity);
     }
 
     // Direct listeners for restore and force-delete in Trash view
@@ -1431,7 +1506,7 @@ async function uploadToBlockchain(itemId) {
             credentials: 'same-origin',
             body: JSON.stringify({
                 file_id: itemId,
-                provider: 'pinata'
+                provider: 'arweave'
             })
         });
 
@@ -1488,8 +1563,8 @@ function viewOnIPFS(itemId) {
         return;
     }
     
-    // Always construct the proper Pinata gateway URL format
-    const gatewayUrl = `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+    // Always construct the proper Arweave gateway URL format
+    const gatewayUrl = `https://arweave.net/${ipfsHash}`;
     console.log('Opening IPFS gateway URL:', gatewayUrl);
     
     window.open(gatewayUrl, '_blank');
@@ -1547,7 +1622,7 @@ function showBlockchainInfo(itemId) {
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-400">Provider:</span>
-                        <span class="text-white capitalize">${metadata.provider || 'Pinata'}</span>
+                        <span class="text-white capitalize">${metadata.provider || 'Arweave'}</span>
                     </div>
                     <div class="flex justify-between">
                         <span class="text-gray-400">Status:</span>
@@ -1599,7 +1674,7 @@ async function shareIPFSLink(itemId) {
         return;
     }
     
-    const gatewayUrl = item.blockchain_url || `https://gateway.pinata.cloud/ipfs/${ipfsHash}`;
+    const gatewayUrl = item.blockchain_url || `https://arweave.net/${ipfsHash}`;
     const shareData = {
         title: `SecureDocs: ${item.file_name}`,
         text: `Check out this file on IPFS: ${item.file_name}`,
@@ -2246,4 +2321,494 @@ async function moveItem(itemId, destinationId) {
     }
 
     return response.json();
+}
+
+// OTP Security Modal
+function showOtpSecurityModal(fileId) {
+    // Remove any existing modal
+    const existingModal = document.getElementById('otpSecurityModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create modal HTML
+    const modal = document.createElement('div');
+    modal.id = 'otpSecurityModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-[#1F2235] rounded-lg p-6 w-full max-w-md mx-4 border border-[#3C3F58]">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-lg font-medium text-white">OTP Security Settings</h3>
+                <button id="closeOtpModal" class="text-gray-400 hover:text-white">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div id="otpSecurityContent">
+                <div class="flex items-center justify-center py-8">
+                    <div class="animate-spin w-6 h-6 border-2 border-[#f89c00] border-t-transparent rounded-full"></div>
+                    <span class="ml-2 text-gray-400">Loading...</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close modal handlers
+    const closeModal = () => modal.remove();
+    modal.querySelector('#closeOtpModal').addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Load OTP status and render content
+    loadOtpStatus(fileId);
+}
+
+async function loadOtpStatus(fileId) {
+    try {
+        const response = await fetch(`/file-otp/status?file_type=regular&file_id=${fileId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            renderOtpSecurityContent(fileId, result);
+        } else {
+            throw new Error(result.message || 'Failed to load OTP status');
+        }
+    } catch (error) {
+        console.error('Failed to load OTP status:', error);
+        const content = document.getElementById('otpSecurityContent');
+        if (content) {
+            content.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="text-red-400 mb-2">Failed to load OTP settings</div>
+                    <button onclick="loadOtpStatus(${fileId})" class="text-[#f89c00] hover:text-[#e88900] text-sm">Try Again</button>
+                </div>
+            `;
+        }
+    }
+}
+
+function renderOtpSecurityContent(fileId, otpData) {
+    const content = document.getElementById('otpSecurityContent');
+    if (!content) return;
+
+    const isEnabled = otpData.otp_enabled;
+    
+    content.innerHTML = `
+        <div class="space-y-4">
+            <div class="flex items-center justify-between p-3 bg-[#2A2A3E] rounded-lg">
+                <div>
+                    <div class="text-white font-medium">Email OTP Protection</div>
+                    <div class="text-sm text-gray-400">Require OTP from email to access this file</div>
+                </div>
+                <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="otpToggle" class="sr-only peer" ${isEnabled ? 'checked' : ''}>
+                    <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#f89c00]"></div>
+                </label>
+            </div>
+
+            ${isEnabled ? `
+                <div class="space-y-3">
+                    <div class="grid grid-cols-2 gap-3">
+                        <label class="flex items-center">
+                            <input type="checkbox" id="requireDownload" class="mr-2 text-[#f89c00] bg-[#2A2A3E] border-[#3C3F58] rounded focus:ring-[#f89c00]" ${otpData.require_otp_for_download ? 'checked' : ''}>
+                            <span class="text-sm text-gray-300">Require for download</span>
+                        </label>
+                        <label class="flex items-center">
+                            <input type="checkbox" id="requirePreview" class="mr-2 text-[#f89c00] bg-[#2A2A3E] border-[#3C3F58] rounded focus:ring-[#f89c00]" ${otpData.require_otp_for_preview ? 'checked' : ''}>
+                            <span class="text-sm text-gray-300">Require for preview</span>
+                        </label>
+                    </div>
+
+                    <div class="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                        <div class="text-red-400 text-sm font-medium mb-2">⚠️ Disable OTP Protection</div>
+                        <div class="text-red-300 text-xs mb-3">To disable OTP protection, you must verify your identity with an OTP code sent to your email.</div>
+                        <div class="flex gap-2">
+                            <button id="sendDisableOtp" class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors">
+                                Send OTP to Email
+                            </button>
+                            <input type="text" id="disableOtpCode" placeholder="Enter 6-digit OTP" maxlength="6" class="px-2 py-1 bg-[#2A2A3E] border border-[#3C3F58] rounded text-white text-xs flex-1" disabled>
+                            <button id="confirmDisableOtp" class="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700 transition-colors" disabled>
+                                Disable
+                            </button>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm text-gray-300 mb-1">OTP Valid Duration</label>
+                        <select id="otpDuration" class="w-full px-3 py-2 bg-[#2A2A3E] border border-[#3C3F58] rounded-md text-white focus:border-[#f89c00] focus:ring-1 focus:ring-[#f89c00]">
+                            <option value="5" ${otpData.otp_valid_duration_minutes === 5 ? 'selected' : ''}>5 minutes</option>
+                            <option value="10" ${otpData.otp_valid_duration_minutes === 10 ? 'selected' : ''}>10 minutes</option>
+                            <option value="15" ${otpData.otp_valid_duration_minutes === 15 ? 'selected' : ''}>15 minutes</option>
+                            <option value="30" ${otpData.otp_valid_duration_minutes === 30 ? 'selected' : ''}>30 minutes</option>
+                            <option value="60" ${otpData.otp_valid_duration_minutes === 60 ? 'selected' : ''}>60 minutes</option>
+                        </select>
+                    </div>
+
+                    ${otpData.total_access_count > 0 ? `
+                        <div class="p-3 bg-[#2A2A3E] rounded-lg">
+                            <div class="text-sm text-gray-400">Security Stats</div>
+                            <div class="text-white">Total accesses: ${otpData.total_access_count}</div>
+                            ${otpData.last_successful_access_at ? `<div class="text-gray-400 text-xs">Last access: ${new Date(otpData.last_successful_access_at).toLocaleString()}</div>` : ''}
+                        </div>
+                    ` : ''}
+                </div>
+            ` : `
+                <div class="text-center py-4 text-gray-400">
+                    <div class="text-4xl mb-2">🔓</div>
+                    <div>OTP protection is currently disabled</div>
+                    <div class="text-sm">Enable to require email verification for file access</div>
+                </div>
+            `}
+
+            <div class="flex gap-3 pt-4">
+                <button id="saveOtpSettings" class="flex-1 bg-[#f89c00] text-white px-4 py-2 rounded-lg hover:bg-[#e88900] transition-colors">
+                    ${isEnabled ? 'Update Settings' : 'Enable OTP Protection'}
+                </button>
+                <button id="cancelOtpModal" class="px-4 py-2 bg-[#3C3F58] text-white rounded-lg hover:bg-[#4A4D6A] transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    `;
+
+    // Add event listeners
+    document.getElementById('saveOtpSettings').addEventListener('click', () => saveOtpSettings(fileId));
+    document.getElementById('closeOtpModal').addEventListener('click', () => document.getElementById('otpSecurityModal').remove());
+    document.getElementById('cancelOtpModal').addEventListener('click', () => document.getElementById('otpSecurityModal').remove());
+    
+    // Add disable OTP event listeners if OTP is enabled
+    if (isEnabled) {
+        document.getElementById('sendDisableOtp').addEventListener('click', () => sendDisableOtp(fileId));
+        document.getElementById('confirmDisableOtp').addEventListener('click', () => confirmDisableOtp(fileId));
+        document.getElementById('disableOtpCode').addEventListener('input', (e) => {
+            const confirmBtn = document.getElementById('confirmDisableOtp');
+            confirmBtn.disabled = e.target.value.length !== 6;
+        });
+    }
+}
+
+async function saveOtpSettings(fileId) {
+    const toggle = document.getElementById('otpToggle');
+    const requireDownload = document.getElementById('requireDownload');
+    const requirePreview = document.getElementById('requirePreview');
+    const otpDuration = document.getElementById('otpDuration');
+    
+    const isEnabled = toggle.checked;
+    
+    try {
+        const url = isEnabled ? '/file-otp/enable' : '/file-otp/disable';
+        const body = {
+            file_type: 'regular',
+            file_id: parseInt(fileId)
+        };
+
+        if (isEnabled) {
+            body.require_otp_for_download = requireDownload?.checked ?? true;
+            body.require_otp_for_preview = requirePreview?.checked ?? false;
+            body.otp_valid_duration_minutes = parseInt(otpDuration?.value ?? 10);
+        }
+
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify(body)
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            // Show success notification
+            showNotification(isEnabled ? 'OTP protection enabled successfully' : 'OTP protection disabled successfully', 'success');
+            
+            // Close modal
+            document.getElementById('otpSecurityModal').remove();
+            
+            // Refresh file list to show OTP indicator
+            if (window.loadUserFiles) {
+                window.loadUserFiles(state.currentPage, state.lastMainSearch, state.currentParentId);
+            }
+        } else {
+            throw new Error(result.message || 'Failed to update OTP settings');
+        }
+    } catch (error) {
+        console.error('Failed to save OTP settings:', error);
+        showNotification('Failed to update OTP settings: ' + error.message, 'error');
+    }
+}
+
+async function sendDisableOtp(fileId) {
+    try {
+        const response = await fetch('/file-otp/send', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                file_type: 'regular',
+                file_id: parseInt(fileId)
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('OTP sent to your email for disabling protection', 'success');
+            document.getElementById('disableOtpCode').disabled = false;
+            document.getElementById('sendDisableOtp').disabled = true;
+            document.getElementById('sendDisableOtp').textContent = 'OTP Sent';
+        } else {
+            throw new Error(result.message || 'Failed to send OTP');
+        }
+    } catch (error) {
+        console.error('Failed to send disable OTP:', error);
+        showNotification('Failed to send OTP: ' + error.message, 'error');
+    }
+}
+
+async function confirmDisableOtp(fileId) {
+    const otpCode = document.getElementById('disableOtpCode').value;
+    
+    if (otpCode.length !== 6) {
+        showNotification('Please enter a valid 6-digit OTP code', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/file-otp/disable', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                file_type: 'regular',
+                file_id: parseInt(fileId),
+                otp_code: otpCode
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('OTP protection disabled successfully', 'success');
+            
+            // Close modal
+            document.getElementById('otpSecurityModal').remove();
+            
+            // Refresh file list to remove OTP indicator
+            if (window.loadUserFiles) {
+                window.loadUserFiles(state.currentPage, state.lastMainSearch, state.currentParentId);
+            }
+        } else {
+            throw new Error(result.message || 'Failed to disable OTP protection');
+        }
+    } catch (error) {
+        console.error('Failed to disable OTP protection:', error);
+        showNotification('Failed to disable OTP protection: ' + error.message, 'error');
+    }
+}
+
+async function handleFilePreview(fileId) {
+    try {
+        // First check if the file requires OTP for preview
+        const response = await fetch(`/files/${fileId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+
+        const result = await response.json();
+        
+        if (response.status === 403 && result.requires_otp) {
+            // File requires OTP verification - show OTP prompt
+            showOtpVerificationModal(fileId, result.file_name, 'preview');
+        } else if (result.success !== false) {
+            // No OTP required or already verified - proceed to preview
+            window.location.href = `/files/${fileId}/preview`;
+        } else {
+            throw new Error(result.message || 'Failed to access file');
+        }
+    } catch (error) {
+        console.error('Failed to check file access:', error);
+        showNotification('Failed to access file: ' + error.message, 'error');
+    }
+}
+
+function showOtpVerificationModal(fileId, fileName, accessType) {
+    // Remove any existing OTP verification modal
+    const existingModal = document.getElementById('otpVerificationModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    const modal = document.createElement('div');
+    modal.id = 'otpVerificationModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    
+    modal.innerHTML = `
+        <div class="bg-[#2A2A3E] rounded-lg p-6 w-full max-w-md mx-4 border border-[#3C3F58]">
+            <div class="text-center mb-6">
+                <div class="text-4xl mb-4">🔐</div>
+                <h3 class="text-xl font-semibold text-white mb-2">OTP Verification Required</h3>
+                <p class="text-gray-300 text-sm">Enter the OTP code sent to your email to ${accessType} <strong>${fileName}</strong></p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">OTP Code</label>
+                    <input type="text" id="otpVerificationCode" placeholder="Enter 6-digit OTP" maxlength="6" 
+                           class="w-full px-3 py-2 bg-[#1A1A2E] border border-[#3C3F58] rounded-md text-white text-center text-lg tracking-widest focus:border-[#f89c00] focus:ring-1 focus:ring-[#f89c00]">
+                </div>
+                
+                <div class="text-center">
+                    <button id="sendOtpForAccess" class="text-[#f89c00] hover:text-[#e88900] text-sm underline">
+                        Send OTP to Email
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex gap-3 mt-6">
+                <button id="verifyOtpAccess" class="flex-1 bg-[#f89c00] text-white px-4 py-2 rounded-lg hover:bg-[#e88900] transition-colors" disabled>
+                    Verify & ${accessType === 'preview' ? 'Preview' : 'Access'}
+                </button>
+                <button id="cancelOtpVerification" class="px-4 py-2 bg-[#3C3F58] text-white rounded-lg hover:bg-[#4A4D6A] transition-colors">
+                    Cancel
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add event listeners
+    const otpInput = document.getElementById('otpVerificationCode');
+    const verifyBtn = document.getElementById('verifyOtpAccess');
+    const sendBtn = document.getElementById('sendOtpForAccess');
+    const cancelBtn = document.getElementById('cancelOtpVerification');
+
+    otpInput.addEventListener('input', (e) => {
+        verifyBtn.disabled = e.target.value.length !== 6;
+    });
+
+    sendBtn.addEventListener('click', () => sendOtpForAccess(fileId, sendBtn));
+    verifyBtn.addEventListener('click', () => verifyOtpForAccess(fileId, accessType, modal));
+    cancelBtn.addEventListener('click', () => modal.remove());
+
+    // Auto-send OTP when modal opens
+    sendOtpForAccess(fileId, sendBtn);
+}
+
+async function sendOtpForAccess(fileId, sendBtn) {
+    try {
+        sendBtn.disabled = true;
+        sendBtn.textContent = 'Sending...';
+
+        const response = await fetch('/file-otp/send', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                file_type: 'regular',
+                file_id: parseInt(fileId)
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('OTP sent to your email', 'success');
+            sendBtn.textContent = 'OTP Sent ✓';
+            sendBtn.className = 'text-green-400 text-sm';
+        } else {
+            throw new Error(result.message || 'Failed to send OTP');
+        }
+    } catch (error) {
+        console.error('Failed to send OTP:', error);
+        showNotification('Failed to send OTP: ' + error.message, 'error');
+        sendBtn.disabled = false;
+        sendBtn.textContent = 'Send OTP to Email';
+    }
+}
+
+async function verifyOtpForAccess(fileId, accessType, modal) {
+    const otpCode = document.getElementById('otpVerificationCode').value;
+    
+    if (otpCode.length !== 6) {
+        showNotification('Please enter a valid 6-digit OTP code', 'error');
+        return;
+    }
+    
+    try {
+        const response = await fetch('/file-otp/verify', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                file_type: 'regular',
+                file_id: parseInt(fileId),
+                otp_code: otpCode
+            })
+        });
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification('OTP verified successfully', 'success');
+            modal.remove();
+            
+            // Now proceed to the file preview/access
+            if (accessType === 'preview') {
+                window.location.href = `/files/${fileId}/preview`;
+            } else {
+                // Handle other access types if needed
+                window.location.href = `/files/${fileId}/preview`;
+            }
+        } else {
+            throw new Error(result.message || 'Invalid OTP code');
+        }
+    } catch (error) {
+        console.error('Failed to verify OTP:', error);
+        showNotification('Failed to verify OTP: ' + error.message, 'error');
+    }
 }

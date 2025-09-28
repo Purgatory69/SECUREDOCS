@@ -163,13 +163,13 @@
                         <img src="/pencil.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
                         <span class="text-sm">{{ __('auth.db_send_feedback') }}</span>
                     </li>
-                    -->
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
-                    <li class="p-4 flex items-center cursor-pointer"
-                        style="transition: background-color 0.2s;"
+                    -->
+                    <li class="flex items-center px-4 py-2 hover:bg-[#3C3F58] cursor-pointer rounded-lg mx-2 transition-colors duration-200"
+                        onclick="window.location.href='{{ route('premium.upgrade') }}'"
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
-                        <img src="/crown.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
+                        <img src="/crown.png" class="mr-4 w-4 h-4 ml-1" alt="Premium Upgrade">
                         <span class="text-sm">{{ __('auth.db_buy_premium') }}</span>
                     </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
@@ -229,47 +229,30 @@
                         </div>
                     </label>
 
-                    <!-- Blockchain (Premium) -->
-                    <label class="cursor-pointer block" data-premium-option="true">
-                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3 opacity-60 cursor-not-allowed">
-                            <input id="blockchainUpload" type="radio" name="processingType" value="blockchain" class="mt-1" disabled>
-                            <div>
-                                <div class="text-sm text-white font-medium flex items-center gap-2">
-                                    Blockchain Storage
-                                    <span id="badgeBlockchain" class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
-                                </div>
-                                <div id="descBlockchain" class="text-xs text-gray-400">Store on IPFS via Pinata (Premium required)</div>
-                            </div>
-                        </div>
-                    </label>
 
                     <!-- Vectorize (Premium) -->
                     <label class="cursor-pointer block" data-premium-option="true">
-                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3 opacity-60 cursor-not-allowed">
-                            <input id="vectorizeUpload" type="radio" name="processingType" value="vectorize" class="mt-1" disabled>
+                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3 @if(!auth()->user()->is_premium) opacity-60 cursor-not-allowed @else hover:border-[#f89c00] @endif" 
+                             @if(!auth()->user()->is_premium) onclick="showPremiumUpgradeModal('ai')" @endif>
+                            <input id="vectorizeUpload" type="radio" name="processingType" value="vectorize" class="mt-1" @if(!auth()->user()->is_premium) disabled @endif>
                             <div>
                                 <div class="text-sm text-white font-medium flex items-center gap-2">
                                     AI Vectorize
-                                    <span id="badgeVectorize" class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
+                                    @if(!auth()->user()->is_premium)
+                                        <span id="badgeVectorize" class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
+                                    @endif
                                 </div>
-                                <div id="descVectorize" class="text-xs text-gray-400">Process with AI for advanced search (Premium required)</div>
+                                <div id="descVectorize" class="text-xs text-gray-400">
+                                    @if(auth()->user()->is_premium)
+                                        Process with AI for advanced search capabilities
+                                    @else
+                                        Process with AI for advanced search (Premium required) - Click to upgrade
+                                    @endif
+                                </div>
                             </div>
                         </div>
                     </label>
 
-                    <!-- Hybrid (Premium) -->
-                    <label class="cursor-pointer block" data-premium-option="true">
-                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3 opacity-60 cursor-not-allowed">
-                            <input id="hybridUpload" type="radio" name="processingType" value="hybrid" class="mt-1" disabled>
-                            <div>
-                                <div class="text-sm text-white font-medium flex items-center gap-2">
-                                    Hybrid (IPFS + AI)
-                                    <span id="badgeHybrid" class="text-[10px] px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
-                                </div>
-                                <div id="descHybrid" class="text-xs text-gray-400">Store on IPFS and vectorize (Premium required)</div>
-                            </div>
-                        </div>
-                    </label>
                 </div>
                 <div id="processingValidation" class="hidden mt-2"></div>
             </div>
@@ -337,6 +320,113 @@
     </div>
 </div>
 
+<!-- Permanent Storage Modal -->
+<div id="permanentStorageModal" class="fixed inset-0 z-50 items-center justify-center hidden">
+    <div id="permanentStorageBackdrop" class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
+    <div class="bg-[#141326] rounded-lg shadow-xl w-full max-w-2xl mx-4 relative z-10 transform transition-all border border-[#3C3F58]">
+        <div class="flex items-center justify-between p-6 border-b border-[#3C3F58]">
+            <h3 class="text-xl font-semibold text-white">⛓️ Permanent Storage</h3>
+            <button id="closePermanentStorageBtn" class="text-gray-400 hover:text-white text-2xl focus:outline-none">
+                &times;
+            </button>
+        </div>
+
+        <div class="p-6">
+            <!-- Step 1: File Selection -->
+            <div id="fileSelectionStep" class="space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-2">💰 Pay & Upload to Arweave</h4>
+                    <p class="text-gray-400">Pay with crypto to store your file permanently on the decentralized web</p>
+                    <p class="text-sm text-yellow-400 mt-1">💸 Service fee: 15% • Real payments required</p>
+                </div>
+                
+                <div id="permanentStorageDropZone" 
+                     class="border-2 border-dashed border-[#3C3F58] bg-[#1F2235] rounded-lg p-8 text-center cursor-pointer hover:border-[#f89c00] transition-colors">
+                    <div class="text-4xl mb-4">📄</div>
+                    <p class="text-lg font-medium text-white mb-2">Drop your file here or click to browse</p>
+                    <p class="text-sm text-gray-400">Maximum file size: 100MB</p>
+                    <input type="file" id="permanentStorageFileInput" class="hidden" accept="*/*">
+                </div>
+                
+                <div id="selectedFileInfo"></div>
+            </div>
+
+            <!-- Step 2: Cost Calculation -->
+            <div id="costCalculationStep" class="hidden space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-2">Storage Cost</h4>
+                    <p class="text-gray-400">Review the cost for permanent storage on Arweave</p>
+                </div>
+                
+                <!-- Currency Selection -->
+                <div class="bg-[#1F2235] rounded-lg p-4 border border-[#3C3F58]">
+                    <label class="block text-sm font-medium text-white mb-2">Display Currency</label>
+                    <select id="currencySelector" class="w-full bg-[#3C3F58] text-white border border-[#3C3F58] rounded-lg px-3 py-2 focus:outline-none focus:border-[#f89c00]">
+                        <option value="USD">USD ($)</option>
+                        <option value="PHP">PHP (₱)</option>
+                        <option value="EUR">EUR (€)</option>
+                        <option value="GBP">GBP (£)</option>
+                        <option value="JPY">JPY (¥)</option>
+                    </select>
+                </div>
+                
+                <div id="costBreakdown"></div>
+            </div>
+
+            <!-- Step 3: Wallet Connection -->
+            <div id="walletConnectionStep" class="hidden space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-2">Connect Your Wallet</h4>
+                    <p class="text-gray-400">Choose your preferred cryptocurrency wallet to make payment</p>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <button id="connectMetaMaskBtn" 
+                            class="flex flex-col items-center p-4 border border-[#3C3F58] bg-[#1F2235] rounded-lg hover:border-[#f89c00] hover:bg-[#2A2A3E] transition-colors">
+                        <div class="text-3xl mb-2">🦊</div>
+                        <div class="font-medium text-white">MetaMask</div>
+                        <div class="text-xs text-gray-400">Ethereum & Polygon</div>
+                    </button>
+                    
+                    <button id="connectRoninBtn" 
+                            class="flex flex-col items-center p-4 border border-[#3C3F58] bg-[#1F2235] rounded-lg hover:border-[#f89c00] hover:bg-[#2A2A3E] transition-colors">
+                        <div class="text-3xl mb-2">⚔️</div>
+                        <div class="font-medium text-white">Ronin Wallet</div>
+                        <div class="text-xs text-gray-400">Ronin Network</div>
+                    </button>
+                    
+                    <button id="connectWalletConnectBtn" 
+                            class="flex flex-col items-center p-4 border border-[#3C3F58] bg-[#1F2235] rounded-lg hover:border-[#f89c00] hover:bg-[#2A2A3E] transition-colors">
+                        <div class="text-3xl mb-2">🔗</div>
+                        <div class="font-medium text-white">WalletConnect</div>
+                        <div class="text-xs text-gray-400">Universal</div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Payment -->
+            <div id="paymentStep" class="hidden space-y-6">
+                <div id="paymentDetails"></div>
+            </div>
+
+            <!-- Step 5: Uploading -->
+            <div id="uploadingStep" class="hidden space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-4">Uploading to Arweave</h4>
+                    <div class="w-full bg-[#3C3F58] rounded-full h-3 mb-4">
+                        <div id="uploadProgress" class="bg-[#f89c00] h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
+                    </div>
+                    <p id="uploadProgressText" class="text-sm text-gray-400">Preparing upload...</p>
+                </div>
+            </div>
+
+            <!-- Step 6: Success -->
+            <div id="successStep" class="hidden space-y-6">
+                <div id="successDetails"></div>
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="bg-[#141326] py-4">
 <!-- New Button container -->
@@ -362,6 +452,21 @@
                 <img src="{{ asset('file.png') }}" alt="File" class="mr-4 w-4 h-4">
                 <span class="font-medium">{{ __('auth.db_new_file') }}</span>
             </div>
+            
+            @if(auth()->user()->is_premium)
+            <div id="openPermanentStorageBtn"
+                class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
+                onmouseover="this.style.cssText = 'background-color: #55597C;';"
+                onmouseout="this.style.cssText = '';">
+                <span class="mr-4 text-lg">⛓️</span>
+                <div class="flex-1">
+                    <div class="font-medium">Permanent Storage</div>
+                    <div class="text-xs text-gray-300">Store on Arweave blockchain</div>
+                </div>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
+            </div>
+            @endif
+            
             <div id="createFolderOption"
                 class="flex items-center px-5 py-4 text-sm transition-colors text-white"
                 onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0 0 0.5rem 0.5rem;';"
@@ -387,12 +492,14 @@
             <img src="{{ asset('delete.png') }}" alt="Trash" class="mr-4 w-5 h-5">
             <span class="text-sm">{{ __('auth.db_trash') }}</span>
         </li>
-        <li id="blockchain-storage-link" class="py-3 px-8 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
+        <li id="blockchain-storage-link" class="py-3 px-8 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light @if(!auth()->user()->is_premium) opacity-60 @endif"
+            @if(!auth()->user()->is_premium) onclick="showPremiumUpgradeModal('blockchain')" @endif>
             <img src="{{ asset('link-symbol.png') }}" alt="Blockchain" class="mr-4 w-5 h-5">
             <span class="text-white text-sm">{{ __('auth.db_blockchain_storage') }}</span>
             
-            <!-- <span class="ml-auto px-2 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-white font-medium">PREMIUM</span> -->
-            <img src="/crown.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
+            @if(!auth()->user()->is_premium)
+                <span class="ml-auto px-2 py-1 text-xs bg-gradient-to-r from-purple-500 to-pink-500 rounded-full text-white font-medium">PREMIUM</span>
+            @endif
         </li>
 
         <style>
@@ -679,9 +786,44 @@
     </div>
 </div>
 
-
+<!-- Premium Upgrade Modal -->
+<div id="premiumUpgradeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-6 max-w-md mx-4">
+        <div class="text-center">
+            <div class="w-16 h-16 bg-gradient-to-r from-[#f89c00] to-[#ff8c00] rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl">👑</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Premium Feature</h3>
+            <p id="premiumModalText" class="text-gray-400 mb-6">
+                This feature requires a Premium subscription to access advanced capabilities.
+            </p>
+            <div class="space-y-3">
+                <button onclick="window.location.href='{{ route('premium.upgrade') }}'" 
+                        class="w-full bg-[#f89c00] hover:bg-[#e88900] text-white py-3 px-6 rounded-lg font-bold transition-colors">
+                    Upgrade to Premium
+                </button>
+                <button onclick="window.closePremiumModal()" 
+                        class="w-full bg-[#3C3F58] hover:bg-[#4A4D6A] text-white py-3 px-6 rounded-lg transition-colors">
+                    Maybe Later
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 @push('scripts')
+<script>
+    // Pass user premium status to JavaScript
+    window.userIsPremium = {{ auth()->user()->is_premium ? 'true' : 'false' }};
+    
+    // Pass user data to JavaScript
+    window.authUser = {
+        id: {{ auth()->user()->id }},
+        name: "{{ auth()->user()->name }}",
+        email: "{{ auth()->user()->email }}",
+        is_premium: {{ auth()->user()->is_premium ? 'true' : 'false' }}
+    };
+</script>
     <!-- Activity Log Modal -->
     <div id="activityModal" class="finxed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
         <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/5 shadow-lg rounded-md bg-white">
@@ -1441,6 +1583,35 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeProfileDropdown();
         initializeNotificationDropdown();
     }, 100);
+
+    // Premium upgrade modal functions (make global)
+    window.showPremiumUpgradeModal = function(feature) {
+        const modal = document.getElementById('premiumUpgradeModal');
+        const modalText = document.getElementById('premiumModalText');
+        
+        const messages = {
+            'blockchain': 'Blockchain storage provides immutable, decentralized file storage using IPFS technology. Upgrade to Premium to secure your documents forever.',
+            'ai': 'AI Vectorization enables advanced search capabilities and intelligent document analysis. Upgrade to Premium to unlock AI-powered features.',
+            'hybrid': 'Hybrid processing combines blockchain storage with AI analysis for maximum security and functionality. Upgrade to Premium for the complete solution.'
+        };
+        
+        modalText.textContent = messages[feature] || messages['blockchain'];
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+
+    window.closePremiumModal = function() {
+        const modal = document.getElementById('premiumUpgradeModal');
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+
+    // Close modal when clicking outside
+    document.getElementById('premiumUpgradeModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            window.closePremiumModal();
+        }
+    });
 });
 </script>
 

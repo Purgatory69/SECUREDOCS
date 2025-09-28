@@ -1,0 +1,291 @@
+erDiagram
+    %% ===== UPDATED SECUREDOCS DATABASE SCHEMA =====
+    %% Generated from live Supabase database on 2025-09-22
+    
+    users {
+        bigint id PK "Auto-increment primary key"
+        varchar name "Full name of the user"
+        varchar email UK "Email address (unique)"
+        timestamp email_verified_at "Email verification timestamp"
+        varchar password "Hashed password"
+        varchar remember_token "Authentication remember token"
+        timestamp created_at "User creation timestamp"
+        timestamp updated_at "User update timestamp"
+        text two_factor_secret "2FA secret key"
+        text two_factor_recovery_codes "2FA recovery codes"
+        timestamp two_factor_confirmed_at "2FA confirmation timestamp"
+        boolean is_approved "Account approval status"
+        varchar role "User role (admin/user)"
+        boolean is_premium "Premium subscription status"
+        bigint current_team_id "Current team ID"
+        varchar profile_photo_path "Profile photo storage path"
+    }
+
+    files {
+        bigint id PK "Auto-increment primary key"
+        bigint user_id FK "File owner user ID"
+        varchar file_name "File or folder name"
+        varchar file_path "Storage file path"
+        varchar file_size "Human-readable file size"
+        varchar file_type "File type category"
+        varchar mime_type "MIME type"
+        timestamp created_at "File creation timestamp"
+        timestamp updated_at "File update timestamp"
+        bigint parent_id FK "Parent folder ID (self-ref)"
+        boolean is_folder "Is directory flag"
+        timestamptz deleted_at "Soft delete timestamp"
+        varchar blockchain_provider "Always pinata when used"
+        varchar ipfs_hash "IPFS hash from Pinata"
+        text blockchain_url "Pinata gateway URL"
+        boolean is_blockchain_stored "Stored on Pinata IPFS"
+        json blockchain_metadata "Pinata metadata"
+        boolean is_vectorized "AI vectorization status"
+        timestamptz vectorized_at "Vectorization timestamp"
+        text pinata_gateway_url "Auto-generated Pinata URL"
+        boolean is_permanent_storage "Permanent storage flag"
+        timestamptz permanent_storage_enabled_at "Permanent storage timestamp"
+        bigint permanent_storage_enabled_by FK "User who enabled permanent storage"
+    }
+
+    documents {
+        bigint id PK "Auto-increment primary key"
+        text content "Full document text content"
+        jsonb metadata "Document metadata"
+        vector embedding "AI vector embedding"
+        bigint user_id "Document owner user ID"
+        bigint file_id FK "Source file ID"
+    }
+
+    document_metadata {
+        text id PK "Dataset identifier"
+        text title "Dataset title"
+        text url "Source URL or path"
+        timestamp created_at "Creation timestamp"
+        text schema "Data schema definition"
+        bigint user_id "Dataset owner user ID"
+        bigint file_id FK "Source file ID"
+    }
+
+    document_rows {
+        integer id PK "Auto-increment primary key"
+        text dataset_id FK "Parent dataset ID"
+        jsonb row_data "Row JSON data"
+        bigint file_id FK "Source file ID"
+    }
+
+    blockchain_uploads {
+        bigint id PK "Auto-increment primary key"
+        bigint file_id FK "Uploaded file ID"
+        varchar provider "Blockchain provider (pinata)"
+        varchar ipfs_hash "IPFS hash"
+        varchar upload_status "Upload status"
+        text error_message "Error details if failed"
+        numeric upload_cost "Upload cost in USD"
+        json provider_response "Pinata API response"
+        timestamp created_at "Upload start timestamp"
+        timestamp updated_at "Status update timestamp"
+        varchar pin_status "Pinata pin status"
+        boolean is_permanent_storage "Permanent storage flag"
+        numeric permanent_storage_fee "Permanent storage fee"
+        timestamptz permanent_storage_timestamp "Permanent storage timestamp"
+        jsonb permanent_storage_metadata "Permanent storage metadata"
+    }
+
+    system_activities {
+        bigint id PK "Auto-increment primary key"
+        bigint user_id FK "Activity performer user ID"
+        bigint file_id FK "Affected file ID"
+        bigint target_user_id FK "Target user ID"
+        varchar activity_type "Activity category"
+        varchar action "Specific action performed"
+        varchar entity_type "Entity type affected"
+        bigint entity_id "Entity ID affected"
+        text description "Activity description"
+        jsonb metadata "Activity metadata"
+        inet ip_address "Actor IP address"
+        text user_agent "User agent string"
+        varchar session_id "Session identifier"
+        varchar location_country "Actor country"
+        varchar location_city "Actor city"
+        varchar device_type "Device type"
+        varchar browser "Browser type"
+        varchar risk_level "Risk assessment level"
+        boolean requires_audit "Audit requirement flag"
+        boolean is_suspicious "Suspicious activity flag"
+        timestamp created_at "Activity timestamp"
+    }
+
+    user_sessions {
+        bigint id PK "Auto-increment primary key"
+        bigint user_id FK "Session owner user ID"
+        varchar session_id UK "Session identifier"
+        inet ip_address "Session IP address"
+        text user_agent "User agent string"
+        text device_fingerprint "Device fingerprint"
+        varchar location_country "Session country"
+        varchar location_city "Session city"
+        varchar location_timezone "User timezone"
+        boolean is_active "Active session flag"
+        timestamp last_activity_at "Last activity timestamp"
+        varchar login_method "Login method used"
+        boolean is_suspicious "Suspicious session flag"
+        boolean trusted_device "Trusted device flag"
+        timestamp created_at "Session start timestamp"
+        timestamp expires_at "Session expiry timestamp"
+        timestamp logged_out_at "Logout timestamp"
+        varchar device_type "Device type"
+        varchar browser "Browser type"
+        varchar platform "Platform type"
+        boolean is_mobile "Mobile device flag"
+        boolean is_tablet "Tablet device flag"
+        boolean is_desktop "Desktop device flag"
+    }
+
+    search_logs {
+        bigint id PK "Auto-increment primary key"
+        bigint user_id FK "Searcher user ID"
+        varchar query "Search query text"
+        integer result_count "Number of results"
+        timestamp created_at "Search timestamp"
+    }
+
+    saved_searches {
+        bigint id PK "Auto-increment primary key"
+        bigint user_id FK "Search owner user ID"
+        varchar name "Saved search name"
+        varchar query "Search query text"
+        jsonb filters "Applied filters"
+        timestamp created_at "Creation timestamp"
+        timestamp updated_at "Update timestamp"
+    }
+
+    notifications {
+        bigint id PK "Auto-increment primary key"
+        bigint user_id FK "Recipient user ID"
+        varchar type "Notification type"
+        varchar title "Notification title"
+        text message "Notification message"
+        jsonb data "Notification data"
+        timestamptz read_at "Read timestamp"
+        timestamptz created_at "Creation timestamp"
+        timestamptz updated_at "Update timestamp"
+    }
+
+    n8n_chat_histories {
+        integer id PK "Auto-increment primary key"
+        varchar session_id "Chat session ID"
+        jsonb message "Chat message data"
+    }
+
+    %% ===== LARAVEL FRAMEWORK TABLES =====
+    
+    password_reset_tokens {
+        varchar email PK "Email address"
+        varchar token "Reset token"
+        timestamp created_at "Token creation timestamp"
+    }
+
+    personal_access_tokens {
+        bigint id PK "Auto-increment primary key"
+        varchar tokenable_type "Model type"
+        bigint tokenable_id "Model ID"
+        varchar name "Token name"
+        varchar token UK "Token hash"
+        text abilities "Token permissions"
+        timestamp last_used_at "Last usage timestamp"
+        timestamp expires_at "Token expiry"
+        timestamp created_at "Creation timestamp"
+        timestamp updated_at "Update timestamp"
+    }
+
+    sessions {
+        varchar id PK "Session ID"
+        bigint user_id FK "Authenticated user ID"
+        varchar ip_address "Session IP"
+        text user_agent "User agent"
+        text payload "Session data"
+        integer last_activity "Last activity timestamp"
+    }
+
+    cache {
+        varchar key PK "Cache key"
+        text value "Cached value"
+        integer expiration "Expiry timestamp"
+    }
+
+    cache_locks {
+        varchar key PK "Lock key"
+        varchar owner "Lock owner"
+        integer expiration "Lock expiry"
+    }
+
+    jobs {
+        bigint id PK "Auto-increment primary key"
+        varchar queue "Queue name"
+        text payload "Job data"
+        smallint attempts "Attempt count"
+        integer reserved_at "Reserved timestamp"
+        integer available_at "Available timestamp"
+        integer created_at "Creation timestamp"
+    }
+
+    job_batches {
+        varchar id PK "Batch ID"
+        varchar name "Batch name"
+        integer total_jobs "Total job count"
+        integer pending_jobs "Pending job count"
+        integer failed_jobs "Failed job count"
+        text failed_job_ids "Failed job IDs"
+        text options "Batch options"
+        integer cancelled_at "Cancellation timestamp"
+        integer created_at "Creation timestamp"
+        integer finished_at "Completion timestamp"
+    }
+
+    failed_jobs {
+        bigint id PK "Auto-increment primary key"
+        varchar uuid UK "Unique job ID"
+        text connection "Queue connection"
+        text queue "Queue name"
+        text payload "Job data"
+        text exception "Failure exception"
+        timestamp failed_at "Failure timestamp"
+    }
+
+    migrations {
+        integer id PK "Auto-increment primary key"
+        varchar migration "Migration name"
+        integer batch "Migration batch"
+    }
+
+    %% ===== DETAILED FOREIGN KEY RELATIONSHIPS =====
+    
+    %% Core Entity Relationships
+    users ||--o{ files : "users.id → files.user_id (file ownership)"
+    users ||--o{ files : "users.id → files.permanent_storage_enabled_by (permanent storage enabler)"
+    files ||--o{ files : "files.id → files.parent_id (folder hierarchy)"
+    files ||--o{ documents : "files.id → documents.file_id (document vectorization)"
+    files ||--o{ document_metadata : "files.id → document_metadata.file_id (metadata linking)"
+    files ||--o{ document_rows : "files.id → document_rows.file_id (data rows)"
+    
+    %% Document Relationships
+    document_metadata ||--o{ document_rows : "document_metadata.id → document_rows.dataset_id (dataset rows)"
+    
+    %% Blockchain Relationships
+    files ||--o{ blockchain_uploads : "files.id → blockchain_uploads.file_id (blockchain storage)"
+    
+    %% Activity Tracking Relationships
+    users ||--o{ system_activities : "users.id → system_activities.user_id (activity performer)"
+    users ||--o{ system_activities : "users.id → system_activities.target_user_id (activity target)"
+    files ||--o{ system_activities : "files.id → system_activities.file_id (affected file)"
+    
+    %% Session Management
+    users ||--o{ user_sessions : "users.id → user_sessions.user_id (user sessions)"
+    
+    %% Search & Notifications
+    users ||--o{ search_logs : "users.id → search_logs.user_id (search performer)"
+    users ||--o{ saved_searches : "users.id → saved_searches.user_id (search owner)"
+    users ||--o{ notifications : "users.id → notifications.user_id (notification recipient)"
+    
+    %% Laravel Framework Relationships
+    users ||--o{ sessions : "users.id → sessions.user_id (authenticated sessions)"

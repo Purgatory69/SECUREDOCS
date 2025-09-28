@@ -70,49 +70,45 @@ class BlockchainController extends Controller
                 ], 401);
             }
 
-            // Get blockchain-stored files for the authenticated user
-            // Use is_blockchain_stored flag instead of file_path pattern
-            $files = File::where('user_id', $userId)
-                ->whereRaw('is_blockchain_stored = true')
-                ->whereNull('deleted_at')
+            // Get Arweave transactions for the authenticated user
+            $arweaveTransactions = \App\Models\ArweaveTransaction::where('user_id', $userId)
+                ->with('file') // Load the associated file
                 ->orderBy('created_at', 'desc')
                 ->get();
 
             Log::info('BlockchainController getFiles query', [
                 'user_id' => $userId,
-                'files_count' => $files->count(),
-                'files_ids' => $files->pluck('id')->toArray()
+                'transactions_count' => $arweaveTransactions->count(),
+                'transaction_ids' => $arweaveTransactions->pluck('id')->toArray()
             ]);
 
-            // Simple test - just return basic file info first
+            // Return Arweave transaction data formatted as file items
             return response()->json([
                 'success' => true,
-                'files' => $files->map(function ($file) {
-                    $result = [
-                        'id' => $file->id,
-                        'file_name' => $file->file_name,
-                        'file_size' => $file->file_size,
-                        'mime_type' => $file->mime_type,
-                        'created_at' => $file->created_at,
-                        'updated_at' => $file->updated_at,
-                        'file_path' => $file->file_path,
-                        'ipfs_hash' => $file->ipfs_hash,
-                        'blockchain_provider' => $file->blockchain_provider,
-                        'blockchain_url' => $file->blockchain_url,
+                'files' => $arweaveTransactions->map(function ($transaction) {
+                    $file = $transaction->file;
+                    
+                    return [
+                        'id' => $file->id ?? $transaction->id,
+                        'file_name' => $file->file_name ?? 'Unknown File',
+                        'file_size' => $transaction->data_size ?? ($file->file_size ?? 0),
+                        'mime_type' => $transaction->tx_metadata['content_type'] ?? ($file->mime_type ?? 'application/octet-stream'),
+                        'created_at' => $transaction->created_at,
+                        'updated_at' => $transaction->updated_at,
+                        'tx_id' => $transaction->tx_id,
+                        'arweave_url' => $transaction->gateway_url,
+                        'status' => $transaction->status,
+                        'fee_ar' => $transaction->fee_ar,
+                        'fee_usd' => $transaction->fee_usd,
+                        'blockchain_provider' => 'arweave',
                         'is_blockchain_stored' => true,
-                        'pinata_gateway_url' => $file->ipfs_hash ? 'https://gateway.pinata.cloud/ipfs/' . $file->ipfs_hash : null,
+                        'is_permanent_storage' => true,
+                        'confirmed_at' => $transaction->confirmed_at,
+                        'block_height' => $transaction->block_height,
+                        'explorer_url' => $transaction->explorer_url,
+                        'formatted_size' => $transaction->formatted_size,
+                        'status_color' => $transaction->status_color,
                     ];
-                    
-                    // Safely add new columns
-                    try {
-                        $result['is_permanent_storage'] = $file->is_permanent_storage ?? false;
-                        $result['permanent_storage_enabled_at'] = $file->permanent_storage_enabled_at;
-                    } catch (\Exception $e) {
-                        $result['is_permanent_storage'] = false;
-                        $result['permanent_storage_enabled_at'] = null;
-                    }
-                    
-                    return $result;
                 })
             ]);
         } catch (Throwable $e) {
@@ -512,8 +508,8 @@ class BlockchainController extends Controller
 
             // Get user's files that could be uploaded to blockchain
             $eligibleFiles = File::where('user_id', $user->id)
-                ->whereRaw('is_folder IS FALSE')
-                ->whereRaw('is_blockchain_stored IS FALSE')
+                ->where('is_folder', false)
+                ->where('is_blockchain_stored', false)
                 ->whereNotNull('file_path')
                 ->count();
 
