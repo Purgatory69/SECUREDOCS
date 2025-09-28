@@ -17,9 +17,10 @@ class BlockchainStorageManager
     public function __construct()
     {
         // Register available providers
-        if (config('blockchain.providers.pinata.enabled')) {
-            $this->providers['pinata'] = PinataService::class;
+        if (config('blockchain.providers.arweave.enabled')) {
+            $this->providers['arweave'] = ArweaveStorageService::class;
         }
+        
         // Future providers can be added here
     }
 

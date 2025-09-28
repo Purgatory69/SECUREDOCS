@@ -47,16 +47,14 @@ class File extends Model
         'file_size',
         'parent_id',
         'is_folder',
-        'blockchain_provider',
-        'ipfs_hash',
-        'blockchain_url',
-        'is_blockchain_stored',
-        'blockchain_metadata',
+        'is_permanent_stored',
         'is_vectorized',
         'vectorized_at',
         'is_permanent_storage',
         'permanent_storage_enabled_at',
         'permanent_storage_enabled_by',
+        'is_confidential',
+        'confidential_enabled_at',
     ];
 
     /**
@@ -66,12 +64,13 @@ class File extends Model
      */
     protected $casts = [
         'is_folder' => 'boolean',
-        'is_blockchain_stored' => 'boolean',
-        'blockchain_metadata' => 'array',
+        'is_permanent_stored' => 'boolean',
         'is_vectorized' => 'boolean',
         'vectorized_at' => 'datetime',
         'is_permanent_storage' => 'boolean',
         'permanent_storage_enabled_at' => 'datetime',
+        'is_confidential' => 'boolean',
+        'confidential_enabled_at' => 'datetime',
     ];
     
     /**
@@ -236,16 +235,60 @@ class File extends Model
     }
 
     /**
+     * Get crypto payments for this file
+     */
+    public function cryptoPayments(): HasMany
+    {
+        return $this->hasMany(CryptoPayment::class);
+    }
+
+    /**
+     * Get Arweave transactions for this file
+     */
+    public function arweaveTransactions(): HasMany
+    {
+        return $this->hasMany(ArweaveTransaction::class);
+    }
+
+    /**
+     * Get the latest completed crypto payment
+     */
+    public function latestCryptoPayment()
+    {
+        return $this->cryptoPayments()->where('status', 'completed')->latest()->first();
+    }
+
+    /**
+     * Get the latest Arweave transaction
+     */
+    public function latestArweaveTransaction()
+    {
+        return $this->arweaveTransactions()->latest()->first();
+    }
+
+    /**
+     * Check if file is permanently stored on Arweave
+     */
+    public function isPermanentlyStored(): bool
+    {
+        return $this->is_permanent_arweave && !empty($this->arweave_tx_id);
+    }
+
+    /**
      * Get file processing status summary.
      */
     public function getProcessingStatus(): array
     {
         return [
-            'blockchain_stored' => $this->isStoredOnBlockchain(),
+            'permanent_stored' => $this->is_permanent_stored,
+            'permanent_arweave' => $this->is_permanent_arweave,
             'vectorized' => $this->isVectorized(),
-            'blockchain_provider' => $this->blockchain_provider,
-            'ipfs_hash' => $this->ipfs_hash,
+            'storage_provider' => $this->storage_provider,
+            'arweave_tx_id' => $this->arweave_tx_id,
+            'arweave_url' => $this->arweave_url,
+            'arweave_cost_usd' => $this->arweave_cost_usd,
             'vectorized_at' => $this->vectorized_at?->format('Y-m-d H:i:s'),
+            'permanent_storage_enabled_at' => $this->permanent_storage_enabled_at?->format('Y-m-d H:i:s'),
         ];
     }
 }

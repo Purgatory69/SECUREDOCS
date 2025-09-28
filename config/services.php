@@ -56,4 +56,22 @@ return [
         'service_key' => env('SUPABASE_SERVICE_ROLE_KEY'), // service role for backend operations
     ],
 
+    'bundler' => [
+        'url' => env('BUNDLER_URL', 'https://node1.bundlr.network'),
+        'api_key' => env('BUNDLER_API_KEY'),
+        'enabled' => env('BUNDLER_ENABLED', true),
+    ],
+
+    'stripe' => [
+        'key' => env('STRIPE_KEY'),
+        'secret' => env('STRIPE_SECRET'),
+        'webhook_secret' => env('STRIPE_WEBHOOK_SECRET'),
+    ],
+
+    'paypal' => [
+        'client_id' => env('PAYPAL_CLIENT_ID'),
+        'client_secret' => env('PAYPAL_CLIENT_SECRET'),
+        'mode' => env('PAYPAL_MODE', 'sandbox'), // sandbox or live
+    ],
+
 ];

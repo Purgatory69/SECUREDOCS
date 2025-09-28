@@ -7,6 +7,7 @@ use App\Models\User;
 use App\Services\BlockchainStorage\BlockchainStorageManager;
 use App\Services\BlockchainStorage\BlockchainPreflightValidator;
 use App\Services\VectorStoreManager;
+use App\Services\ArweaveService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -71,6 +72,14 @@ class FileController extends Controller
             $query->where('is_folder', true);
         }
 
+        // Add OTP security status to the query
+        $query->leftJoin('file_otp_security', function($join) {
+            $join->on('files.id', '=', 'file_otp_security.file_id')
+                 ->where('file_otp_security.is_otp_enabled', DB::raw('true'));
+        })
+        ->select('files.*', 
+                 DB::raw('CASE WHEN file_otp_security.id IS NOT NULL THEN true ELSE false END as has_otp_protection'));
+
         $files = $query->orderBy('is_folder', 'desc')->orderBy('file_name', 'asc')->paginate(20);
 
         return response()->json($files);
@@ -84,6 +93,27 @@ class FileController extends Controller
         $user = Auth::user();
         // Include trashed so the frontend can inspect items in trash as well
         $file = $user->files()->withTrashed()->findOrFail($id);
+        
+        // Check if OTP protection is required
+        $otpSecurity = \App\Models\FileOtpSecurity::where('user_id', $user->id)
+            ->where('file_id', $file->id)
+            ->where('is_otp_enabled', DB::raw('true'))
+            ->first();
+            
+        if ($otpSecurity && $otpSecurity->isOtpRequiredFor('preview')) {
+            // Check if user has verified OTP for this file recently
+            $sessionKey = "otp_verified_file_{$file->id}";
+            if (!session()->has($sessionKey) || session($sessionKey) < now()->subMinutes($otpSecurity->otp_valid_duration_minutes)) {
+                return response()->json([
+                    'success' => false,
+                    'requires_otp' => true,
+                    'message' => 'OTP verification required to access this file',
+                    'file_id' => $file->id,
+                    'file_name' => $file->file_name
+                ], 403);
+            }
+        }
+        
         return response()->json($file);
     }
 
@@ -98,6 +128,20 @@ class FileController extends Controller
         // Only allow preview for actual files, not folders
         if ($file->is_folder) {
             return redirect()->route('user.dashboard')->with('error', 'Folders cannot be previewed');
+        }
+        
+        // Check if OTP protection is required for preview
+        $otpSecurity = \App\Models\FileOtpSecurity::where('user_id', $user->id)
+            ->where('file_id', $file->id)
+            ->where('is_otp_enabled', DB::raw('true'))
+            ->first();
+            
+        if ($otpSecurity && $otpSecurity->isOtpRequiredFor('preview')) {
+            // Check if user has verified OTP for this file recently
+            $sessionKey = "otp_verified_file_{$file->id}";
+            if (!session()->has($sessionKey) || session($sessionKey) < now()->subMinutes($otpSecurity->otp_valid_duration_minutes)) {
+                return redirect()->route('user.dashboard')->with('error', 'OTP verification required to preview this file. Please verify via email first.');
+            }
         }
         
         return view('file-preview', compact('file'));
@@ -118,6 +162,20 @@ class FileController extends Controller
         
         if ($file->is_folder) {
             abort(404, 'Cannot proxy folder');
+        }
+
+        // Check if OTP protection is required for file access
+        $otpSecurity = \App\Models\FileOtpSecurity::where('user_id', $user->id)
+            ->where('file_id', $file->id)
+            ->where('is_otp_enabled', DB::raw('true'))
+            ->first();
+            
+        if ($otpSecurity && ($otpSecurity->isOtpRequiredFor('preview') || $otpSecurity->isOtpRequiredFor('download'))) {
+            // Check if user has verified OTP for this file recently
+            $sessionKey = "otp_verified_file_{$file->id}";
+            if (!session()->has($sessionKey) || session($sessionKey) < now()->subMinutes($otpSecurity->otp_valid_duration_minutes)) {
+                abort(403, 'OTP verification required to access this file');
+            }
         }
 
         $supabaseUrl = env('SUPABASE_URL');
@@ -149,7 +207,7 @@ class FileController extends Controller
                     abort(409, 'File is not yet available on blockchain');
                 }
 
-                $gatewayUrl = 'https://gateway.pinata.cloud/ipfs/' . $hash;
+                $gatewayUrl = 'https://arweave.net/' . $hash;
                 return redirect()->away($gatewayUrl, 302);
             }
         } catch (\Throwable $t) {
@@ -560,6 +618,236 @@ class FileController extends Controller
                 'message' => 'Failed to create file/folder'
             ], 500);
         }
+    }
+
+    /**
+     * Upload file with standard storage (Supabase only)
+     */
+    public function uploadStandard(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            Log::info('Standard upload request received', ['user_id' => $user->id]);
+
+            $validated = $request->validate([
+                'file_name' => 'required|string|max:255',
+                'file_path' => 'required|string',
+                'file_size' => 'required|integer',
+                'file_type' => 'required|string',
+                'mime_type' => 'required|string',
+                'parent_id' => 'nullable|integer|exists:files,id',
+            ]);
+
+            $file = File::create([
+                'user_id' => $user->id,
+                'file_name' => $validated['file_name'],
+                'file_path' => $validated['file_path'],
+                'file_size' => $validated['file_size'],
+                'file_type' => $validated['file_type'],
+                'mime_type' => $validated['mime_type'],
+                'parent_id' => $validated['parent_id'],
+                'is_folder' => false,
+                'is_blockchain_stored' => false,
+                'is_vectorized' => false,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded to standard storage successfully',
+                'file' => $file
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Standard upload failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Standard upload failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload file directly to blockchain (Arweave) - NO VECTOR PROCESSING
+     */
+    public function uploadBlockchain(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check premium access
+            if (!$user->is_premium) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Premium subscription required for blockchain storage'
+                ], 403);
+            }
+
+            Log::info('Blockchain upload request received', ['user_id' => $user->id]);
+
+            $validated = $request->validate([
+                'file_name' => 'required|string|max:255',
+                'file_content' => 'required|string', // Base64 encoded file content
+                'file_size' => 'required|integer',
+                'file_type' => 'required|string',
+                'mime_type' => 'required|string',
+                'parent_id' => 'nullable|integer|exists:files,id',
+            ]);
+
+            // Create temporary file for Arweave upload
+            $tempFile = $this->createTempFileFromBase64($validated['file_content'], $validated['file_name']);
+            
+            // Create file record first
+            $file = File::create([
+                'user_id' => $user->id,
+                'file_name' => $validated['file_name'],
+                'file_path' => $tempFile, // Temporary path
+                'file_size' => $validated['file_size'],
+                'file_type' => $validated['file_type'],
+                'mime_type' => $validated['mime_type'],
+                'parent_id' => $validated['parent_id'],
+                'is_folder' => false,
+                'is_blockchain_stored' => false, // Will be updated after successful upload
+                'is_vectorized' => false, // Blockchain uploads are NOT vectorized
+            ]);
+
+            // Upload to Arweave using ArweaveService
+            $arweaveService = new ArweaveService();
+            $arweaveResult = $arweaveService->uploadFile($file, $user->id);
+            
+            if (!$arweaveResult['success']) {
+                // Clean up file record on failure
+                $file->delete();
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Arweave upload failed: ' . $arweaveResult['error']
+                ], 500);
+            }
+
+            // Update file record with Arweave details
+            $file->update([
+                'file_path' => 'arweave://' . $arweaveResult['tx_id'],
+                'is_blockchain_stored' => true,
+                'blockchain_provider' => 'arweave',
+                'blockchain_url' => $arweaveResult['url'],
+                'blockchain_metadata' => json_encode([
+                    'transaction_id' => $arweaveResult['tx_id'],
+                    'upload_timestamp' => now(),
+                    'provider' => 'arweave',
+                    'cost' => $arweaveResult['cost'] ?? null
+                ]),
+                'is_permanent_storage' => true,
+                'permanent_storage_enabled_at' => now(),
+                'permanent_storage_enabled_by' => $user->id,
+            ]);
+
+            // Clean up temporary file
+            if (file_exists($tempFile)) {
+                unlink($tempFile);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded to Arweave blockchain successfully (no AI processing)',
+                'file' => $file->fresh(),
+                'arweave_url' => $arweaveResult['url'],
+                'transaction_id' => $arweaveResult['tx_id']
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('Blockchain upload failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Blockchain upload failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Upload file and process with AI vectorization only
+     */
+    public function uploadAiVectorize(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check premium access
+            if (!$user->is_premium) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Premium subscription required for AI vectorization'
+                ], 403);
+            }
+
+            Log::info('AI vectorize upload request received', ['user_id' => $user->id]);
+
+            $validated = $request->validate([
+                'file_name' => 'required|string|max:255',
+                'file_path' => 'required|string',
+                'file_size' => 'required|integer',
+                'file_type' => 'required|string',
+                'mime_type' => 'required|string',
+                'parent_id' => 'nullable|integer|exists:files,id',
+            ]);
+
+            $file = File::create([
+                'user_id' => $user->id,
+                'file_name' => $validated['file_name'],
+                'file_path' => $validated['file_path'],
+                'file_size' => $validated['file_size'],
+                'file_type' => $validated['file_type'],
+                'mime_type' => $validated['mime_type'],
+                'parent_id' => $validated['parent_id'],
+                'is_folder' => false,
+                'is_blockchain_stored' => false,
+                'is_vectorized' => false, // Will be set to true after processing
+            ]);
+
+            // Process with AI vectorization
+            $this->processN8nVectorization($file, $user);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File uploaded and queued for AI vectorization',
+                'file' => $file
+            ], 201);
+
+        } catch (\Exception $e) {
+            Log::error('AI vectorize upload failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'AI vectorize upload failed: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Helper method to create temporary file from base64 content
+     */
+    private function createTempFileFromBase64(string $base64Content, string $fileName): string
+    {
+        $decodedContent = base64_decode($base64Content);
+        $tempDir = storage_path('app/temp');
+        
+        if (!is_dir($tempDir)) {
+            mkdir($tempDir, 0755, true);
+        }
+        
+        $tempFile = $tempDir . '/' . uniqid() . '_' . $fileName;
+        file_put_contents($tempFile, $decodedContent);
+        
+        return $tempFile;
     }
 
     /**
@@ -980,7 +1268,7 @@ class FileController extends Controller
             ]);
 
             // Download file content from Supabase
-            $client = new \GuzzleHttp\Client(['verify' => false, 'timeout' => 30]);
+            $client = new Client(['verify' => false, 'timeout' => 30]);
             $response = $client->get($fileUrl);
             
             if ($response->getStatusCode() !== 200) {

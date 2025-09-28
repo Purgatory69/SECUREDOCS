@@ -120,13 +120,13 @@ export function initializeUserProfile() {
 
     // Close dropdown when clicking outside
     document.addEventListener('click', function (event) {
-        if (!profileDropdown.contains(event.target) && !userProfileBtn.contains(event.target)) {
+        if (!event.target.closest('#userProfileDropdown')) {
             profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
         }
     });
 }
 
-export function updateBreadcrumbsDisplay(breadcrumbs) {
+export function updateBreadcrumbsDisplay(breadcrumbs, currentView = 'main') {
     const container = document.getElementById('breadcrumbsContainer');
     const dropdown = document.getElementById('breadcrumbsDropdown');
     const dropdownMenu = document.getElementById('breadcrumbsDropdownMenu');
@@ -134,44 +134,69 @@ export function updateBreadcrumbsDisplay(breadcrumbs) {
     
     if (!container || !dropdown || !dropdownMenu || !pathContainer) return;
 
-    // Clear previous content
+    // Clear existing content
     dropdownMenu.innerHTML = '';
     pathContainer.innerHTML = '';
 
-    if (breadcrumbs.length === 0) {
+    // Create base breadcrumbs based on current view
+    let baseBreadcrumbs = [];
+    
+    switch (currentView) {
+        case 'trash':
+            baseBreadcrumbs = [{ id: 'trash', name: 'Trash' }];
+            break;
+        case 'blockchain':
+            baseBreadcrumbs = [{ id: 'blockchain', name: 'Blockchain Storage' }];
+            break;
+        case 'main':
+        default:
+            baseBreadcrumbs = [{ id: null, name: 'My Documents' }];
+            break;
+    }
+
+    // For main view, append folder breadcrumbs
+    let allBreadcrumbs = baseBreadcrumbs;
+    if (currentView === 'main' && breadcrumbs && breadcrumbs.length > 0) {
+        // Filter out the root "My Documents" if it exists in breadcrumbs
+        const folderBreadcrumbs = breadcrumbs.filter(crumb => crumb.id !== null);
+        allBreadcrumbs = [...baseBreadcrumbs, ...folderBreadcrumbs];
+    }
+
+    if (allBreadcrumbs.length === 0) {
         dropdown.classList.add('hidden');
         return;
     }
 
     // Google Drive-style logic: show only current folder when path is long
-    const shouldCollapse = breadcrumbs.length > 4;
+    const shouldCollapse = allBreadcrumbs.length > 4;
     
     if (shouldCollapse) {
         // Show three-dot menu
         dropdown.classList.remove('hidden');
         
         // Add hidden breadcrumbs to dropdown (all except last 2)
-        const hiddenCrumbs = breadcrumbs.slice(0, -3);
+        const hiddenCrumbs = allBreadcrumbs.slice(0, -3);
         hiddenCrumbs.forEach(crumb => {
             const item = document.createElement('a');
             item.href = '#';
-            item.className = 'block px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white transition-colors';
-            item.textContent = crumb.name;
+            item.className = 'block px-3 py-2 text-sm text-gray-300 hover:bg-[#2A2D47] rounded';
+            item.textContent = truncateText(crumb.name, 30);
+            item.title = crumb.name; // Show full name on hover
             item.dataset.folderId = crumb.id;
             dropdownMenu.appendChild(item);
         });
         
         // Show only last 2 breadcrumbs in main path
-        const visibleCrumbs = breadcrumbs.slice(-3);
-        renderBreadcrumbPath(visibleCrumbs, pathContainer);
+        const visibleCrumbs = allBreadcrumbs.slice(-3);
+        renderBreadcrumbPath(visibleCrumbs, pathContainer, currentView);
     } else {
         // Show all breadcrumbs normally
         dropdown.classList.add('hidden');
-        renderBreadcrumbPath(breadcrumbs, pathContainer);
+        renderBreadcrumbPath(allBreadcrumbs, pathContainer, currentView);
     }
 }
 
-function renderBreadcrumbPath(breadcrumbs, container) {
+function renderBreadcrumbPath(breadcrumbs, container, currentView) {
     breadcrumbs.forEach((crumb, index) => {
         if (index > 0) {
             const separator = document.createElement('span');
@@ -185,9 +210,16 @@ function renderBreadcrumbPath(breadcrumbs, container) {
 
         const link = document.createElement('a');
         link.href = '#';
-        link.className = 'hover:text-white transition-colors px-2 py-1 rounded';
-        link.textContent = crumb.name;
+        link.className = 'px-2 py-1 rounded text-sm transition-colors max-w-[200px] truncate inline-block';
+        link.textContent = truncateText(crumb.name, 25);
+        link.title = crumb.name; // Show full name on hover
         link.dataset.folderId = crumb.id;
+
+        // Disable navigation for non-main views
+        if (currentView !== 'main' || crumb.id === 'trash' || crumb.id === 'blockchain') {
+            link.style.pointerEvents = 'none';
+            link.style.cursor = 'default';
+        }
 
         if (index === breadcrumbs.length - 1) {
             link.className += ' text-white font-medium bg-[#3C3F58]';
@@ -197,6 +229,12 @@ function renderBreadcrumbPath(breadcrumbs, container) {
 
         container.appendChild(link);
     });
+}
+
+// Helper function to truncate text
+function truncateText(text, maxLength) {
+    if (text.length <= maxLength) return text;
+    return text.substring(0, maxLength - 3) + '...';
 }
 
 function initializeBreadcrumbsDropdown() {
@@ -244,7 +282,7 @@ export function initializeUi(dependencies) {
     initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state);
 }
 
-export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state) {
+export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, stateObj) {
     const myDocumentsLink = document.getElementById('my-documents-link');
     const trashLink = document.getElementById('trash-link');
     const blockchainLink = document.getElementById('blockchain-storage-link');
@@ -257,14 +295,83 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         blockchainLink?.classList.remove('bg-primary', 'text-white');
     }
 
+    function hideNavigationElements() {
+        // Hide the breadcrumb container and reset navigation
+        const breadcrumbContainer = document.getElementById('breadcrumbsContainer');
+        if (breadcrumbContainer) {
+            breadcrumbContainer.style.display = 'none';
+        }
+        
+        // Hide new folder buttons
+        const newButton = document.getElementById('new-button');
+        const createFolderBtn = document.getElementById('create-folder-btn');
+        if (newButton) newButton.style.display = 'none';
+        if (createFolderBtn) createFolderBtn.style.display = 'none';
+    }
+
+    function showMyDocumentsElements() {
+        // Show the breadcrumb container
+        const breadcrumbContainer = document.getElementById('breadcrumbsContainer');
+        if (breadcrumbContainer) {
+            breadcrumbContainer.style.display = 'flex';
+        }
+        
+        // Show new folder buttons
+        const newButton = document.getElementById('new-button');
+        const createFolderBtn = document.getElementById('create-folder-btn');
+        if (newButton) newButton.style.display = 'block';
+        if (createFolderBtn) createFolderBtn.style.display = 'block';
+    }
+
+    function showBreadcrumbsForView(viewType) {
+        // Always show breadcrumbs, but update them based on view
+        const breadcrumbContainer = document.getElementById('breadcrumbsContainer');
+        if (breadcrumbContainer) {
+            breadcrumbContainer.style.display = 'flex';
+        }
+        
+        // For main view, get current folder breadcrumbs from localStorage
+        let breadcrumbsToShow = [];
+        if (viewType === 'main') {
+            try {
+                const storedBreadcrumbs = localStorage.getItem('breadcrumbs');
+                if (storedBreadcrumbs) {
+                    breadcrumbsToShow = JSON.parse(storedBreadcrumbs);
+                }
+            } catch (e) {
+                console.warn('Failed to parse breadcrumbs from localStorage:', e);
+                breadcrumbsToShow = [];
+            }
+        }
+        
+        // Update breadcrumbs based on current view
+        updateBreadcrumbsDisplay(breadcrumbsToShow, viewType);
+        
+        // Hide new folder buttons for non-main views
+        const newButton = document.getElementById('new-button');
+        const createFolderBtn = document.getElementById('create-folder-btn');
+        if (viewType !== 'main') {
+            if (newButton) newButton.style.display = 'none';
+            if (createFolderBtn) createFolderBtn.style.display = 'none';
+        } else {
+            // Show buttons for main view
+            if (newButton) newButton.style.display = 'block';
+            if (createFolderBtn) createFolderBtn.style.display = 'block';
+        }
+    }
+
     myDocumentsLink?.addEventListener('click', (e) => {
         e.preventDefault();
         if (headerTitle) headerTitle.textContent = 'My Documents';
         if (newButton) newButton.style.display = 'block';
         clearActiveStates();
         myDocumentsLink.classList.add('bg-primary', 'text-white');
+        // Show My Documents specific elements
+        showMyDocumentsElements();
+        // Update breadcrumbs to show "My Documents"
+        showBreadcrumbsForView('main');
         // Use the state object to get the last search query
-        loadUserFiles(state.lastMainSearch, 1, null);
+        loadUserFiles(stateObj.lastMainSearch, 1, null);
     });
 
     trashLink?.addEventListener('click', (e) => {
@@ -273,6 +380,8 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         if (newButton) newButton.style.display = 'none';
         clearActiveStates();
         trashLink.classList.add('bg-primary', 'text-white');
+        // Show breadcrumbs for trash view
+        showBreadcrumbsForView('trash');
         loadTrashItems();
     });
 
@@ -284,6 +393,8 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         if (newButton) newButton.style.display = 'block'; // Show new button for blockchain upload
         clearActiveStates();
         blockchainLink.classList.add('bg-primary', 'text-white');
+        // Show breadcrumbs for blockchain view
+        showBreadcrumbsForView('blockchain');
         // Keep page-based blockchain view functional (if implemented)
         try { typeof loadBlockchainItems === 'function' && loadBlockchainItems(); } catch (_) {}
         // Intentionally do NOT open the blockchain modal.

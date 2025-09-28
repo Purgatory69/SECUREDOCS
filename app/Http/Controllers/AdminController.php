@@ -3,6 +3,8 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\Subscription;
+use App\Models\Payment;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -70,6 +72,14 @@ class AdminController extends Controller
             'totalUsers', 'premiumUsers', 'standardUsers',
             'recentUsers', 'labels', 'seriesTotal', 'seriesPremium', 'seriesStandard'
         ));
+    }
+
+    /**
+     * Admin Users page - alias for usersList to match route naming
+     */
+    public function users(Request $request)
+    {
+        return $this->usersList($request);
     }
 
     /**
@@ -282,6 +292,142 @@ class AdminController extends Controller
                 'total' => $paginator->total(),
                 'last_page' => $paginator->lastPage(),
             ]
+        ]);
+    }
+
+    /**
+     * Toggle user premium status
+     */
+    public function togglePremium(Request $request, $userId)
+    {
+        try {
+            $user = User::findOrFail($userId);
+            
+            if ($user->is_premium) {
+                // Remove premium status
+                DB::statement('UPDATE users SET is_premium = false WHERE id = ?', [$user->id]);
+                
+                // Cancel active subscriptions
+                $user->subscriptions()
+                    ->where('status', 'active')
+                    ->update([
+                        'status' => 'cancelled',
+                        'auto_renew' => false
+                    ]);
+                
+                $message = "User {$user->name} premium status removed successfully.";
+            } else {
+                // Grant premium status
+                DB::statement('UPDATE users SET is_premium = true WHERE id = ?', [$user->id]);
+                
+                // Create admin-granted subscription
+                Subscription::create([
+                    'user_id' => $user->id,
+                    'plan_name' => 'premium',
+                    'status' => 'active',
+                    'amount' => 0.00, // Admin granted - no charge
+                    'currency' => 'PHP',
+                    'billing_cycle' => 'monthly',
+                    'starts_at' => now(),
+                    'ends_at' => now()->addYear(), // Give 1 year for admin grants
+                    'auto_renew' => false
+                ]);
+                
+                $message = "User {$user->name} granted premium status successfully.";
+            }
+            
+            // Refresh user model to get updated is_premium value
+            $user->refresh();
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => $message,
+                    'is_premium' => $user->is_premium
+                ]);
+            }
+            
+            return redirect()->back()->with('success', $message);
+            
+        } catch (\Exception $e) {
+            \Log::error('Toggle premium failed', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Failed to toggle premium status: ' . $e->getMessage()
+                ], 500);
+            }
+            
+            return redirect()->back()->with('error', 'Failed to toggle premium status: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Reset user premium completely (remove all subscriptions and payments)
+     */
+    public function resetPremium(Request $request, $userId)
+    {
+        $user = User::findOrFail($userId);
+        
+        // Remove premium status
+        $user->is_premium = false;
+        $user->save();
+        
+        // Delete all subscriptions and payments for this user
+        $user->payments()->delete();
+        $user->subscriptions()->delete();
+        
+        $message = "User {$user->name} premium data completely reset.";
+        
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $message
+            ]);
+        }
+        
+        return redirect()->back()->with('success', $message);
+    }
+
+    /**
+     * Get user premium details
+     */
+    public function getUserPremiumDetails($userId)
+    {
+        $user = User::with(['subscriptions', 'payments'])->findOrFail($userId);
+        
+        return response()->json([
+            'user' => [
+                'id' => $user->id,
+                'name' => $user->name,
+                'email' => $user->email,
+                'is_premium' => $user->is_premium,
+            ],
+            'subscriptions' => $user->subscriptions->map(function($sub) {
+                return [
+                    'id' => $sub->id,
+                    'plan_name' => $sub->plan_name,
+                    'status' => $sub->status,
+                    'amount' => $sub->formatted_amount,
+                    'starts_at' => $sub->starts_at->format('M d, Y'),
+                    'ends_at' => $sub->ends_at->format('M d, Y'),
+                    'auto_renew' => $sub->auto_renew
+                ];
+            }),
+            'payments' => $user->payments->map(function($payment) {
+                return [
+                    'id' => $payment->id,
+                    'amount' => $payment->formatted_amount,
+                    'status' => $payment->status,
+                    'payment_method' => $payment->payment_method_display,
+                    'created_at' => $payment->created_at->format('M d, Y')
+                ];
+            })
         ]);
     }
 }

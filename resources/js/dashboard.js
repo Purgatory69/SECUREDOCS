@@ -2,24 +2,22 @@
 // Main Dashboard Initializer
 // ====================================================================
 // This script is the entry point for all frontend functionality
-// on the main user dashboard. It imports and initializes all 
 // feature modules.
 //
 
 // --- Module Imports ---
 import { initializeN8nChat } from './modules/n8n.js';
 import { initializeUploadModal } from './modules/upload.js';
+import { initializeUi, updateBreadcrumbsDisplay, initializeTooltips } from './modules/ui.js';
 import { initializeFileFolderManagement, loadUserFiles, loadTrashItems } from './modules/file-folder.js';
 import { loadBlockchainItems } from './modules/blockchain-page.js';
-import { initializeUi, initializeTooltips } from './modules/ui.js';
 import { initializeSearch } from './modules/search.js';
-// import { setupBlockchainLazyInit } from './modules/blockchain.js';
+import ArweavePayment from './modules/arweave-payment.js';
 import { NotificationManager } from './modules/notifications.js';
 import StorageUsageManager from './modules/storage-usage.js';
 
 // --- Supabase Client Check ---
 if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_KEY) {
-    console.error('Supabase client not found. Ensure it is configured in .env and loaded in app.blade.php.');
 }
 
 // --- Global State ---
@@ -64,6 +62,10 @@ function initializeApp() {
     // --- Initialize Notification System ---
     // Initialize the notification bell and dropdown functionality
     window.notificationManager = new NotificationManager();
+    
+    // --- Initialize Arweave Payment System ---
+    // Initialize the payment system for blockchain uploads
+    new ArweavePayment();
     
     // --- Initialize Storage Usage Manager ---
     // Initialize storage usage display and premium upgrade prompts

@@ -183,4 +183,20 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     {
         return $this->morphMany(\Laragear\WebAuthn\Models\WebAuthnCredential::class, 'authenticatable');
     }
+
+    /**
+     * Get the user's payments
+     */
+    public function payments(): HasMany
+    {
+        return $this->hasMany(\App\Models\Payment::class);
+    }
+
+    /**
+     * Get the user's subscriptions
+     */
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(\App\Models\Subscription::class);
+    }
 }

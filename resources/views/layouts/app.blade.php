@@ -105,7 +105,7 @@
             }, 2000);
         </script>
     </head>
-    <body style="background-color: #141326;" class="h-screen @if(Route::currentRouteName() !== 'file-preview' && Route::currentRouteName() !== 'profile.sessions')  grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout @endif text-text-main">
+    <body style="background-color: #141326;" class="h-screen @if(Route::currentRouteName() === 'user.dashboard')  grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout @endif text-text-main">
         <!-- Loading spinner -->
         <div class="loading-spinner"></div>
         

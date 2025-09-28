@@ -473,7 +473,7 @@ class AICategorization {
      */
     async checkInitialStatus() {
         try {
-            console.log('🔄 Checking initial AI categorization status');
+            // console.log('🔄 Checking initial AI categorization status');
             // Always use public endpoint since we force public-only polling
             const userId = window.userId || localStorage.getItem('user_id');
             const publicUrl = userId ? 
@@ -484,11 +484,11 @@ class AICategorization {
                 headers: this.buildAuthHeaders(),
                 credentials: 'include'
             });
-            console.log('🌐 Public status response:', response.status, response.statusText);
+            // console.log('🌐 Public status response:', response.status, response.statusText);
             
             if (response.ok) {
                 const data = await response.json();
-                console.log('📊 Initial status data:', data);
+                // console.log('📊 Initial status data:', data);
                 
                 // If categorization is in progress, show overlay
                 if (data.status.status === 'in_progress') {

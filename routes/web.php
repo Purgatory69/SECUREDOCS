@@ -1,6 +1,9 @@
 <?php
 
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 use App\Livewire\Dashboard;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileSharingController;
@@ -10,6 +13,7 @@ use App\Http\Controllers\BlockchainTestController;
 use App\Http\Controllers\BlockchainController;
 use App\Http\Controllers\WebAuthnController;
 use App\Http\Controllers\AdminController;
+use App\Http\Controllers\PermanentStorageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SchemaController;
 use Illuminate\Http\Request;
@@ -46,7 +50,7 @@ Route::post('/webauthn/login/verify', [WebAuthnController::class, 'loginVerify']
 
 // Blockchain Storage Test Routes (Development Only - No Auth Required)
 Route::prefix('blockchain-test')->group(function () {
-    Route::get('/pinata', [App\Http\Controllers\BlockchainTestController::class, 'testPinata'])->name('blockchain.test.pinata');
+    Route::get('/arweave', [App\Http\Controllers\BlockchainTestController::class, 'testArweave'])->name('blockchain.test.arweave');
     Route::get('/providers', [App\Http\Controllers\BlockchainTestController::class, 'getProviders'])->name('blockchain.test.providers');
     Route::get('/config', [App\Http\Controllers\BlockchainTestController::class, 'getConfig'])->name('blockchain.test.config');
     Route::post('/upload', [App\Http\Controllers\BlockchainTestController::class, 'testUpload'])->name('blockchain.test.upload');
@@ -68,7 +72,13 @@ Route::middleware([
             return redirect()->route('admin.dashboard');
         });
         Route::get('/dashboard', [AdminController::class, 'dashboard'])->name('dashboard');
-        Route::get('/users', [AdminController::class, 'usersList'])->name('users');
+        Route::get('/users', [AdminController::class, 'users'])->name('users');
+        Route::get('/users/search', [AdminController::class, 'searchUsers'])->name('users.search');
+        
+        // Premium management routes
+        Route::post('/users/{user}/toggle-premium', [AdminController::class, 'togglePremium'])->name('users.toggle-premium');
+        Route::post('/users/{user}/reset-premium', [AdminController::class, 'resetPremium'])->name('users.reset-premium');
+        Route::get('/users/{user}/premium-details', [AdminController::class, 'getUserPremiumDetails'])->name('users.premium-details');
         Route::post('/approve/{id}', [AdminController::class, 'approve'])->name('approve');
         Route::post('/revoke/{id}', [AdminController::class, 'revoke'])->name('revoke');
         Route::post('/users/{user}/premium-settings', [AdminController::class, 'updatePremiumSettings'])->name('users.premium-settings');
@@ -98,6 +108,12 @@ Route::middleware([
     // Files routes
     Route::get('/files', [FileController::class, 'index']);
     Route::post('/files/upload', [FileController::class, 'store']);
+    
+    // Separated upload endpoints
+    Route::post('/files/upload/standard', [FileController::class, 'uploadStandard']);
+    Route::post('/files/upload/blockchain', [FileController::class, 'uploadBlockchain']);
+    Route::post('/files/upload/ai-vectorize', [FileController::class, 'uploadAiVectorize']);
+    
     Route::get('/files/trash', [FileController::class, 'getTrashItems']);
     Route::post('/files/create-folder', [FileController::class, 'createFolder']);
     Route::get('/files/{id}', [FileController::class, 'show'])->whereNumber('id');
@@ -118,6 +134,7 @@ Route::middleware([
 
     // Blockchain routes (authenticated)
     Route::prefix('blockchain')->group(function () {
+        Route::get('/storage-info', [BlockchainController::class, 'getStorageInfo'])->name('blockchain.storage-info');
         Route::get('/providers', [BlockchainController::class, 'getProviders'])->name('blockchain.providers');
         Route::get('/stats', [BlockchainController::class, 'getStats'])->name('blockchain.stats');
         Route::get('/files', [BlockchainController::class, 'getFiles'])->name('blockchain.files');
@@ -126,10 +143,41 @@ Route::middleware([
         Route::post('/unpin/{file}', [BlockchainController::class, 'unpinFile'])->name('blockchain.unpin');
         Route::post('/unpin-by-hash', [BlockchainController::class, 'unpinByHash'])->name('unpin.hash');
     });
+
+    // Arweave payment routes (authenticated)
+    Route::prefix('arweave')->group(function () {
+        Route::post('/pricing', [App\Http\Controllers\ArweavePaymentController::class, 'getUploadPricing'])->name('arweave.pricing');
+        Route::post('/payment', [App\Http\Controllers\ArweavePaymentController::class, 'processPayment'])->name('arweave.payment');
+        Route::get('/payments', [App\Http\Controllers\ArweavePaymentController::class, 'getPaymentHistory'])->name('arweave.payments');
+        Route::get('/payment/{paymentId}', [App\Http\Controllers\ArweavePaymentController::class, 'getPaymentDetails'])->name('arweave.payment.details');
+        Route::post('/verify-transaction', [App\Http\Controllers\ArweavePaymentController::class, 'verifyTransaction'])->name('arweave.verify');
+    });
     Route::post('/upload-existing', [BlockchainController::class, 'uploadExistingFile'])->name('upload.existing');
     Route::post('/preflight-validation', [BlockchainController::class, 'preflightValidation'])->name('preflight');
     Route::delete('/unpin/{file}', [BlockchainController::class, 'unpinFile'])->name('unpin.file');
     Route::post('/unpin-by-hash', [BlockchainController::class, 'unpinByHash'])->name('unpin.hash');
+
+    // Include Arweave routes
+    require __DIR__.'/arweave_routes.php';
+    
+    // Permanent Storage Routes (Web-based for session auth)
+    Route::prefix('permanent-storage')->group(function () {
+        Route::post('/calculate-cost', [PermanentStorageController::class, 'calculateCost'])->name('permanent-storage.calculate-cost');
+        Route::post('/create-payment', [PermanentStorageController::class, 'createPayment'])->name('permanent-storage.create-payment');
+        Route::get('/payment-status/{paymentId}', [PermanentStorageController::class, 'checkPaymentStatus'])->name('permanent-storage.payment-status');
+        Route::post('/upload', [PermanentStorageController::class, 'uploadToArweave'])->name('permanent-storage.upload');
+        Route::get('/history', [PermanentStorageController::class, 'getHistory'])->name('permanent-storage.history');
+        Route::get('/supported-options', [PermanentStorageController::class, 'getSupportedOptions'])->name('permanent-storage.supported-options');
+    });
+
+    // File OTP Security routes
+    Route::prefix('file-otp')->group(function () {
+        Route::post('/enable', [App\Http\Controllers\FileOtpController::class, 'enableOtp'])->name('file-otp.enable');
+        Route::post('/disable', [App\Http\Controllers\FileOtpController::class, 'disableOtp'])->name('file-otp.disable');
+        Route::post('/send', [App\Http\Controllers\FileOtpController::class, 'sendOtp'])->name('file-otp.send');
+        Route::post('/verify', [App\Http\Controllers\FileOtpController::class, 'verifyOtp'])->name('file-otp.verify');
+        Route::get('/status', [App\Http\Controllers\FileOtpController::class, 'getOtpStatus'])->name('file-otp.status');
+    });
 
     // File vector and blockchain management routes
     Route::delete('/files/{file}/remove-from-vector', [FileController::class, 'removeFromVector'])->name('files.remove-from-vector');
@@ -285,6 +333,280 @@ Route::middleware([
     Route::get('/profile/sessions', function () {
         return view('profile.sessions');
     })->name('profile.sessions');
+    
+    // Premium/Payment routes
+    Route::prefix('premium')->group(function () {
+        Route::get('/upgrade', [App\Http\Controllers\PaymentController::class, 'showUpgrade'])->name('premium.upgrade');
+        Route::post('/create-payment-intent', [App\Http\Controllers\PaymentController::class, 'createPaymentIntent'])->name('premium.create-payment-intent');
+        Route::get('/success', [App\Http\Controllers\PaymentController::class, 'success'])->name('premium.success');
+        Route::get('/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('premium.cancel');
+        Route::get('/payment-history', [App\Http\Controllers\PaymentController::class, 'paymentHistory'])->name('premium.payment-history');
+        
+        // Test route to simulate successful payment (for development) - DISABLED
+        /* Route::post('/test-upgrade', function () {
+            try {
+                $user = Auth::user();
+                
+                if (!$user) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'User not authenticated'
+                    ], 401);
+                }
+                
+                if (!$user->is_premium) {
+                    // Use raw SQL with explicit boolean casting for PostgreSQL
+                    DB::statement('UPDATE users SET is_premium = ?::boolean, updated_at = ? WHERE id = ?', [true, now(), $user->id]);
+                    
+                    // Create test subscription using raw SQL to handle boolean casting
+                    DB::statement(
+                        'INSERT INTO subscriptions (user_id, plan_name, status, amount, currency, billing_cycle, starts_at, ends_at, auto_renew, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::boolean, ?, ?)',
+                        [
+                            $user->id,
+                            'premium',
+                            'active',
+                            299.00,
+                            'PHP',
+                            'monthly',
+                            now(),
+                            now()->addMonth(),
+                            true,
+                            now(),
+                            now()
+                        ]
+                    );
+                }
+                
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Successfully upgraded to premium!',
+                    'redirect' => route('premium.success')
+                ]);
+                
+            } catch (\Exception $e) {
+                Log::error('Test upgrade error: ' . $e->getMessage());
+                
+                return response()->json([
+                    'success' => false,
+                    'message' => 'An error occurred during upgrade: ' . $e->getMessage()
+                ], 500);
+            }
+        })->name('premium.test-upgrade'); */
+    });
+    
+    // PayMongo webhook (no auth required)
+    Route::post('/webhook/paymongo', [App\Http\Controllers\PaymentController::class, 'webhook'])->name('webhook.paymongo');
+    
+    // Debug route to test PayMongo connection
+    Route::get('/debug/paymongo-test', function () {
+        try {
+            $secretKey = env('PAYMONGO_SECRET_KEY');
+            $publicKey = env('PAYMONGO_PUBLIC_KEY');
+            
+            if (empty($secretKey) || empty($publicKey)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'PayMongo keys not configured',
+                    'secret_key_set' => !empty($secretKey),
+                    'public_key_set' => !empty($publicKey)
+                ]);
+            }
+            
+            // Test API connection with checkout sessions endpoint
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => 'https://api.paymongo.com/v1/checkout_sessions',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Basic ' . base64_encode($secretKey . ':'),
+                    'Content-Type: application/json',
+                    'Accept: application/json'
+                ],
+                // SSL configuration for development
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_CONNECTTIMEOUT => 10
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+            
+            return response()->json([
+                'success' => $httpCode === 200,
+                'http_code' => $httpCode,
+                'curl_error' => $curlError,
+                'response' => json_decode($response, true),
+                'secret_key_prefix' => substr($secretKey, 0, 10) . '...',
+                'public_key_prefix' => substr($publicKey, 0, 10) . '...'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+    })->middleware('auth');
+    
+    // Test checkout session creation
+    Route::get('/debug/test-checkout', function () {
+        try {
+            $secretKey = env('PAYMONGO_SECRET_KEY');
+            
+            if (empty($secretKey)) {
+                return response()->json(['error' => 'PayMongo secret key not configured']);
+            }
+            
+            $data = [
+                'data' => [
+                    'attributes' => [
+                        'send_email_receipt' => false,
+                        'show_description' => true,
+                        'show_line_items' => true,
+                        'description' => 'Test SecureDocs Premium Subscription',
+                        'cancel_url' => url('/premium/cancel'),
+                        'success_url' => url('/premium/success'),
+                        'payment_method_types' => ['gcash'],
+                        'line_items' => [
+                            [
+                                'currency' => 'PHP',
+                                'amount' => 29900, // ₱299.00
+                                'description' => 'Test SecureDocs Premium',
+                                'name' => 'Premium Test',
+                                'quantity' => 1
+                            ]
+                        ]
+                    ]
+                ]
+            ];
+            
+            $ch = curl_init();
+            curl_setopt_array($ch, [
+                CURLOPT_URL => 'https://api.paymongo.com/v1/checkout_sessions',
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST => true,
+                CURLOPT_POSTFIELDS => json_encode($data),
+                CURLOPT_HTTPHEADER => [
+                    'Authorization: Basic ' . base64_encode($secretKey . ':'),
+                    'Content-Type: application/json',
+                    'Accept: application/json'
+                ],
+                CURLOPT_SSL_VERIFYPEER => false,
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_TIMEOUT => 30,
+                CURLOPT_CONNECTTIMEOUT => 10
+            ]);
+            
+            $response = curl_exec($ch);
+            $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            $curlError = curl_error($ch);
+            curl_close($ch);
+            
+            $decodedResponse = json_decode($response, true);
+            
+            return response()->json([
+                'success' => $httpCode === 200 || $httpCode === 201,
+                'http_code' => $httpCode,
+                'curl_error' => $curlError,
+                'response' => $decodedResponse,
+                'checkout_url' => $decodedResponse['data']['attributes']['checkout_url'] ?? 'NOT FOUND',
+                'sent_data' => $data
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+    })->middleware('auth');
+    
+    // Manual payment completion for testing (when webhooks don't work)
+    Route::post('/debug/complete-payment/{paymentId}', function ($paymentId) {
+        try {
+            $payment = \App\Models\Payment::find($paymentId);
+            
+            if (!$payment) {
+                return response()->json(['error' => 'Payment not found']);
+            }
+            
+            if ($payment->status !== 'pending') {
+                return response()->json(['error' => 'Payment is not pending']);
+            }
+            
+            // Simulate successful payment
+            $payment->update([
+                'status' => 'paid',
+                'paid_at' => now()
+            ]);
+            
+            // Grant premium access
+            $user = $payment->user;
+            $user->update(['is_premium' => true]);
+            
+            // Create subscription
+            \App\Models\Subscription::create([
+                'user_id' => $user->id,
+                'plan_name' => 'premium',
+                'status' => 'active',
+                'amount' => $payment->amount,
+                'currency' => 'PHP',
+                'billing_cycle' => 'monthly',
+                'starts_at' => now(),
+                'ends_at' => now()->addMonth(),
+                'auto_renew' => true
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'message' => 'Payment completed and premium access granted',
+                'user_premium' => $user->fresh()->is_premium
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage()
+            ]);
+        }
+    })->middleware('auth');
+    
+    // Test toggle premium functionality
+    Route::get('/debug/test-premium-toggle/{userId}', function ($userId) {
+        try {
+            $user = \App\Models\User::findOrFail($userId);
+            
+            // Test creating a subscription
+            $subscription = \App\Models\Subscription::create([
+                'user_id' => $user->id,
+                'plan_name' => 'premium',
+                'status' => 'active',
+                'amount' => 0.00,
+                'currency' => 'PHP',
+                'billing_cycle' => 'monthly',
+                'starts_at' => now(),
+                'ends_at' => now()->addYear(),
+                'auto_renew' => false
+            ]);
+            
+            return response()->json([
+                'success' => true,
+                'user' => $user->only(['id', 'name', 'email', 'is_premium']),
+                'subscription' => $subscription,
+                'message' => 'Test subscription created successfully'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
+    })->middleware('auth');
     
     // Debug route for testing session system
     Route::get('/debug/session-test', function () {
