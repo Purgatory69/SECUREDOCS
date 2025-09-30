@@ -1,33 +1,36 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-[#141326] text-white">
+<div style="background-color: #24243B;" class="min-h-screen text-white">
     <!-- Header -->
-    <div class="bg-[#1F2235] border-b border-[#4A4D6A] px-6 py-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-white">Account Security</h1>
-                <p class="text-gray-400 mt-1">Manage your active sessions and notification preferences</p>
-            </div>
-            <a href="{{ route('user.dashboard') }}" class="bg-[#3C3F58] hover:bg-[#4A4D6A] text-white px-4 py-2 rounded-lg transition-colors">
-                ← Back to Dashboard
+    <div class="bg-[#141326] px-6 py-6">
+        <div class="flex items-center justify-between w-full">
+            <a href="{{ route('user.dashboard') }}" style="margin-left: 100px;"
+            class="flex items-center text-white hover:text-gray-300 transition-colors duration-200">
+                <img src="{{ asset('back-arrow.png') }}" alt="Back" class="w-5 h-5">
             </a>
+            <div class="flex items-center space-x-3 absolute left-1/2 transform -translate-x-1/2">
+                <img src="{{ asset('logo-white.png') }}" alt="Logo" class="h-8 w-auto">
+                <h2 class="font-bold text-xl text-[#f89c00] font-['Poppins']">Account Security</h2>
+            </div>
+            
         </div>
     </div>
 
-    <div class="container mx-auto px-6 py-8">
+    <div class="container mx-auto px-6 py-8" >
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
             
             <!-- Active Sessions -->
-            <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-6">
+            <div class="bg-[#3C3F58] rounded-xl p-6">
                 <div class="flex items-center justify-between mb-6">
                     <h2 class="text-xl font-semibold text-white flex items-center">
-                        <svg class="w-6 h-6 mr-2 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
+                        
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6 mr-2 text-[#f89c00]" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17.25v1.007a3 3 0 01-.879 2.122L7.5 21h9l-.621-.621A3 3 0 0115 18.257V17.25m6-12V15a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 15V5.25m18 0A2.25 2.25 0 0018.75 3H5.25A2.25 2.25 0 003 5.25m18 0V12a2.25 2.25 0 01-2.25 2.25H5.25A2.25 2.25 0 013 12V5.25" />
                         </svg>
                         Active Sessions
                     </h2>
-                    <button id="terminateAllBtn" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">
+                    <button id="terminateAllBtn" class="terminate-button text-white px-4 py-2 rounded-lg text-sm transition-all duration-200">
                         Terminate All Others
                     </button>
                 </div>
@@ -36,23 +39,21 @@
                     <!-- Sessions will be loaded here -->
                     <div class="flex items-center justify-center py-8">
                         <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f89c00]"></div>
-                        <span class="ml-3 text-gray-400">Loading sessions...</span>
+                        <span class="ml-3 text-gray-500">Loading sessions...</span>
                     </div>
                 </div>
             </div>
 
             <!-- Notification Preferences -->
-            <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-6">
+            <div class="bg-[#3C3F58] rounded-xl p-6">
                 <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
-                    <svg class="w-6 h-6 mr-2 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-5 5v-5zM4 19h6v-2H4v2zM4 15h8v-2H4v2zM4 11h8V9H4v2zM4 7h8V5H4v2z"></path>
-                    </svg>
+                    <img src="{{ asset('notifications.png') }}" alt="Notifications" class="w-6 h-6 mr-2">
                     Notification Preferences
                 </h2>
 
                 <form id="notificationPreferencesForm" class="space-y-4">
                     <div class="space-y-4">
-                        <div class="flex items-center justify-between p-4 bg-[#2A2D47] rounded-lg">
+                        <div style="margin-top: 2px !important;" class="notif-pref-div flex items-center justify-between rounded-lg">
                             <div>
                                 <label class="text-white font-medium">Email Notifications</label>
                                 <p class="text-gray-400 text-sm">Receive notifications via email</p>
@@ -62,8 +63,10 @@
                                 <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-[#f89c00]/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#f89c00]"></div>
                             </label>
                         </div>
+                        
+                        <div class="notif-border border-t"></div>
 
-                        <div class="flex items-center justify-between p-4 bg-[#2A2D47] rounded-lg">
+                        <div class="notif-pref-div flex items-center justify-between rounded-lg">
                             <div>
                                 <label class="text-white font-medium">New Device Login Alerts</label>
                                 <p class="text-gray-400 text-sm">Get notified when you log in from a new device</p>
@@ -74,7 +77,9 @@
                             </label>
                         </div>
 
-                        <div class="flex items-center justify-between p-4 bg-[#2A2D47] rounded-lg">
+                        <div class="notif-border border-t"></div>
+
+                        <div class="notif-pref-div flex items-center justify-between rounded-lg">
                             <div>
                                 <label class="text-white font-medium">Security Alerts</label>
                                 <p class="text-gray-400 text-sm">Important security-related notifications</p>
@@ -85,7 +90,9 @@
                             </label>
                         </div>
 
-                        <div class="flex items-center justify-between p-4 bg-[#2A2D47] rounded-lg">
+                        <div class="notif-border border-t"></div>
+
+                        <div class="notif-pref-div flex items-center justify-between rounded-lg">
                             <div>
                                 <label class="text-white font-medium">Activity Notifications</label>
                                 <p class="text-gray-400 text-sm">File uploads, downloads, and other activities</p>
@@ -97,8 +104,8 @@
                         </div>
                     </div>
 
-                    <div class="pt-4">
-                        <button type="submit" class="w-full bg-[#f89c00] hover:bg-[#e88900] text-white font-medium py-3 px-4 rounded-lg transition-colors">
+                    <div class="pt-4 flex justify-center">
+                    <button type="submit" class="p-4 w-1/2 bg-[#f89c00] text-black font-medium py-3 px-4 rounded-lg transition-all duration-200 hover:filter hover:brightness-110">
                             Save Preferences
                         </button>
                     </div>
@@ -107,7 +114,7 @@
         </div>
 
         <!-- Recent Activity -->
-        <div class="mt-8 bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-6">
+        <div class="mt-8 bg-[#3C3F58] rounded-xl p-6">
             <h2 class="text-xl font-semibold text-white mb-6 flex items-center">
                 <svg class="w-6 h-6 mr-2 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -149,7 +156,7 @@
                         <button type="button" id="cancelTerminateAll" class="flex-1 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-lg transition-colors">
                             Cancel
                         </button>
-                        <button type="submit" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-2 px-4 rounded-lg transition-colors">
+                        <button type="submit" class="terminate-button flex-1 text-white py-2 px-4 rounded-lg transition-colors">
                             Terminate All
                         </button>
                     </div>
@@ -158,6 +165,32 @@
         </div>
     </div>
 </div>
+
+<style>
+/* Terminate All button */
+.terminate-button {
+    background-color: #dc2626 !important;
+    color: white !important;
+}
+.terminate-button:hover:not(:disabled) {
+    background-color: #ef4444 !important;
+}
+
+/* Notification preferences divs */
+.notif-pref-div {
+    background-color: #3C3F58 !important;
+    padding-top: 4px !important;
+    padding-bottom: 4px !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+}
+
+.notif-border {
+    border-color: #55597C !important;
+    margin-left: 16px !important;
+    margin-right: 16px !important;
+}
+</style>
 
 @push('scripts')
 <script>

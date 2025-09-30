@@ -339,6 +339,11 @@ Route::middleware([
         return view('profile.sessions');
     })->name('profile.sessions');
     
+    // Profile FAQ page
+    Route::get('/profile/faq', function () {
+        return view('profile.faq');
+    })->name('profile.faq');
+    
     // Premium/Payment routes
     Route::prefix('premium')->group(function () {
         Route::get('/upgrade', [App\Http\Controllers\PaymentController::class, 'showUpgrade'])->name('premium.upgrade');

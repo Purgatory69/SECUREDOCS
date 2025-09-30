@@ -32,7 +32,7 @@ return [
     'type_email_here' => '\'Wag mangamba! Ibigay mo lamang ang iyong email address upang mabigyan ka ng password reset link upang mapalitan ng bagong password.',
     'password_reset_btn' => 'I-EMAIL ANG PASSWORD RESET LINK',
 
-    'db_basic_subscription' => 'Basik na Subskripsyon',
+    'db_standard' => 'Standard',
     'db_premium' => 'Premium',
     'db_search' => 'Maghanap sa SECUREDOCS',
     'db_profile_settings' => 'Settings ng Profile',
@@ -50,4 +50,15 @@ return [
     'db_trash' => 'Basurahan',
     'db_security' => 'Seguridad',
     'db_blockchain_storage' => 'Blockchain',
+
+    'fp_details' => 'Mga Detalye',
+    'fp_activity' => 'Kamakailang Aktibidad',
+    'fp_unknown' => '\'Di makilala',
+    'fp_unknown_file' => '\'Di makilala na file',
+    'fp_unknown_type' => '\'Di makilala ang uri',
+    'fp_size' => 'Laki',
+    'fp_type' => 'Uri',
+    'fp_modified' => 'Binago',
+    'fp_owner' => 'May-ari',
+    'fp_download' => 'I-download',
 ];

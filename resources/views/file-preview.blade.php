@@ -1,22 +1,20 @@
 @extends('layouts.app')
 @section('content')
-<div class="min-h-screen bg-[#141326] text-white">
+<div style="background-color: #24243b;" class="min-h-screen text-white">
     <!-- Header -->
-    <header class="flex items-center justify-between p-4 bg-[#0D0E2F]">
+    <header class="flex items-center justify-between p-4 bg-[#141326]">
         <div class="flex items-center space-x-4">
-            <button id="backBtn" class="p-2 hover:bg-gray-700 rounded">
-                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
-                </svg>
+            <button id="backBtn" style="margin-left: 10px;" class="p-2 hover:bg-gray-700 rounded">
+                <img src="{{ asset('back-arrow.png') }}" alt="Back" class="w-4 h-4">
             </button>
-            <div>
+            <div style="padding-left: 10px;">
                 <h1 id="fileName" class="text-xl font-semibold"></h1>
                 <p id="fileInfo" class="text-sm text-gray-400"></p>
             </div>
         </div>
         
-        <div class="flex items-center space-x-2">
-            <button id="downloadBtn" class="mr-4 px-4 py-2 bg-[#f89c00] text-black hover:brightness-110 transition rounded text-sm">Download</button>
+        <div style="margin-right: 5px;" class="flex items-center space-x-2">
+            <button id="downloadBtn"  class="mr-4 px-4 py-2 bg-[#f89c00] font-semibold text-black hover:brightness-110 transition rounded text-sm">{{ __('auth.fp_download') }}</button>
             <!-- <button id="moreBtn" class="p-2 hover:bg-gray-700 rounded">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path>
@@ -93,22 +91,22 @@
         <aside id="sidebar" style="background-color: #24243b;" class="w-80 p-6 hidden lg:block">
             <!-- File Details -->
             <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-4">File Details</h3>
+                <h3 class="text-lg font-semibold mt-4 mb-4">{{ __('auth.fp_details') }}</h3>
                 <div class="space-y-3 text-sm">
                     <div class="flex justify-between">
-                        <span class="text-gray-400">Size:</span>
+                        <span class="text-gray-400">{{ __('auth.fp_size') }}:</span>
                         <span id="fileSize"></span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-400">Type:</span>
+                        <span class="text-gray-400">{{ __('auth.fp_type') }}:</span>
                         <span id="fileType"></span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-400">Modified:</span>
+                        <span class="text-gray-400">{{ __('auth.fp_modified') }}:</span>
                         <span id="fileModified"></span>
                     </div>
                     <div class="flex justify-between">
-                        <span class="text-gray-400">Owner:</span>
+                        <span class="text-gray-400">{{ __('auth.fp_owner') }}:</span>
                         <span id="fileOwner"></span>
                     </div>
                 </div>
@@ -116,7 +114,7 @@
 
             <!-- Recent Activity -->
             <div class="mb-6">
-                <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
+                <h3 class="text-lg font-semibold mt-4 mb-4">{{ __('auth.fp_activity') }}</h3>
                 <div id="recentActivity" class="space-y-2 text-sm text-gray-400">
                     <!-- Activity items will be populated by JavaScript -->
                 </div>
@@ -126,8 +124,30 @@
     </div>
 </div>
 
+
+<!-- JS Localization -->
+<div 
+    id="js-localization-data" 
+    class="hidden" 
+    data-fp-unknown="{{ __('auth.fp_unknown') }}"
+    data-fp-unknown-file="{{ __('auth.fp_unknown_file') }}"
+    data-fp-unknown-type="{{ __('auth.fp_unknown_type') }}"
+></div>
+
 <!-- Hidden file input for uploading new versions -->
 <input type="file" id="newVersionInput" class="hidden" />
+
+<script>
+    window.I18N = window.I18N || {};
+    
+    // Read the localized text from the hidden HTML element
+    const localData = document.getElementById('js-localization-data');
+    if (localData) {
+        window.I18N.fpUnknown = localData.getAttribute('data-fp-unknown');
+        window.I18N.fpUnknownFile = localData.getAttribute('data-fp-unknown-file');
+        window.I18N.fpUnknownType = localData.getAttribute('data-fp-unknown-type');
+    }
+</script>
 
 @push('scripts')
     @vite(['resources/js/file-preview.js'])

@@ -297,6 +297,7 @@ export function initializeUi(dependencies) {
 }
 
 export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, stateObj) {
+    const dbMyDocuments = window.I18N?.dbMyDocuments || 'My Documents';
     const myDocumentsLink = document.getElementById('my-documents-link');
     const trashLink = document.getElementById('trash-link');
     const blockchainLink = document.getElementById('blockchain-storage-link');
@@ -388,7 +389,7 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
 
     myDocumentsLink?.addEventListener('click', (e) => {
         e.preventDefault();
-        if (headerTitle) headerTitle.textContent = 'My Documents';
+        if (headerTitle) headerTitle.textContent = dbMyDocuments;
         if (newButton) newButton.style.display = 'block';
         clearActiveStates();
         myDocumentsLink.classList.add('bg-primary', 'text-white');

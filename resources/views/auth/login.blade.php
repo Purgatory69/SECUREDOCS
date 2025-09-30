@@ -1,4 +1,3 @@
-
 <!-- Back Button - Fixed Position Top Left -->
 <div class="fixed top-6 left-6 z-50 pt-4 pl-2">
     <button id="back-button" class="pl-4 ml-4 text-white p-3 rounded-full shadow-lg transition-colors">
@@ -69,15 +68,12 @@
 <x-guest-layout>
     <x-authentication-card>
         <x-slot name="logo">
-
             <head>
                 <title>{{ __('auth.login_header') }}</title>
                 <link rel="icon" href="/logo-white.png">
             </head>
-
             <a href="{{ url('/') }}">
                 <header class="-mt-2 mb-2 flex flex-col items-center py-8">
-
                     <div class="flex items-center space-x-3">
                         <img src="{{ asset('logo-white.png') }}" alt="SecureDocs logo" class="w-12 h-12">
                         <h1 class="text-white text-xl font-bold">SECURE<span class="text-[#f89c00]">DOCS</span></h1>

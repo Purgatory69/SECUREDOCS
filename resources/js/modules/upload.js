@@ -97,9 +97,11 @@ function resetUploadForm() {
         const dropZoneContent = document.getElementById('dropZoneContent');
         if (dropZoneContent) {
             dropZoneContent.innerHTML = `
-                <div class="text-4xl mb-3">📄</div>
-                <p class="mb-1 text-sm">Drag and drop files here or click to browse</p>
-                <p class="text-xs text-text-secondary">Maximum file size: 100MB</p>
+                <div class="dropzone-img text-3xl mb-4">
+                    <img src="/file.png" alt="File" class="opacity-50 w-12 h-12">
+                </div>
+                <p class="dropzone-text text-sm mb-1">Drag and drop files here or click to browse</p>
+                <p class="dropzone-text text-xs"> Maximum file size: 100MB</p>
             `;
         }
     }
@@ -210,9 +212,16 @@ async function handleUpload() {
         }));
         
         // Refresh file list in current folder context
-        if (typeof window.loadUserFiles === 'function') {
+        // NEW CODE:
+        // Refresh based on current view context
+        const currentView = window.getCurrentViewContext ? window.getCurrentViewContext() : 'documents';
+        if (currentView === 'documents' && typeof window.loadUserFiles === 'function') {
             const parentId = document.getElementById('currentFolderId')?.value || null;
             window.loadUserFiles('', 1, parentId);
+        } else if (currentView === 'trash' && typeof window.loadTrashItems === 'function') {
+            window.loadTrashItems();
+        } else if (currentView === 'blockchain' && typeof window.loadBlockchainItems === 'function') {
+            window.loadBlockchainItems();
         }
     } catch (error) {
         console.error('Upload failed:', error);
