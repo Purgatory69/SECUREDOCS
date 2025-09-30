@@ -55,15 +55,19 @@ async function loadFileData(fileId) {
 function updateFileInfo() {
     if (!currentFileData) return;
 
-    document.getElementById('fileName').textContent = currentFileData.file_name || 'Unknown File';
+    const unknownText = window.I18N?.fpUnknown || 'Unknown...';
+    const unknownFile = window.I18N?.fpUnknownFile || 'Unknown File'; 
+    const unknownType = window.I18N?.fpUnknownType || 'Unknown Type';
+
+    document.getElementById('fileName').textContent = currentFileData.file_name || unknownFile;
     document.getElementById('fileSize').textContent = formatFileSize(currentFileData.file_size || 0);
-    document.getElementById('fileType').textContent = currentFileData.file_type || 'Unknown';
+    document.getElementById('fileType').textContent = currentFileData.file_type || unknownType;
     document.getElementById('fileModified').textContent = formatDate(currentFileData.updated_at);
-    document.getElementById('fileOwner').textContent = currentFileData.user?.name || 'Unknown';
+    document.getElementById('fileOwner').textContent = currentFileData.user?.name || unknownText;
     
     const fileInfo = document.getElementById('fileInfo');
     const fileSize = formatFileSize(currentFileData.file_size || 0);
-    const fileType = currentFileData.file_type || 'Unknown type';
+    const fileType = currentFileData.file_type || unknownType;
     fileInfo.textContent = `${fileSize} • ${fileType}`;
 }
 
@@ -510,7 +514,9 @@ function formatFileSize(bytes) {
 }
 
 function formatDate(dateString) {
-    if (!dateString) return 'Unknown';
+
+    const unknownText = window.I18N.fpUnknown;
+    if (!dateString) return unknownText;
     return new Date(dateString).toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',

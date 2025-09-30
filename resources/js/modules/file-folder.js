@@ -189,7 +189,22 @@ export function initializeFileFolderManagement(initialState) {
         state.layout = layout;
         localStorage.setItem('filesLayout', layout);
         applyLayoutClasses(layout);
-        updateLayoutToggleUI();
+        
+        // Sync visual state
+        const gridBtn = document.getElementById('btnGridLayout');
+        const listBtn = document.getElementById('btnListLayout');
+        
+        if (gridBtn && listBtn) {
+            gridBtn.classList.remove('active');
+            listBtn.classList.remove('active');
+            
+            if (layout === 'grid') {
+                gridBtn.classList.add('active');
+            } else {
+                listBtn.classList.add('active');
+            }
+        }
+        
         // Re-render current list without refetching
         if (Array.isArray(state.lastItems)) {
             renderFiles(state.lastItems);
@@ -215,6 +230,17 @@ export function initializeFileFolderManagement(initialState) {
             state
         }
     }
+
+    // Add this before the closing brace of initializeFileFolderManagement
+    // Sync visual states when module initializes
+    setTimeout(() => {
+        if (typeof syncSidebarVisualState === 'function') {
+            syncSidebarVisualState();
+        }
+        if (typeof syncLayoutVisualState === 'function') {
+            syncLayoutVisualState();
+        }
+    }, 100);
 }
 
 async function handleCreateFolder(folderName) {
@@ -439,8 +465,10 @@ function createGoogleDriveCard(item) {
     }
 
     const cardElement = document.createElement('div');
-    cardElement.className = 'group relative bg-[#1F2235] rounded-lg border border-[#4A4D6A] hover:border-[#7C7F96] hover:shadow-lg transition-all duration-200 cursor-pointer';
-    
+    cardElement.className = 'group relative rounded-lg border border-[#4A4D6A] hover:border-[#7C7F96] hover:shadow-lg transition-all duration-200 cursor-pointer';
+    cardElement.classList.add('file-card');
+
+
     if (isFolder) {
         cardElement.setAttribute('data-folder-nav-id', item.id);
         cardElement.setAttribute('data-folder-nav-name', name);
@@ -458,47 +486,49 @@ function createGoogleDriveCard(item) {
     }
 
     // Accessibility attributes for keyboard navigation
+
     cardElement.setAttribute('tabindex', '0');
     cardElement.setAttribute('role', 'button');
     cardElement.setAttribute('aria-label', `Open ${isFolder ? 'folder' : 'file'} ${name}`);
 
     cardElement.innerHTML = `
-        <!-- Header with three-dot menu -->
-        <div class="absolute top-2 right-2 z-10">
-            <button class="actions-menu-btn opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-[#4A4D6A]" 
-                    data-item-id="${item.id}" 
-                    data-tooltip="More actions"
-                    title="More actions"
-                    aria-label="More actions"
-                    aria-haspopup="menu"
-                    aria-expanded="false">
-                <svg viewBox="0 0 20 20" class="w-5 h-5 text-gray-300 hover:text-white" fill="currentColor">
-                    <path d="M10 6c.82 0 1.5-.68 1.5-1.5S10.82 3 10 3s-1.5.67-1.5 1.5S9.18 6 10 6zm0 5.5c.82 0 1.5-.68 1.5-1.5s-.68-1.5-1.5-1.5-1.5.68-1.5 1.5.68 1.5 1.5 1.5zm0 5.5c.82 0 1.5-.67 1.5-1.5 0-.82-.68-1.5-1.5-1.5s-1.5.68-1.5 1.5c0 .83.68 1.5 1.5 1.5z"></path>
-                </svg>
-            </button>
-        </div>
+    <div class="absolute top-2 right-2">
+    <button class="actions-menu-btn opacity-100 transition p-1 rounded-full hover:bg-[#4A4D6A]" 
+            data-item-id="${item.id}" 
+                data-tooltip="More actions"
+                title="More actions"
+                aria-label="More actions"
+                aria-haspopup="menu"
+                aria-expanded="false"
+                style="z-index:0;">
+            <svg viewBox="0 0 20 20" class="w-5 h-5 text-gray-300 hover:text-white" fill="currentColor" aria-hidden="true">
+                <path d="M10 6c.82 0 1.5-.68 1.5-1.5S10.82 3 10 3s-1.5.67-1.5 1.5S9.18 6 10 6zm0 5.5c.82 0 1.5-.68 1.5-1.5s-.68-1.5-1.5-1.5-1.5.68-1.5 1.5.68 1.5 1.5 1.5zm0 5.5c.82 0 1.5-.67 1.5-1.5 0-.82-.68-1.5-1.5-1.5s-1.5.68-1.5 1.5c0 .83.68 1.5 1.5 1.5z"></path>
+            </svg>
+        </button>
+    </div>
 
-        <!-- Main content area -->
-        <div class="p-4">
-            <!-- Icon area -->
-            <div class="flex items-center justify-center h-16 mb-3">
-                <span class="text-5xl">${itemIcon}</span>
+    <!-- Main content area -->
+    <div class="p-4">
+        <!-- Single icon here -->
+        <div class="flex items-center justify-center h-16 mb-3">
+            <span class="text-5xl">${itemIcon}</span>
+        </div>
+        
+        <!-- File info -->
+        <div class="space-y-1">
+            <div class="text-sm font-medium text-white truncate" title="${escapeHtml(name)}">
+                ${escapeHtml(name)}
             </div>
-            
-            <!-- File info -->
-            <div class="space-y-1">
-                <div class="text-sm font-medium text-white truncate" title="${escapeHtml(name)}">
-                    ${escapeHtml(name)}
-                </div>
-                <div class="text-xs text-gray-400">
-                    ${itemDate}
-                </div>
+            <div class="text-xs text-gray-400">
+                ${itemDate}
             </div>
         </div>
+    </div>
 
-        <!-- Hover overlay for selection -->
-        <div class="absolute inset-0 bg-blue-500 bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-200 pointer-events-none"></div>
-    `;
+    <!-- Hover overlay for selection -->
+    <div class="absolute inset-0 bg-blue-500 bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-200 pointer-events-none"></div>
+`;
+
 
     return cardElement;
 }

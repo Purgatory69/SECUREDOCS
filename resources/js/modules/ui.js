@@ -144,14 +144,14 @@ export function updateBreadcrumbsDisplay(breadcrumbs) {
     }
 
     // Google Drive-style logic: show only current folder when path is long
-    const shouldCollapse = breadcrumbs.length > 4;
+    const shouldCollapse = breadcrumbs.length > 3;
     
     if (shouldCollapse) {
         // Show three-dot menu
         dropdown.classList.remove('hidden');
         
         // Add hidden breadcrumbs to dropdown (all except last 2)
-        const hiddenCrumbs = breadcrumbs.slice(0, -3);
+        const hiddenCrumbs = breadcrumbs.slice(0, -2);
         hiddenCrumbs.forEach(crumb => {
             const item = document.createElement('a');
             item.href = '#';
@@ -245,6 +245,7 @@ export function initializeUi(dependencies) {
 }
 
 export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state) {
+    const dbMyDocuments = window.I18N?.dbMyDocuments || 'My Documents';
     const myDocumentsLink = document.getElementById('my-documents-link');
     const trashLink = document.getElementById('trash-link');
     const blockchainLink = document.getElementById('blockchain-storage-link');
@@ -259,7 +260,7 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
 
     myDocumentsLink?.addEventListener('click', (e) => {
         e.preventDefault();
-        if (headerTitle) headerTitle.textContent = 'My Documents';
+        if (headerTitle) headerTitle.textContent = dbMyDocuments;
         if (newButton) newButton.style.display = 'block';
         clearActiveStates();
         myDocumentsLink.classList.add('bg-primary', 'text-white');

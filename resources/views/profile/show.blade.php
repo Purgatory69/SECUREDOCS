@@ -4,16 +4,14 @@
     <x-slot name="header">
         <div class="flex items-center justify-between w-full">
             <!-- Back Button -->
-            <button onclick="window.history.back()" class="flex items-center text-white hover:text-gray-300 transition-colors duration-200">
+            <a href="{{ route('user.dashboard') }}" class="flex items-center text-white hover:text-gray-300 transition-colors duration-200">
                 <img src="{{ asset('back-arrow.png') }}" alt="Back" class="w-5 h-5">
-            </button>
+            </a>
 
             <!-- Centered Logo and Title -->
             <div class="flex items-center space-x-3 absolute left-1/2 transform -translate-x-1/2">
                 <img src="{{ asset('logo-white.png') }}" alt="Logo" class="h-8 w-auto">
-                <h2 class="font-semibold text-xl text-[#f89c00] font-['Poppins']">
-                    Your Profile
-                </h2>
+                <h2 class="font-semibold text-xl text-[#f89c00] font-['Poppins']">Your Profile</h2>
             </div>
 
             <!-- Empty div for spacing -->
@@ -69,7 +67,7 @@
         .settings-form-wrapper .settings-label {color: rgba(255, 255, 255, 0.9) !important;}
         .settings-form-wrapper .settings-description {color: rgba(255, 255, 255, 0.6) !important;}
         .settings-form-wrapper .settings-verification-link {color: rgba(255, 255, 255, 0.9) !important;}
-        .settings-form-wrapper .settings-verification-link:hover {color: #f89c00 !important;}
+        .settings-form-wrapper .settings-verification-link:hover {color: #f89c00 !important; transition: color 0.2s ease !important;}
 
         .settings-form-wrapper .settings-button {background-color: #f89c00 !important; color: #000000 !important; border-color: #f89c00 !important;}
         .settings-form-wrapper .settings-button:hover:not(:disabled) {background-color: #ffb033 !important; border-color: #ffb033 !important;}
