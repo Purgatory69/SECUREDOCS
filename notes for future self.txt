@@ -6,3 +6,6 @@ create a feature for when the user also want to upload to the block chain on his
 login:1  POST http://localhost:8000/login 500 (Internal Server Error)
 login:972 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.bunny.net/figtree/files/figtree-latin-600-normal.woff2
 login:972 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.bunny.net/figtree/files/figtree-latin-400-normal.woff2
+
+
+pkill -f "php artisan serve"

@@ -32,7 +32,7 @@ return [
     'type_email_here' => 'No problem! Just let us know your email address and we will email you a password reset link that will allow you to choose a new one.',
     'password_reset_btn' => 'EMAIL PASSWORD RESET LINK',
 
-    'db_basic_subscription' => 'Basic Subscription',
+    'db_standard' => 'Standard',
     'db_premium' => 'Premium',
     'db_search' => 'Search in SECUREDOCS',
     'db_profile_settings' => 'Profile Settings',
@@ -51,4 +51,14 @@ return [
     'db_security' => 'Security',
     'db_blockchain_storage' => 'Blockchain',
 
+    'fp_details' => 'File Details',
+    'fp_activity' => 'Recent Activtiy',
+    'fp_unknown' => 'Unknown',
+    'fp_unknown_file' => 'Unknown File',
+    'fp_unknown_type' => 'Unknown Type',
+    'fp_size' => 'Size',
+    'fp_type' => 'Type',
+    'fp_modified' => 'Modified',
+    'fp_owner' => 'Owner',
+    'fp_download' => 'Download',
 ];

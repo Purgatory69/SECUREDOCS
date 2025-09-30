@@ -286,6 +286,11 @@ Route::middleware([
         return view('profile.sessions');
     })->name('profile.sessions');
     
+    // Profile FAQ page
+    Route::get('/profile/faq', function () {
+        return view('profile.faq');
+    })->name('profile.faq');
+
     // Debug route for testing session system
     Route::get('/debug/session-test', function () {
         try {

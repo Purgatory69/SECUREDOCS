@@ -24,8 +24,30 @@ export function initializeSearch(loadUserFiles) {
 
     const performMainSearch = () => {
         const query = mainSearchInput.value.trim();
-        // Assuming a global or passed-in state for currentParentId
-        loadUserFilesCallback(query, 1, localStorage.getItem('currentParentId'));
+        
+        // Get current view context
+        const currentView = window.getCurrentViewContext ? window.getCurrentViewContext() : 'documents';
+        
+        // Update search state for current view
+        if (window.updateViewSearchState) {
+            window.updateViewSearchState(query, 1);
+        }
+        
+        // Perform search based on current view
+        if (currentView === 'documents') {
+            const parentId = localStorage.getItem('currentParentId');
+            loadUserFilesCallback(query, 1, parentId);
+        } else if (currentView === 'trash') {
+            // For now, trash search isn't implemented, so just reload trash
+            if (window.loadTrashItems) {
+                window.loadTrashItems();
+            }
+        } else if (currentView === 'blockchain') {
+            // For now, blockchain search isn't implemented, so just reload blockchain
+            if (window.loadBlockchainItems) {
+                window.loadBlockchainItems();
+            }
+        }
     };
 
     mainSearchButton?.addEventListener('click', performMainSearch);
