@@ -195,7 +195,22 @@ export function initializeFileFolderManagement(initialState) {
         state.layout = layout;
         localStorage.setItem('filesLayout', layout);
         applyLayoutClasses(layout);
-        updateLayoutToggleUI();
+        
+        // Sync visual state
+        const gridBtn = document.getElementById('btnGridLayout');
+        const listBtn = document.getElementById('btnListLayout');
+        
+        if (gridBtn && listBtn) {
+            gridBtn.classList.remove('active');
+            listBtn.classList.remove('active');
+            
+            if (layout === 'grid') {
+                gridBtn.classList.add('active');
+            } else {
+                listBtn.classList.add('active');
+            }
+        }
+        
         // Re-render current list without refetching
         if (Array.isArray(state.lastItems)) {
             renderFiles(state.lastItems);
@@ -221,6 +236,17 @@ export function initializeFileFolderManagement(initialState) {
             state
         }
     }
+
+    // Add this before the closing brace of initializeFileFolderManagement
+    // Sync visual states when module initializes
+    setTimeout(() => {
+        if (typeof syncSidebarVisualState === 'function') {
+            syncSidebarVisualState();
+        }
+        if (typeof syncLayoutVisualState === 'function') {
+            syncLayoutVisualState();
+        }
+    }, 100);
 }
 
 async function handleCreateFolder(folderName) {
@@ -446,8 +472,10 @@ function createGoogleDriveCard(item) {
     }
 
     const cardElement = document.createElement('div');
-    cardElement.className = 'group relative bg-[#1F2235] rounded-lg border border-[#4A4D6A] hover:border-[#7C7F96] hover:shadow-lg transition-all duration-200 cursor-pointer';
-    
+    cardElement.className = 'group relative rounded-lg border border-[#4A4D6A] hover:border-[#7C7F96] hover:shadow-lg transition-all duration-200 cursor-pointer';
+    cardElement.classList.add('file-card');
+
+
     if (isFolder) {
         cardElement.setAttribute('data-folder-nav-id', item.id);
         cardElement.setAttribute('data-folder-nav-name', name);
@@ -465,6 +493,7 @@ function createGoogleDriveCard(item) {
     }
 
     // Accessibility attributes for keyboard navigation
+
     cardElement.setAttribute('tabindex', '0');
     cardElement.setAttribute('role', 'button');
     cardElement.setAttribute('aria-label', `Open ${isFolder ? 'folder' : 'file'} ${name}`);
@@ -495,21 +524,20 @@ function createGoogleDriveCard(item) {
             </button>
         </div>
 
-        <!-- Main content area -->
-        <div class="p-4">
-            <!-- Icon area -->
-            <div class="flex items-center justify-center h-16 mb-3">
-                <span class="text-5xl">${itemIcon}</span>
+    <!-- Main content area -->
+    <div class="p-4">
+        <!-- Single icon here -->
+        <div class="flex items-center justify-center h-16 mb-3">
+            <span class="text-5xl">${itemIcon}</span>
+        </div>
+        
+        <!-- File info -->
+        <div class="space-y-1">
+            <div class="text-sm font-medium text-white truncate" title="${escapeHtml(name)}">
+                ${escapeHtml(name)}
             </div>
-            
-            <!-- File info -->
-            <div class="space-y-1">
-                <div class="text-sm font-medium text-white truncate" title="${escapeHtml(name)}">
-                    ${escapeHtml(name)}
-                </div>
-                <div class="text-xs text-gray-400">
-                    ${itemDate}
-                </div>
+            <div class="text-xs text-gray-400">
+                ${itemDate}
             </div>
             
             <!-- Arweave Status Badge (for files stored on Arweave) -->
@@ -524,10 +552,12 @@ function createGoogleDriveCard(item) {
                 </div>
             ` : ''}
         </div>
+    </div>
 
-        <!-- Hover overlay for selection -->
-        <div class="absolute inset-0 bg-blue-500 bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-200 pointer-events-none"></div>
-    `;
+    <!-- Hover overlay for selection -->
+    <div class="absolute inset-0 bg-blue-500 bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-200 pointer-events-none"></div>
+`;
+
 
     return cardElement;
 }

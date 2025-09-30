@@ -2,9 +2,6 @@ login:1  POST http://localhost:8000/login 500 (Internal Server Error)
 login:972 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.bunny.net/figtree/files/figtree-latin-600-normal.woff2
 login:972 [Intervention] Slow network is detected. See https://www.chromestatus.com/feature/5636954674692096 for more details. Fallback font will be used while loading: https://fonts.bunny.net/figtree/files/figtree-latin-400-normal.woff2
 
-
-
-
 create features that will make the files more secure. 
 
 separate the blockchain and the cloud files(table).
@@ -16,3 +13,6 @@ okay naa changes nya pud na add . so plan naku
 
 premium -> access to ai and blockchain
 to upload to blockchain need ang user og crypto wallet like ronin or metamask para sa gas fees. 
+
+pkill -f "php artisan serve"
+

@@ -3,13 +3,14 @@
 @section('content')
 <div class = "hidden" data-page="user-dashboard"></div>
 
+
 <header class="col-span-2 flex items-center px-4 bg-[#141326] z-10 h-18">
     <div style="margin-bottom: 13px;" class="ml-4 flex items-center space-x-3 mr-10">
         <img src="{{ asset('logo-white.png') }}" alt="SecureDocs logo" class="w-8 h-8" style="margin-top:20px;">
         <div style="padding-right: 30px;" class="flex flex-col relative">
             <div class="text-white text-l font-bold">SECURE<span class="text-[#f89c00]">DOCS</span></div>
             <div class="absolute top-full text-xs text-gray-400">
-                {{ auth()->user()->is_premium ? __('auth.db_premium') : __('auth.db_basic_subscription') }}
+                {{ auth()->user()->is_premium ? __('auth.db_premium') : __('auth.db_standard') }}
             </div>
         </div>
     </div>
@@ -33,19 +34,15 @@
         </button>
     </div>
 
-    <style>
-    #mainSearchInput::placeholder {
-        color: rgba(255, 255, 255, 0.5);
-    }
-    </style>
-
     <div class="flex items-center ml-auto gap-4">
         <div class="relative">
-            <button id="notificationBell" class="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[#3C3F58] transition-colors" title="Notifications" aria-label="Notifications">🔔</button>
+            <button id="notificationBell" class="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[#3C3F58] transition-colors" title="Notifications" aria-label="Notifications">
+            <img src="{{ asset('notifications.png') }}" alt="Notifications" class="w-6 h-6 object-contain">
+            </button>
             <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
             
             <!-- Notification Dropdown -->
-            <div id="notificationDropdown" class="absolute right-0 mt-2 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] opacity-0 invisible translate-y-[-10px] transition-all duration-150 z-50">
+            <div id="notificationDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50">
                 <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
                     <div class="text-sm font-medium">Notifications</div>
                     <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>
@@ -68,7 +65,7 @@
                 <img src="{{ asset('user-shape.png') }}" alt="Profile" class="w-6 h-6 object-contain">
             </div>
             <div id="profileDropdown" 
-                class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-10 overflow-hidden opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
+                class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
                 <div class="p-4 border-border-color flex items-center">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 cursor-pointer transition"
                         style="background-color: #55597C;">
@@ -110,9 +107,7 @@
                         style="transition: background-color 0.2s;"
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
-                        <svg class="mr-4 w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.031 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path>
-                        </svg>
+                        <img src="/shield.png" class="mr-4 w-4 h-4 ml-1" alt="Account Security">
                         <span class="text-sm">Account Security</span>
                         </a>
                     </li>
@@ -158,12 +153,15 @@
                             </a> 
                         </div>
                     </li>
-                    <li class="p-4 flex items-center cursor-pointer"
+                    <li>
+                        <a href="{{ route('profile.faq') }} " 
+                        class="p-4 flex items-center cursor-pointer"
                         style="transition: background-color 0.2s;"
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/info.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
                         <span class="text-sm">{{ __('auth.db_help_support') }}</span>
+                        </a>
                     </li>
                     <!--
                     <li class="p-4 flex items-center cursor-pointer"
@@ -201,29 +199,33 @@
 
 <div id="overlay" class="fixed inset-0 bg-transparent z-[5] hidden"></div>
 
-<div id="uploadModal" class="fixed inset-0 z-50 flex  items-center justify-center hidden text-white">
-    <div class="fixed inset-0 bg-[#0D0E2F] bg-opacity-50 transition-opacity" id="modalBackdrop"></div>
-    <div class="bg-[#0D0E2F] rounded-lg shadow-xl w-full max-w-md p-6 relative z-10 transform transition-all">
+<div id="uploadModal" class="fixed inset-0 z-50 flex  items-center justify-center hidden text-white z-[1001]">
+    <div style="background-color: #141326; opacity: 0.8;" class="fixed inset-0 transition-opacity" id="modalBackdrop"></div>
+    <div style="background-color: #24243B;"
+    class="rounded-lg shadow-xl w-full max-w-md p-6 relative z-10 transform transition-all">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-xl font-medium text-white text-text-main">Upload New File</h3>
-            <button id="closeModalBtn" class="text-text-secondary hover:text-white text-2xl focus:outline-none">
-                &times;
+            <button id="closeModalBtn" class="close-button text-text-secondary hover:text-white text-2xl focus:outline-none">
+                <img src="/close.png" class="mr-2 w-3 h-3" alt="Close">
             </button>
         </div>
 
         <div class="space-y-6">
-            <div id="dropZone"
-                class="border-2 border-dashed border-border-color rounded-lg p-8 text-center cursor-pointer hover:border-primary transition-colors">
+            <div id="dropZone" style="border-width: 3px;"
+                class="dropzone-border border-dashed rounded-lg p-8 text-center cursor-pointer">
                 <div id="dropZoneContent" class="flex flex-col items-center">
-                    <div class="text-3xl mb-3">📄</div>
-                    <p class="mb-2 text-sm">Drag and drop files here or click to browse</p>
-                    <p class="text-xs text-text-secondary text-white"> Maximum file size: 100MB</p>
+                    <div class="dropzone-img text-3xl mb-4">
+                        <img src="/file.png" alt="File" class="opacity-50 w-12 h-12">
+                    </div>
+                    <p class="dropzone-text text-sm mb-1">Drag and drop files here or click to browse</p>
+                    <p class="dropzone-text text-xs"> Maximum file size: 100MB</p>
                 </div>
                 <input type="file" id="fileInput" class="hidden" multiple>
             </div>
 
-            <div id="fileList"></div>
+            
 
+            <div id="fileList"></div>
             <!-- Processing Options (Standard / Premium) -->
             <div id="processingOptions" class="space-y-4" style="display: none;">
                 <div class="text-sm font-medium">Processing Options</div>
@@ -283,7 +285,7 @@
                     <span>Uploading...</span>
                     <span id="progressPercentage">0%</span>
                 </div>
-                <div class="w-full bg-gray-200 rounded-full h-2">
+                <div class="w-full rounded-full h-2">
                     <div id="progressBar" class="bg-primary h-2 rounded-full" style="width: 0%"></div>
                 </div>
             </div>
@@ -291,40 +293,36 @@
 
         <div class="mt-8 flex justify-end gap-3">
             <button id="cancelUploadBtn"
-                class="py-2 px-4 border border-border-color rounded text-sm bg-[#2B2C61] hover:bg-bg-light transition-colors">
-                Cancel
-            </button>
+            class="cancel-button py-2 px-4 rounded text-sm">Cancel</button>
             <button id="uploadBtn"
-                class="py-2 px-4 bg-[#3C3F58] text-white rounded text-sm hover:bg-primary-dark transition-colors"
-                disabled>
-                Upload
-            </button>
+            class="confirm-button py-2 px-4 rounded text-sm" disabled>Upload</button>
         </div>
     </div>
 </div>
 
 <!-- Create Folder Modal -->
 <div id="createFolderModal" class="fixed inset-0 z-50 flex items-center justify-center hidden text-white">
-    <div class="fixed inset-0 bg-[#0D0E2F] bg-opacity-50 transition-opacity"></div>
-    <div class="bg-[#0D0E2F] rounded-lg shadow-xl w-full max-w-md p-6 relative z-10 transform transition-all">
+    <div style="background-color: #141326; opacity: 0.8;" class="fixed inset-0 transition-opacity"></div>
+    <div style="background-color: #24243B;"
+    class="rounded-lg shadow-xl w-full max-w-md p-6 relative z-10 transform transition-all">
         <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-medium text-text-main">Create New Folder</h3>
-            <button id="closeCreateFolderModalBtn"
-                class="text-text-secondary hover:text-white text-2xl focus:outline-none">&times;</button>
+            <h3 class="text-xl font-medium text-white text-text-main">Create New Folder</h3>
+            <button id="closeCreateFolderModalBtn" class="close-button text-text-secondary hover:text-white text-2xl focus:outline-none">
+                <img src="/close.png" class="mr-2 w-3 h-3" alt="Close">
+            </button>
         </div>
         <form id="createFolderForm">
             <div class="mb-4">
-                <label for="newFolderNameInput" class="block text-sm font-medium text-gray-300 mb-1">Folder Name</label>
+                <label for="newFolderNameInput" class="block text-sm font-medium mb-2" style="color: #9CA3AF;">Folder Name</label>
                 <input type="text" id="newFolderNameInput" name="newFolderName"
                     class="w-full py-2 px-3 rounded-lg border-none bg-[#3C3F58] text-base text-white focus:outline-none focus:shadow-md placeholder-gray-400"
-                    placeholder="Enter folder name" required>
+                    placeholder="Enter here" required>
             </div>
-            <div class="mt-8 flex justify-end gap-3">
+            <div class="mt-6 flex justify-end gap-3">
                 <button type="button" id="cancelCreateFolderBtn"
-                    class="py-2 px-4 border border-border-color rounded text-sm bg-[#2B2C61] hover:bg-bg-light transition-colors">Cancel</button>
+                class="cancel-button py-2 px-4 rounded text-sm">Cancel</button>
                 <button type="submit"
-                    class="py-2 px-4 bg-[#3C3F58] text-white rounded text-sm hover:bg-primary-dark transition-colors">Create
-                    Folder</button>
+                class="confirm-button py-2 px-4 rounded text-sm">Create Folder</button>
             </div>
         </form>
     </div>
@@ -573,10 +571,11 @@
 
 <main style="background-color: #24243B; border-top-left-radius: 32px; margin-left: 13px;" class="p-6 overflow-y-auto">
     <input type="hidden" id="currentFolderId" value="">
-    <div id="breadcrumbsContainer" style="color: #FFFFFF;" class="mb-4 text-sm text-gray-400 flex items-center">
+    <div id="breadcrumbsContainer"class="mt-2 mb-8 text-sm text-white flex items-center justify-between">
+        
         <!-- Breadcrumbs will be populated by JavaScript -->
         <div id="breadcrumbsDropdown" class="relative hidden">
-            <button id="breadcrumbsMenuBtn" class="flex items-center justify-center w-8 h-8 rounded-full hover:bg-gray-600 transition-colors mr-2">
+            <button id="breadcrumbsMenuBtn" class="flex items-center justify-center w-12 h-12 rounded-full hover:bg-gray-100 transition-colors mr-2">
                 <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                     <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path>
                 </svg>
@@ -585,28 +584,169 @@
                 <!-- Hidden breadcrumb items will be populated here -->
             </div>
         </div>
+
         <div id="breadcrumbsPath" class="flex items-center">
             <!-- Visible breadcrumb path will be populated here -->
         </div>
-    </div>
-    <h1 id="header-title" class="text-2xl text-white font-bold mb-6">My Documents</h1>
 
-    <div id="new-button-container" class="flex items-center mb-6">
-        <div class="ml-auto flex gap-2">
-            <button id="btnGridLayout" title="Grid view" aria-label="Grid view"
-                class="py-2 px-4 border border-border-color rounded text-sm bg-[#3C3F58] text-text-secondary hover:bg-bg-light">
-                <span>📊</span>
+        <!-- Move view toggle buttons here -->
+        <div id="viewToggleBtns" class="flex gap-2 ml-auto">
+            <button id="btnGridLayout" data-view="grid" title="Grid view" aria-label="Grid view"
+            class="view-toggle-btn active py-2 px-4 border rounded text-sm">
+                <span><img src="{{ asset('grid.png') }}" alt="Documents" class="w-4 h-4"></span>
             </button>
-            <button id="btnListLayout" title="List view" aria-label="List view"
-                class="py-2 px-4 border border-border-color rounded text-sm bg-[#3C3F58] text-text-secondary hover:bg-bg-light">
-                <span>📑</span>
+            <button id="btnListLayout" data-view="list" title="List view" aria-label="List view"
+            class="view-toggle-btn py-2 px-4 border rounded text-sm">
+                <span><img src="{{ asset('list.png') }}" alt="Documents" class="w-4 h-4"></span>
             </button>
         </div>
-    </div>
 
+    </div>
+    <!-- <h1 id="header-title" class="text-2xl text-white font-bold mb-6">My Documents</h1> -->
+
+    <!-- JS Localization -->
+    <div id="db-js-localization-data" class="hidden" data-my-documents="{{ __('auth.db_my_documents') }}"></div>
+    <!-- Hidden file input for uploading new versions -->
+    <input type="file" id="newVersionInput" class="hidden" />
+
+    <style>
+    /* Search placeholder text - set for lower opacity */
+    #mainSearchInput::placeholder, #newFolderNameInput::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+        opacity: 1;
+    }
+
+    /* Grid View/List View button */
+    .view-toggle-btn {
+        background-color: #3C3F58 !important;
+        border-color: #55597C !important;
+        /* color: #9CA3AF; */
+        transition: filter 0.2s ease;
+    }
+    .view-toggle-btn:hover {
+        filter: brightness(1.1);
+    }
+    .view-toggle-btn.active {
+        background-color: #55597C !important;
+        border-color: #6B7280 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* /close.png */
+    .close-button img, .dropzone-img img {
+        filter: brightness(0) saturate(100%) invert(30%) sepia(10%) saturate(1200%) hue-rotate(210deg) brightness(120%);
+        transition: filter 0.2s ease;
+    }
+    .close-button:hover img, .dropzone-border:hover .dropzone-img img {
+        filter: brightness(0) saturate(100%) invert(30%) sepia(10%) saturate(1200%) hue-rotate(210deg) brightness(150%); 
+    }
+
+    /* Upload dropzone */
+    .dropzone-border, .dropzone-text {
+        border-color: #605a80; color: #605a80; font-weight: 500;
+        transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .dropzone-border:hover, .dropzone-border:hover .dropzone-text {
+        border-color: #776f9e; color: #776f9e; font-weight: 500;
+    }
+
+    /* Confirm button - New Modals */
+    .confirm-button {
+        background-color: #f89c00; color: black; font-weight: 600;
+        transition: filter 0.2s ease;
+    }
+    .confirm-button:hover {
+        filter: brightness(110%);
+    }
+
+    /* Cancel button - New Modals */
+    .cancel-button {
+        background-color: #3C3F58; color: rgba(255, 255, 255, 0.5);; font-weight: 400;
+        transition: background-color 0.2s ease;
+    }
+    .cancel-button:hover {
+        background-color: #55597C;
+    }
+    </style>
+<!--
+    <script>
+        // View toggle functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const gridBtn = document.getElementById('btnGridLayout');
+            const listBtn = document.getElementById('btnListLayout');
+            
+            function setActiveButton(activeBtn, inactiveBtn) {
+                // Remove active from both first
+                gridBtn.classList.remove('active');
+                listBtn.classList.remove('active');
+                // Then add to the active one
+                activeBtn.classList.add('active');
+            }
+            
+            function showGridView() {
+                setActiveButton(gridBtn, listBtn);
+                // Add your grid view logic here
+                const filesContainer = document.getElementById('filesContainer');
+                if (filesContainer) {
+                    filesContainer.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4';
+                }
+            }
+            
+            function showListView() {
+                setActiveButton(listBtn, gridBtn);
+                // Add your list view logic here
+                const filesContainer = document.getElementById('filesContainer');
+                if (filesContainer) {
+                    filesContainer.className = 'space-y-2';
+                }
+            }
+            
+            // Grid button click handler
+            if (gridBtn) {
+                gridBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showGridView();
+                });
+            }
+            
+            // List button click handler
+            if (listBtn) {
+                listBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    showListView();
+                });
+            }
+            
+            // Initialize with grid view active (default)
+            showGridView();
+        });
+    </script>
+-->
     <div id="filesContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         <div class="p-4 text-center text-text-secondary col-span-full">Loading files...</div>
     </div>
+
+    <style>
+    .file-card, .file-row {
+        background-color: #24243B !important;
+        border-style: solid !important;
+        border-width: 2px !important;
+        border-color: #3C3F58 !important;
+    }
+    .file-card.bg-white, .file-card[class*="bg-"], .file-card.bg-white, .file-card[class*="bg-"] {
+        background-color: #24243B !important;
+    }
+    .file-card:hover, .file-row:hover {
+        background-color: #3C3F58 !important;
+        border-style: solid !important;
+        border-width: 2px !important;
+        border-color: #55597C !important;
+    }
+    </style>
+    <!--  Reserved colors: 3C3F58, 24243B
+      .file-card:hover {background-color: #24243B !important;}
+    -->
+
 </main>
 
 <!-- N8N Chat floating in bottom-right -->
@@ -1289,5 +1429,7 @@
 @endpush
 
 </body>
+
+<!-- Inline scripts moved to modules/ui.js for better maintainability -->
 
 </html>
