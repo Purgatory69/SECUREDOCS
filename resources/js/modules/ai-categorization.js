@@ -13,9 +13,12 @@ class AICategorization {
         this.skipAuthUntil = Date.now() + 365 * 24 * 60 * 60 * 1000; // Force public-only polling
         this.completedHandled = false; // prevents duplicate completion notifications
         
-        // Only initialize on user dashboard page
+        // Only initialize on user dashboard page with delay to improve page load
         if (this.shouldInitialize()) {
-            this.init();
+            setTimeout(() => {
+                console.log('Initializing AI categorization (delayed)...');
+                this.init();
+            }, 10000); // 10 second delay
         }
     }
 

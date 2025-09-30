@@ -24,8 +24,9 @@ export function initializeSearch(loadUserFiles) {
 
     const performMainSearch = () => {
         const query = mainSearchInput.value.trim();
-        // Assuming a global or passed-in state for currentParentId
-        loadUserFilesCallback(query, 1, localStorage.getItem('currentParentId'));
+        // Search across ALL folders (pass null as parent_id to get flattened results)
+        // This mimics Google Drive behavior - search shows all matching files regardless of folder
+        loadUserFilesCallback(query, 1, null);
     };
 
     mainSearchButton?.addEventListener('click', performMainSearch);
@@ -57,7 +58,20 @@ function initializeAdvancedSearchModal() {
     const clearFiltersBtn = document.getElementById('clearSearchFilters');
     const saveSearchBtn = document.getElementById('saveSearchBtn');
 
-    openBtn?.addEventListener('click', () => modal.classList.remove('hidden'));
+    openBtn?.addEventListener('click', () => {
+        // Check if we're in the main "My Documents" view
+        const filesContainer = document.getElementById('filesContainer');
+        const currentView = filesContainer?.dataset?.view || 'main';
+        
+        if (currentView !== 'main') {
+            showNotification('Advanced search is only available in My Documents view', 'info');
+            return;
+        }
+        
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    });
+    
     [closeBtn, cancelBtn].forEach(btn => btn?.addEventListener('click', closeAdvancedSearch));
     clearFiltersBtn?.addEventListener('click', () => form?.reset());
 
@@ -78,18 +92,26 @@ function performAdvancedSearchFromForm() {
 
     const query = document.getElementById('advancedSearchQuery')?.value?.trim() || '';
     const filters = {
+        // Search options
+        match_type: document.getElementById('searchMatchType')?.value || 'contains',
+        case_sensitive: document.getElementById('searchCaseSensitive')?.value || 'insensitive',
+        whole_word: document.getElementById('searchWholeWord')?.checked || false,
+        
+        // File filters
         type: document.getElementById('searchFileType')?.value || '',
         date_from: document.getElementById('searchDateFrom')?.value || '',
         date_to: document.getElementById('searchDateTo')?.value || '',
         size_min: document.getElementById('searchSizeMin')?.value || '',
         size_max: document.getElementById('searchSizeMax')?.value || '',
         shared: document.getElementById('searchShared')?.value || '',
+        
+        // Sort options
         sort_by: document.getElementById('searchSortBy')?.value || 'updated_at',
         sort_order: document.getElementById('searchSortOrder')?.value || 'desc'
     };
 
     Object.keys(filters).forEach(key => {
-        if (filters[key] === '') delete filters[key];
+        if (filters[key] === '' || filters[key] === false) delete filters[key];
     });
 
     performAdvancedSearch(query, filters);

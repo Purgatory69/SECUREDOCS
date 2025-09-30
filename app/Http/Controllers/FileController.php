@@ -52,19 +52,69 @@ class FileController extends Controller
                   ->orWhere('file_path', 'not like', 'ipfs://%');
             });
 
-        // Apply parent filter robustly
-        if ($request->has('parent_id')) {
-            if ($parentRaw === null || $parentRaw === '' || $parentRaw === 'null') {
-                $query->whereNull('parent_id');
+        // When searching, show ALL files across all folders (like Google Drive)
+        // Only apply parent filter when NOT searching
+        if ($search) {
+            // Get advanced search options
+            $matchType = $request->query('match_type', 'contains');
+            $caseSensitive = $request->query('case_sensitive', 'insensitive');
+            $wholeWord = $request->query('whole_word', false);
+            
+            // Build search query based on options
+            if ($caseSensitive === 'sensitive') {
+                // Case-sensitive search using LIKE BINARY
+                switch ($matchType) {
+                    case 'exact':
+                        $query->where('file_name', '=', $search);
+                        break;
+                    case 'starts_with':
+                        $query->where('file_name', 'LIKE BINARY', $search . '%');
+                        break;
+                    case 'ends_with':
+                        $query->where('file_name', 'LIKE BINARY', '%' . $search);
+                        break;
+                    case 'contains':
+                    default:
+                        if ($wholeWord) {
+                            $query->where('file_name', 'REGEXP', '[[:<:]]' . preg_quote($search, '/') . '[[:>:]]');
+                        } else {
+                            $query->where('file_name', 'LIKE BINARY', '%' . $search . '%');
+                        }
+                        break;
+                }
             } else {
-                $query->where('parent_id', (int) $parentRaw);
+                // Case-insensitive search (default)
+                switch ($matchType) {
+                    case 'exact':
+                        $query->whereRaw('LOWER(file_name) = ?', [strtolower($search)]);
+                        break;
+                    case 'starts_with':
+                        $query->where('file_name', 'LIKE', $search . '%');
+                        break;
+                    case 'ends_with':
+                        $query->where('file_name', 'LIKE', '%' . $search);
+                        break;
+                    case 'contains':
+                    default:
+                        if ($wholeWord) {
+                            $query->whereRaw('file_name REGEXP ?', ['[[:<:]]' . preg_quote($search, '/') . '[[:>:]]']);
+                        } else {
+                            $query->where('file_name', 'LIKE', '%' . $search . '%');
+                        }
+                        break;
+                }
             }
         } else {
-            $query->whereNull('parent_id');
-        }
-
-        if ($search) {
-            $query->where('file_name', 'LIKE', '%' . $search . '%');
+            // Apply parent filter robustly when browsing (not searching)
+            if ($request->has('parent_id')) {
+                if ($parentRaw === null || $parentRaw === '' || $parentRaw === 'null') {
+                    $query->whereNull('parent_id');
+                } else {
+                    $query->where('parent_id', (int) $parentRaw);
+                }
+            } else {
+                $query->whereNull('parent_id');
+            }
         }
 
         // Filter by type if specified (for move modal folder selection)

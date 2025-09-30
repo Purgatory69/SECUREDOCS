@@ -22,6 +22,11 @@ Route::get('/', function () {
     return view('welcome');
 });
 
+// Alchemy Webhook (No auth/CSRF required - external service)
+Route::post('/webhook/alchemy-payment', [PermanentStorageController::class, 'handleAlchemyWebhook'])
+    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
+    ->name('webhook.alchemy-payment');
+
 // Lightweight keepalive endpoint to prevent session/CSRF from going stale on public pages like /login
 Route::get('/keepalive', function (Request $request) {
     if ($request->boolean('regen')) {

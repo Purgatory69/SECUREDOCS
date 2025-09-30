@@ -14,13 +14,23 @@
         </div>
     </div>
 
-    <div style="margin-left: -5px; outline: none;" class="flex-grow max-w-[720px] relative pl-6">
-        <img src="{{ asset('magnifying-glass.png') }}" alt="Search" class="absolute top-1/2 -translate-y-1/2 w-4 h-4" style="left: 42px;">
-        <input type="text" id="mainSearchInput" placeholder="{{ __('auth.db_search') }}"
-            class="w-full py-3 pl-12 pr-12 mt-4 mb-4 rounded-full border-none bg-[#3C3F58] text-base text-white focus:outline-none focus:shadow-md"
-            style="color: white; outline: none; padding-right: 20px;"
-            onfocus="this.style.setProperty('--placeholder-opacity', '0.5');"
-            onblur="this.style.setProperty('--placeholder-opacity', '0.5');">
+    <div style="margin-left: -5px; outline: none;" class="flex-grow max-w-[720px] relative pl-6 flex items-center gap-2">
+        <div class="relative flex-1">
+            <img src="{{ asset('magnifying-glass.png') }}" alt="Search" class="absolute top-1/2 -translate-y-1/2 w-4 h-4" style="left: 18px;">
+            <input type="text" id="mainSearchInput" placeholder="{{ __('auth.db_search') }}"
+                class="w-full py-3 pl-12 pr-12 mt-4 mb-4 rounded-full border-none bg-[#3C3F58] text-base text-white focus:outline-none focus:shadow-md"
+                style="color: white; outline: none; padding-right: 20px;"
+                onfocus="this.style.setProperty('--placeholder-opacity', '0.5');"
+                onblur="this.style.setProperty('--placeholder-opacity', '0.5');">
+        </div>
+        <button id="advanced-search-button" 
+                class="mt-4 mb-4 px-4 py-3 bg-[#3C3F58] hover:bg-[#55597C] text-white rounded-full text-sm font-medium transition-colors flex items-center gap-2"
+                title="Advanced Search">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+            </svg>
+            <span>Advanced</span>
+        </button>
     </div>
 
     <style>
@@ -58,7 +68,7 @@
                 <img src="{{ asset('user-shape.png') }}" alt="Profile" class="w-6 h-6 object-contain">
             </div>
             <div id="profileDropdown" 
-                class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-10 overflow-hidden">
+                class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-10 overflow-hidden opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
                 <div class="p-4 border-border-color flex items-center">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 cursor-pointer transition"
                         style="background-color: #55597C;">
@@ -337,7 +347,7 @@
                 <div class="text-center">
                     <h4 class="text-lg font-medium text-white mb-2">💰 Pay & Upload to Arweave</h4>
                     <p class="text-gray-400">Pay with crypto to store your file permanently on the decentralized web</p>
-                    <p class="text-sm text-yellow-400 mt-1">💸 Service fee: 15% • Real payments required</p>
+                    <p class="text-sm text-green-400 mt-1">✨ No service fees • You only pay Arweave storage cost (~$0.005/MB)</p>
                 </div>
                 
                 <div id="permanentStorageDropZone" 
@@ -442,7 +452,7 @@
 
     <!-- Dropdown Menu - Simplified Structure -->
     <div id="newDropdown" 
-     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C]"
+     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C] hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
      style="background-color: #55597C;">
         <div>
             <div id="uploadFileOption"
@@ -456,6 +466,7 @@
             @if(auth()->user()->is_premium)
             <div id="openPermanentStorageBtn"
                 class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
+                onclick="openPermanentStorageModal()"
                 onmouseover="this.style.cssText = 'background-color: #55597C;';"
                 onmouseout="this.style.cssText = '';">
                 <span class="mr-4 text-lg">⛓️</span>
@@ -619,6 +630,34 @@
                        class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400" />
             </div>
             
+            <!-- Search Options -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-[#1F2235] rounded-lg">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Match Type</label>
+                    <select id="searchMatchType" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                        <option value="contains">Contains (default)</option>
+                        <option value="exact">Exact Match</option>
+                        <option value="starts_with">Starts With</option>
+                        <option value="ends_with">Ends With</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Case Sensitivity</label>
+                    <select id="searchCaseSensitive" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                        <option value="insensitive">Case Insensitive (Aa = aa)</option>
+                        <option value="sensitive">Case Sensitive (Aa ≠ aa)</option>
+                    </select>
+                </div>
+                
+                <div class="flex items-end">
+                    <label class="flex items-center space-x-2 cursor-pointer">
+                        <input type="checkbox" id="searchWholeWord" class="w-4 h-4 rounded bg-[#3C3F58] border-gray-600 text-blue-600 focus:ring-blue-500">
+                        <span class="text-sm">Match Whole Words Only</span>
+                    </label>
+                </div>
+            </div>
+            
             <!-- Filters Grid -->
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- File Type Filter -->
@@ -714,77 +753,7 @@
     </div>
 </div>
 
-<!-- Version History Modal -->
-<div id="versionHistoryModal" class="fixed inset-0 z-50 hidden items-center justify-center">
-    <div class="fixed inset-0 bg-black bg-opacity-50"></div>
-    <div class="relative bg-[#0D0E2F] text-white rounded-lg shadow-xl w-full max-w-5xl p-6 z-10 max-h-screen overflow-hidden">
-        <div class="flex items-center justify-between mb-6">
-            <h3 class="text-xl font-semibold">
-                Version History - <span id="versionHistoryFileName"></span>
-            </h3>
-            <button id="versionHistoryCloseBtn" class="text-2xl leading-none">&times;</button>
-        </div>
-        
-        <div class="flex gap-6 h-96">
-            <!-- Versions List -->
-            <div class="w-1/2 border-r border-border-color pr-6">
-                <div class="flex items-center justify-between mb-4">
-                    <h4 class="text-lg font-medium">Versions</h4>
-                    <div class="flex gap-2">
-                        <input type="file" id="newVersionInput" class="hidden" accept="*/*" />
-                        <button id="uploadNewVersionBtn" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm">
-                            Upload New Version
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="versionsList" class="space-y-2 overflow-y-auto max-h-72">
-                    <!-- Versions will be populated by JavaScript -->
-                    <div class="text-center text-text-secondary py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                        Loading versions...
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Activity Timeline -->
-            <div class="w-1/2 pl-6">
-                <h4 class="text-lg font-medium mb-4">Activity Timeline</h4>
-                <div id="activityTimeline" class="space-y-3 overflow-y-auto max-h-72">
-                    <!-- Activity will be populated by JavaScript -->
-                    <div class="text-center text-text-secondary py-8">
-                        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto mb-2"></div>
-                        Loading activity...
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Version Upload Modal -->
-        <div id="versionUploadForm" class="hidden mt-6 pt-6 border-t border-border-color">
-            <h5 class="text-md font-medium mb-4">Upload New Version</h5>
-            <form id="newVersionForm" class="space-y-4">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Selected File:</label>
-                    <div id="selectedFileName" class="text-text-secondary text-sm mb-2">No file selected</div>
-                </div>
-                <div>
-                    <label class="block text-sm font-medium mb-2">Version Comment (Optional):</label>
-                    <textarea id="versionComment" placeholder="Describe what changed in this version..." 
-                             class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400 h-20 resize-none"></textarea>
-                </div>
-                <div class="flex justify-end gap-2">
-                    <button type="button" id="cancelVersionUpload" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm">
-                        Upload Version
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
+<!-- Version History Modal - REMOVED -->
 
 <!-- Premium Upgrade Modal -->
 <div id="premiumUpgradeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
@@ -1320,299 +1289,5 @@
 @endpush
 
 </body>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    
-    // Global dropdown state management
-    let activeDropdown = null;
-    
-    // Function to close specific dropdowns
-    function closeDropdown(dropdownName) {
-        if (dropdownName === 'language' || dropdownName === 'all') {
-            const langDropdown = document.getElementById('headerLanguageSubmenu2');
-            const langArrow = document.getElementById('langCaret');
-            if (langDropdown) {
-                langDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
-                langDropdown.style.pointerEvents = 'none';
-                if (langArrow) {
-                    langArrow.style.transform = 'rotate(0deg)';
-                }
-            }
-        }
-        
-        if (dropdownName === 'new' || dropdownName === 'all') {
-            const newDropdown = document.getElementById('newDropdown');
-            const newArrow = document.getElementById('uploadIcon');
-            if (newDropdown) {
-                newDropdown.style.opacity = '0';
-                newDropdown.style.visibility = 'hidden';
-                newDropdown.style.transform = 'translateY(-10px)';
-                newDropdown.style.pointerEvents = 'none';
-                if (newArrow) {
-                    newArrow.style.transform = 'rotate(0deg)';
-                }
-            }
-        }
-        
-        if (dropdownName === 'profile' || dropdownName === 'all') {
-            const profileDropdown = document.getElementById('profileDropdown');
-            if (profileDropdown) {
-                // Animate out
-                profileDropdown.style.opacity = '0';
-                profileDropdown.style.transform = 'translateY(-10px)';
-                profileDropdown.style.pointerEvents = 'none';
-
-                // Delay hiding until after transition
-                setTimeout(() => {
-                    profileDropdown.style.visibility = 'hidden';
-                }, 200); // matches your 0.2s ease
-            }
-        }
-        
-        if (dropdownName === 'notification' || dropdownName === 'all') {
-            const notificationDropdown = document.getElementById('notificationDropdown');
-            if (notificationDropdown) {
-                notificationDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
-                notificationDropdown.style.pointerEvents = 'none';
-            }
-        }
-        
-        if (dropdownName === 'all') {
-            activeDropdown = null;
-        }
-    }
-    
-    // Language Dropdown Function
-    function initializeLanguageDropdown() {
-        const toggle = document.getElementById('headerLanguageToggle2');
-        const dropdown = document.getElementById('headerLanguageSubmenu2');
-        const arrow = document.getElementById('langCaret');
-        
-        if (toggle && dropdown) {
-            dropdown.style.pointerEvents = 'none';
-            
-            toggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                const isCurrentlyActive = activeDropdown === 'language';
-                
-                // Close other dropdowns when language toggle is clicked
-                closeDropdown('new');
-                closeDropdown('profile');
-                closeDropdown('notification');
-                
-                // Toggle the language dropdown
-                if (isCurrentlyActive) {
-                    closeDropdown('language');
-                    activeDropdown = null;
-                } else {
-                    dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
-                    dropdown.style.pointerEvents = 'auto';
-                    if (arrow) {
-                        arrow.style.transform = 'rotate(180deg)';
-                    }
-                    activeDropdown = 'language';
-                }
-            });
-        }
-    }
-    
-    // New Button Dropdown Function
-    function initializeNewDropdown() {
-        const toggle = document.getElementById('newBtn');
-        const dropdown = document.getElementById('newDropdown');
-        const arrow = document.getElementById('uploadIcon');
-        
-        if (toggle && dropdown) {
-            // Force reset and set initial state
-            dropdown.style.cssText = '';
-            dropdown.className = 'bg-[#2B2C61] absolute left-0 right-0 top-full mt-2 rounded-lg z-50';
-            
-            dropdown.style.opacity = '0';
-            dropdown.style.visibility = 'hidden';
-            dropdown.style.transform = 'translateY(-10px)';
-            dropdown.style.pointerEvents = 'none';
-            dropdown.style.display = 'block';
-            dropdown.style.transition = 'all 0.2s ease';
-            
-            toggle.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                
-                const isCurrentlyActive = activeDropdown === 'new';
-                
-                // Close other dropdowns when new button is clicked
-                closeDropdown('language');
-                closeDropdown('profile');
-                closeDropdown('notification');
-                
-                // Toggle the new dropdown
-                if (isCurrentlyActive) {
-                    closeDropdown('new');
-                    activeDropdown = null;
-                } else {
-                    dropdown.style.opacity = '1';
-                    dropdown.style.visibility = 'visible';
-                    dropdown.style.transform = 'translateY(0px)';
-                    dropdown.style.pointerEvents = 'auto';
-                    if (arrow) {
-                        arrow.style.transform = 'rotate(180deg)';
-                        arrow.style.transition = 'transform 0.2s ease';
-                    }
-                    activeDropdown = 'new';
-                }
-            });
-            
-            // Handle dropdown option clicks
-            const uploadOption = document.getElementById('uploadFileOption');
-            const folderOption = document.getElementById('createFolderOption');
-            
-            if (uploadOption) {
-                uploadOption.addEventListener('click', function(e) {
-                    closeDropdown('all');
-                });
-            }
-            
-            if (folderOption) {
-                folderOption.addEventListener('click', function(e) {
-                    closeDropdown('all');
-                });
-            }
-        }
-    }
-    
-    function initializeProfileDropdown() {
-        const toggle = document.getElementById('userProfileBtn');
-        const dropdown = document.getElementById('profileDropdown');
-
-        if (toggle && dropdown) {
-            dropdown.style.opacity = '0';
-            dropdown.style.visibility = 'hidden';
-            dropdown.style.transform = 'translateY(-10px)';
-            dropdown.style.pointerEvents = 'none';
-            dropdown.style.transition = 'opacity 0.2s ease, transform 0.2s ease';
-
-            toggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                const isCurrentlyActive = activeDropdown === 'profile';
-
-                // Close other dropdowns when profile is clicked
-                closeDropdown('new');
-                closeDropdown('language');
-                closeDropdown('notification');
-
-                if (isCurrentlyActive) {
-                    closeDropdown('profile');
-                    activeDropdown = null;
-                } else {
-                    dropdown.style.opacity = '1';
-                    dropdown.style.visibility = 'visible';
-                    dropdown.style.transform = 'translateY(0)';
-                    dropdown.style.pointerEvents = 'auto';
-                    activeDropdown = 'profile';
-                }
-            });
-        }
-    }
-
-    function initializeNotificationDropdown() {
-        const toggle = document.getElementById('notificationBell');
-        const dropdown = document.getElementById('notificationDropdown');
-        
-        if (toggle && dropdown) {
-            // Set initial state with proper transitions
-            dropdown.style.transition = 'opacity 0.15s ease, visibility 0.15s ease, transform 0.15s ease';
-            dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
-            dropdown.style.pointerEvents = 'none';
-            
-            toggle.addEventListener('click', function(e) {
-                e.stopPropagation();
-                
-                const isCurrentlyActive = activeDropdown === 'notification';
-                
-                // Close other dropdowns when notification bell is clicked
-                closeDropdown('new');
-                closeDropdown('language');
-                closeDropdown('profile');
-                
-                // Toggle the notification dropdown
-                if (isCurrentlyActive) {
-                    closeDropdown('notification');
-                    activeDropdown = null;
-                } else {
-                    dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
-                    dropdown.style.pointerEvents = 'auto';
-                    activeDropdown = 'notification';
-                }
-            });
-        }
-    }
-
-    
-    // Global click handler to close dropdowns when clicking outside
-    document.addEventListener('click', function(e) {
-        const toggle1 = document.getElementById('headerLanguageToggle2');
-        const dropdown1 = document.getElementById('headerLanguageSubmenu2');
-        const toggle2 = document.getElementById('newBtn');
-        const dropdown2 = document.getElementById('newDropdown');
-        const toggle3 = document.getElementById('userProfileBtn');
-        const dropdown3 = document.getElementById('profileDropdown');
-        const toggle4 = document.getElementById('notificationBell');
-        const dropdown4 = document.getElementById('notificationDropdown');
-        
-        const clickedInsideAnyDropdown = 
-            (toggle1 && toggle1.contains(e.target)) ||
-            (dropdown1 && dropdown1.contains(e.target)) ||
-            (toggle2 && toggle2.contains(e.target)) ||
-            (dropdown2 && dropdown2.contains(e.target)) ||
-            (toggle3 && toggle3.contains(e.target)) ||
-            (dropdown3 && dropdown3.contains(e.target)) ||
-            (toggle4 && toggle4.contains(e.target)) ||
-            (dropdown4 && dropdown4.contains(e.target));
-        
-        if (!clickedInsideAnyDropdown) {
-            closeDropdown('all');
-        }
-    });
-    
-    // Initialize all dropdowns
-    setTimeout(() => {
-        initializeLanguageDropdown();
-        initializeNewDropdown();
-        initializeProfileDropdown();
-        initializeNotificationDropdown();
-    }, 100);
-
-    // Premium upgrade modal functions (make global)
-    window.showPremiumUpgradeModal = function(feature) {
-        const modal = document.getElementById('premiumUpgradeModal');
-        const modalText = document.getElementById('premiumModalText');
-        
-        const messages = {
-            'blockchain': 'Blockchain storage provides immutable, decentralized file storage using IPFS technology. Upgrade to Premium to secure your documents forever.',
-            'ai': 'AI Vectorization enables advanced search capabilities and intelligent document analysis. Upgrade to Premium to unlock AI-powered features.',
-            'hybrid': 'Hybrid processing combines blockchain storage with AI analysis for maximum security and functionality. Upgrade to Premium for the complete solution.'
-        };
-        
-        modalText.textContent = messages[feature] || messages['blockchain'];
-        modal.classList.remove('hidden');
-        modal.classList.add('flex');
-    }
-
-    window.closePremiumModal = function() {
-        const modal = document.getElementById('premiumUpgradeModal');
-        modal.classList.add('hidden');
-        modal.classList.remove('flex');
-    }
-
-    // Close modal when clicking outside
-    document.getElementById('premiumUpgradeModal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            window.closePremiumModal();
-        }
-    });
-});
-</script>
 
 </html>
