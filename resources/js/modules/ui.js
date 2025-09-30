@@ -84,18 +84,32 @@ export function initializeNewDropdown() {
 
     // Guard against missing dropdown on pages that don't include it
     if (newButton && newDropdown) {
+        // Ensure dropdown starts hidden
+        newDropdown.classList.add('hidden');
+        
         newButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            newDropdown.classList.toggle('hidden');
-            newDropdown.classList.toggle('opacity-0');
-            newDropdown.classList.toggle('invisible');
-            newDropdown.classList.toggle('translate-y-[-10px]');
+            
+            // Check current state and toggle accordingly
+            const isHidden = newDropdown.classList.contains('hidden');
+            
+            if (isHidden) {
+                // Show dropdown
+                newDropdown.classList.remove('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
+                newDropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
+            } else {
+                // Hide dropdown
+                newDropdown.classList.add('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
+                newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+            }
         });
     }
 
     document.addEventListener('click', (e) => {
         if (!newButton?.contains(e.target) && !newDropdown?.contains(e.target)) {
+            // Always hide when clicking outside
             newDropdown?.classList.add('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
+            newDropdown?.classList.remove('opacity-100', 'visible', 'translate-y-0');
         }
     });
 }
@@ -307,6 +321,10 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         const createFolderBtn = document.getElementById('create-folder-btn');
         if (newButton) newButton.style.display = 'none';
         if (createFolderBtn) createFolderBtn.style.display = 'none';
+        
+        // Hide advanced search button
+        const advancedSearchBtn = document.getElementById('advanced-search-button');
+        if (advancedSearchBtn) advancedSearchBtn.style.display = 'none';
     }
 
     function showMyDocumentsElements() {
@@ -321,6 +339,10 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         const createFolderBtn = document.getElementById('create-folder-btn');
         if (newButton) newButton.style.display = 'block';
         if (createFolderBtn) createFolderBtn.style.display = 'block';
+        
+        // Show advanced search button
+        const advancedSearchBtn = document.getElementById('advanced-search-button');
+        if (advancedSearchBtn) advancedSearchBtn.style.display = 'flex';
     }
 
     function showBreadcrumbsForView(viewType) {
@@ -347,16 +369,20 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         // Update breadcrumbs based on current view
         updateBreadcrumbsDisplay(breadcrumbsToShow, viewType);
         
-        // Hide new folder buttons for non-main views
+        // Hide new folder buttons and advanced search for non-main views
         const newButton = document.getElementById('new-button');
         const createFolderBtn = document.getElementById('create-folder-btn');
+        const advancedSearchBtn = document.getElementById('advanced-search-button');
+        
         if (viewType !== 'main') {
             if (newButton) newButton.style.display = 'none';
             if (createFolderBtn) createFolderBtn.style.display = 'none';
+            if (advancedSearchBtn) advancedSearchBtn.style.display = 'none';
         } else {
             // Show buttons for main view
             if (newButton) newButton.style.display = 'block';
             if (createFolderBtn) createFolderBtn.style.display = 'block';
+            if (advancedSearchBtn) advancedSearchBtn.style.display = 'flex';
         }
     }
 
@@ -477,6 +503,26 @@ export function closeModalById(id) {
 }
 
 export function initializeModalSystem() {
+    // Initialize premium upgrade modal
+    initializePremiumModal();
+    // Note: Permanent storage modal now handled by ArweavePayment class
+    // But we still need the global function for the button click
+    window.openPermanentStorageModal = function() {
+        const modal = document.getElementById('permanentStorageModal');
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+    }
+
+    window.closePermanentStorageModal = function() {
+        const modal = document.getElementById('permanentStorageModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+    
     // Attribute-based open/close bindings
     document.querySelectorAll('[data-modal-open]')
         .forEach(btn => btn.addEventListener('click', (e) => {
@@ -491,20 +537,63 @@ export function initializeModalSystem() {
             const id = btn.getAttribute('data-modal-close');
             if (id) closeModalById(id);
         }));
+}
 
-    // Close on ESC for whichever modal is open
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') {
-            document.querySelectorAll('.fixed.inset-0.z-50:not(.hidden)')
-                .forEach(el => el.classList.add('hidden'));
-            document.documentElement.style.overflow = '';
+function initializePremiumModal() {
+    // Premium upgrade modal functions (make global)
+    window.showPremiumUpgradeModal = function(feature) {
+        const modal = document.getElementById('premiumUpgradeModal');
+        const modalText = document.getElementById('premiumModalText');
+        
+        const messages = {
+            'blockchain': 'Blockchain storage provides immutable, decentralized file storage using Arweave technology. Upgrade to Premium to secure your documents forever.',
+            'ai': 'AI Vectorization enables advanced search capabilities and intelligent document analysis. Upgrade to Premium to unlock AI-powered features.',
+            'hybrid': 'Hybrid processing combines blockchain storage with AI analysis for maximum security and functionality. Upgrade to Premium for the complete solution.'
+        };
+        
+        if (modalText) {
+            modalText.textContent = messages[feature] || messages['blockchain'];
         }
-    });
-
-    // Expose globally so you can open via console or inline handlers
-    if (typeof window !== 'undefined') {
-        window.openModal = openModalById;
-        window.closeModal = closeModalById;
+        if (modal) {
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
     }
+
+    window.closePremiumModal = function() {
+        const modal = document.getElementById('premiumUpgradeModal');
+        if (modal) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+    }
+
+    // Close modal when clicking outside
+    const premiumModal = document.getElementById('premiumUpgradeModal');
+    if (premiumModal) {
+        premiumModal.addEventListener('click', function(e) {
+            if (e.target === this) {
+                window.closePremiumModal();
+            }
+        });
+    }
+}
+
+// Removed duplicate initializePermanentStorageModal function
+// Modal functions are now defined in initializeModalSystem above
+
+// Close on ESC for whichever modal is open
+document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.fixed.inset-0.z-50:not(.hidden)')
+            .forEach(el => el.classList.add('hidden'));
+        document.documentElement.style.overflow = '';
+    }
+});
+
+// Expose globally so you can open via console or inline handlers
+if (typeof window !== 'undefined') {
+    window.openModal = openModalById;
+    window.closeModal = closeModalById;
 }
 

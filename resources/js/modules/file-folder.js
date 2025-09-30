@@ -165,6 +165,12 @@ export function initializeFileFolderManagement(initialState) {
         }
     });
 
+    // Listen for navigation events from breadcrumb dropdown (ui.js)
+    window.addEventListener('navigate-to-folder', (e) => {
+        const { folderId, folderName } = e.detail;
+        navigateToFolder(folderId, folderName);
+    });
+
     // Initial breadcrumbs render
     updateBreadcrumbsDisplay(state.breadcrumbs, 'main');
 
@@ -506,26 +512,15 @@ function createGoogleDriveCard(item) {
                 </div>
             </div>
             
-            <!-- Arweave Payment Button (for files only) -->
-            ${!isFolder ? `
+            <!-- Arweave Status Badge (for files stored on Arweave) -->
+            ${!isFolder && item.is_blockchain_stored ? `
                 <div class="mt-3 pt-2 border-t border-[#4A4D6A]">
-                    ${!item.is_blockchain_stored ? `
-                        <button data-arweave-payment="${item.id}" 
-                                class="w-full flex items-center justify-center px-3 py-2 text-xs bg-gradient-to-r from-yellow-500 to-orange-500 text-white rounded-md hover:from-yellow-600 hover:to-orange-600 transition-all duration-200 font-medium"
-                                title="Upload to Arweave (Paid Storage)">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            💰 Pay & Store on Arweave
-                        </button>
-                    ` : `
-                        <div class="w-full flex items-center justify-center px-3 py-2 text-xs bg-green-600 text-white rounded-md font-medium">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                            </svg>
-                            ⛓️ Stored on Arweave
-                        </div>
-                    `}
+                    <div class="w-full flex items-center justify-center px-3 py-2 text-xs bg-green-600 text-white rounded-md font-medium">
+                        <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        ⛓️ Stored on Arweave
+                    </div>
                 </div>
             ` : ''}
         </div>
@@ -1115,14 +1110,32 @@ function showActionsMenu(button, itemId) {
     const uploadToBlockchainBtn = menu.querySelector('.actions-menu-item[data-action="upload-to-blockchain"]');
     if (uploadToBlockchainBtn) {
         const directUpload = (ev) => {
-            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'upload-to-blockchain', itemId: uploadToBlockchainBtn.dataset.itemId });
             ev.preventDefault();
             ev.stopPropagation();
             ev.stopImmediatePropagation?.();
+            
             const id = uploadToBlockchainBtn.dataset.itemId;
-            if (window.confirm('Upload this file to blockchain storage?')) {
-                console.debug('[diagnostic] invoking uploadToBlockchain from direct button handler', { itemId: id });
-                uploadToBlockchain(id);
+            console.debug('[actions-menu-item][direct] Upload to blockchain clicked', { 
+                action: 'upload-to-blockchain', 
+                itemId: id,
+                itemIdType: typeof id 
+            });
+            
+            // Validate file ID
+            if (!id || id === 'undefined' || id === 'null') {
+                console.error('Invalid file ID:', id);
+                alert('Unable to identify file. Please try again.');
+                cleanup();
+                return;
+            }
+            
+            // Open Arweave payment modal for permanent storage
+            if (window.openPermanentStorageModal) {
+                console.debug('[diagnostic] Opening Arweave payment modal for file:', id);
+                window.openPermanentStorageModal(id);
+            } else {
+                console.error('Permanent storage modal not available');
+                alert('Arweave storage feature is not available. Please refresh the page.');
             }
             cleanup();
         };
@@ -2081,11 +2094,33 @@ export async function loadUserFiles(query = '', page = 1, parentId = null, creat
         console.debug('Files API result sample:', items.slice(0, 5).map(i => ({ id: i.id, file_name: i.file_name, name: i.name, is_folder: i.is_folder })));
 
         if (items.length === 0) {
-            itemsContainer.innerHTML = `<div class="p-4 text-center text-text-secondary col-span-full">No items found in this folder.</div>`;
+            const emptyMessage = query 
+                ? `<div class="p-4 text-center text-text-secondary col-span-full">No files found matching "${query}"</div>`
+                : `<div class="p-4 text-center text-text-secondary col-span-full">No items found in this folder.</div>`;
+            itemsContainer.innerHTML = emptyMessage;
             if (data?.last_page > 1) {
                 addPagination(itemsContainer, data);
             }
             return;
+        }
+
+        // Show search indicator if searching
+        if (query && query.trim() !== '') {
+            const searchIndicator = document.createElement('div');
+            searchIndicator.className = 'col-span-full mb-4 p-3 bg-[#2A2D47] rounded-lg flex items-center justify-between';
+            searchIndicator.innerHTML = `
+                <div class="flex items-center gap-2 text-sm text-gray-300">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                    </svg>
+                    <span>Search results for: <strong>"${query}"</strong> (${items.length} ${items.length === 1 ? 'item' : 'items'})</span>
+                </div>
+                <button onclick="document.getElementById('mainSearchInput').value = ''; window.loadUserFiles('', 1, localStorage.getItem('currentParentId'));" 
+                        class="text-xs px-3 py-1 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg transition-colors">
+                    Clear Search
+                </button>
+            `;
+            itemsContainer.appendChild(searchIndicator);
         }
 
         // Use our new Google Drive-style renderer instead of the old item-by-item approach

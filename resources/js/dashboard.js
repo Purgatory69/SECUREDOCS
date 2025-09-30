@@ -12,7 +12,7 @@ import { initializeUi, updateBreadcrumbsDisplay, initializeTooltips } from './mo
 import { initializeFileFolderManagement, loadUserFiles, loadTrashItems } from './modules/file-folder.js';
 import { loadBlockchainItems } from './modules/blockchain-page.js';
 import { initializeSearch } from './modules/search.js';
-import ArweavePayment from './modules/arweave-payment.js';
+import { initializePermanentStorageModal } from './modules/permanent-storage.js';
 import { NotificationManager } from './modules/notifications.js';
 import StorageUsageManager from './modules/storage-usage.js';
 
@@ -23,20 +23,28 @@ if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_KEY) {
 // --- Global State ---
 // Centralized state management for the dashboard application.
 const state = {
-    currentPage: 1,
     lastMainSearch: '',
     currentParentId: localStorage.getItem('currentParentId') || null,
     breadcrumbs: JSON.parse(localStorage.getItem('breadcrumbs')) || [{ id: null, name: 'My Documents' }]
 };
 
-// --- Application Initialization ---
+// --- App Initialization ---
+let appInitialized = false;
+
 function initializeApp() {
+    // Prevent multiple initializations
+    if (appInitialized) {
+        console.log('App already initialized, skipping...');
+        return;
+    }
+    
+    console.log('Initializing SecureDocs dashboard...');
+    
     // Ensure hidden form inputs have the correct current folder ID.
     const currentFolderIdInput = document.getElementById('currentFolderId');
     if (currentFolderIdInput) {
         currentFolderIdInput.value = state.currentParentId;
     }
-
     // --- Initialize All Imported Modules ---
     initializeN8nChat();
     initializeUploadModal();
@@ -59,17 +67,25 @@ function initializeApp() {
         breadcrumbs: state.breadcrumbs
     });
 
-    // --- Initialize Notification System ---
-    // Initialize the notification bell and dropdown functionality
-    window.notificationManager = new NotificationManager();
+    // --- Initialize Permanent Storage System ---
+    // Initialize the permanent storage modal for Arweave uploads
+    initializePermanentStorageModal();
     
-    // --- Initialize Arweave Payment System ---
-    // Initialize the payment system for blockchain uploads
-    new ArweavePayment();
-    
-    // --- Initialize Storage Usage Manager ---
-    // Initialize storage usage display and premium upgrade prompts
-    window.storageManager = new StorageUsageManager();
+    // --- Delayed Initialization (10 seconds) ---
+    // Delay heavy API calls to improve initial page load performance
+    setTimeout(() => {
+        console.log('Initializing delayed services...');
+        
+        // --- Initialize Notification System ---
+        // Initialize the notification bell and dropdown functionality
+        window.notificationManager = new NotificationManager();
+        
+        // --- Initialize Storage Usage Manager ---
+        // Initialize storage usage display and premium upgrade prompts
+        window.storageManager = new StorageUsageManager();
+        
+        console.log('Delayed services initialized!');
+    }, 10000); // 10 second delay
     
     // --- Initial Data Load ---
     // Fetches the initial set of files for the root directory.
@@ -77,6 +93,10 @@ function initializeApp() {
     
     // Initialize tooltips after DOM is ready
     initializeTooltips();
+    
+    // Mark as initialized
+    appInitialized = true;
+    console.log('SecureDocs dashboard initialization complete!');
 }
 
 // --- Event Listeners for Initialization ---
