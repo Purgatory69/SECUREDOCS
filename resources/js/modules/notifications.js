@@ -66,6 +66,11 @@ class NotificationManager {
         if (this.isOpen) {
             this.closeDropdown();
         } else {
+            // Close all other dropdowns first
+            if (window.closeAllDropdowns) {
+                window.closeAllDropdowns('notification');
+            }
+            
             // Open immediately, then load content
             this.openDropdown();
             this.loadNotifications();
