@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\URL;
 use Laragear\WebAuthn\Attestation\Validator\AttestationValidator;
 use Laragear\WebAuthn\Attestation\Validator\AttestationValidation;
 use Illuminate\Support\ServiceProvider;
@@ -25,6 +26,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Force HTTPS URLs when behind a proxy (ngrok, cloudflare, etc.)
+        if (config('app.force_https', false) || request()->header('X-Forwarded-Proto') === 'https') {
+            URL::forceScheme('https');
+        }
+
+
         Blade::component('layouts.profile-dashboard', 'profile-dashboard');
         
         RedirectIfAuthenticated::redirectUsing(function ($request) {

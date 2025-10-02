@@ -56,6 +56,20 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'asset_url' => env('ASSET_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Force HTTPS
+    |--------------------------------------------------------------------------
+    |
+    | When true, forces all URLs to use HTTPS scheme. Useful when behind
+    | a reverse proxy like ngrok, Cloudflare, or load balancers.
+    |
+    */
+
+    'force_https' => env('FORCE_HTTPS', false),
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

@@ -12,7 +12,11 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware) {
-        //
+        // Trust proxies (ngrok, cloudflare, etc.) for HTTPS detection
+        $middleware->trustProxies(at: '*');
+        
+        // Add ngrok headers to bypass interstitial page
+        $middleware->append(\App\Http\Middleware\AddNgrokHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {
