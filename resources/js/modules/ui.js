@@ -182,14 +182,14 @@ export function updateBreadcrumbsDisplay(breadcrumbs, currentView = 'main') {
     }
 
     // Google Drive-style logic: show only current folder when path is long
-    const shouldCollapse = allBreadcrumbs.length > 4;
+    const shouldCollapse = allBreadcrumbs.length > 3;
     
     if (shouldCollapse) {
         // Show three-dot menu
         dropdown.classList.remove('hidden');
         
         // Add hidden breadcrumbs to dropdown (all except last 2)
-        const hiddenCrumbs = allBreadcrumbs.slice(0, -3);
+        const hiddenCrumbs = allBreadcrumbs.slice(0, -2);
         hiddenCrumbs.forEach(crumb => {
             const item = document.createElement('a');
             item.href = '#';
@@ -286,18 +286,74 @@ function initializeBreadcrumbsDropdown() {
     });
 }
 
+function initializeLanguageDropdown() {
+    const toggle = document.getElementById('headerLanguageToggle2');
+    const dropdown = document.getElementById('headerLanguageSubmenu2');
+    const arrow = document.getElementById('langCaret');
+    
+    if (!toggle || !dropdown) return;
+    
+    // Set initial state
+    dropdown.style.pointerEvents = 'none';
+    
+    let isOpen = false;
+    
+    toggle.addEventListener('click', function(e) {
+        e.stopPropagation();
+        
+        isOpen = !isOpen;
+        
+        if (isOpen) {
+            // Open dropdown
+            dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+            dropdown.style.pointerEvents = 'auto';
+            if (arrow) {
+                arrow.style.transform = 'rotate(180deg)';
+            }
+        } else {
+            // Close dropdown
+            dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+            dropdown.style.pointerEvents = 'none';
+            if (arrow) {
+                arrow.style.transform = 'rotate(0deg)';
+            }
+        }
+    });
+    
+    // Close when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!toggle.contains(e.target) && !dropdown.contains(e.target)) {
+            if (isOpen) {
+                isOpen = false;
+                dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+                dropdown.style.pointerEvents = 'none';
+                if (arrow) {
+                    arrow.style.transform = 'rotate(0deg)';
+                }
+            }
+        }
+    });
+}
+
 export function initializeUi(dependencies) {
     const { loadUserFiles, loadTrashItems, loadBlockchainItems, state } = dependencies;
     
     initializeNewDropdown();
     initializeUserProfile();
     initializeModalSystem();
+    initializeLanguageDropdown();
     initializeBreadcrumbsDropdown();
     initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state);
 }
 
-export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, stateObj) {
-    const dbMyDocuments = window.I18N?.dbMyDocuments || 'My Documents';
+export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state) {
+    // Function to get translated text, checking multiple times if needed
+    const getMyDocumentsText = () => {
+        return window.I18N?.dbMyDocuments || 
+               document.getElementById('db-js-localization-data')?.getAttribute('data-my-documents') || 
+               'My Documents';
+    };
+    
     const myDocumentsLink = document.getElementById('my-documents-link');
     const trashLink = document.getElementById('trash-link');
     const blockchainLink = document.getElementById('blockchain-storage-link');
@@ -389,6 +445,7 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
 
     myDocumentsLink?.addEventListener('click', (e) => {
         e.preventDefault();
+        const dbMyDocuments = getMyDocumentsText(); // Get fresh value on click
         if (headerTitle) headerTitle.textContent = dbMyDocuments;
         if (newButton) newButton.style.display = 'block';
         clearActiveStates();

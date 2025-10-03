@@ -42,7 +42,7 @@
             <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
             
             <!-- Notification Dropdown -->
-            <div id="notificationDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50">
+            <div id="notificationDropdown" class="hidden absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50">
                 <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
                     <div class="text-sm font-medium">Notifications</div>
                     <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>
@@ -608,6 +608,14 @@
     <div id="db-js-localization-data" class="hidden" data-my-documents="{{ __('auth.db_my_documents') }}"></div>
     <!-- Hidden file input for uploading new versions -->
     <input type="file" id="newVersionInput" class="hidden" />
+    <script>
+        window.I18N = window.I18N || {};
+        // Read the localized text from the hidden HTML element
+        const localData = document.getElementById('db-js-localization-data');
+        if (localData) {
+            window.I18N.dbMyDocuments = localData.getAttribute('data-my-documents');
+        }
+    </script>
 
     <style>
     /* Search placeholder text - set for lower opacity */
