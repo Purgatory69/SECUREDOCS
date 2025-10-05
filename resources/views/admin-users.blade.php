@@ -125,118 +125,347 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
     </div>
 
     {{-- Main Content --}}
-    <main style="background-color: #24243B; border-top-left-radius: 32px; margin-left: 13px;" class="p-6 overflow-y-auto">
-        <h1 class="text-2xl font-semibold text-white mb-6">All Users</h1>
+<main style="background-color: #24243B; border-top-left-radius: 32px; margin-left: 13px;" class="p-6">
+    <h1 class="text-2xl font-semibold text-white mb-6">All Users</h1>
 
-        @if (session('success'))
-            <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-                <strong class="font-bold">Success!</strong>
-                <span class="block sm:inline">{{ session('success') }}</span>
-            </div>
-        @endif
+    @if (session('success'))
+        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <strong class="font-bold">Success!</strong>
+            <span class="block sm:inline">{{ session('success') }}</span>
+        </div>
+    @endif
 
-        {{-- Search bar for users --}}
-        <form method="GET" action="{{ route('admin.users') }}" class="mb-4" id="adminUserSearchForm">
-            <div class="flex items-center gap-2">
-                <input type="text" id="adminUserSearch" name="q" value="{{ request('q') }}" placeholder="Search users by name or email" class="w-full max-w-md rounded-md border border-[#4A4D6A] bg-[#1F2235] text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
-                <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Search</button>
-                @if(request('q'))
-                    <a href="{{ route('admin.users') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white">Clear</a>
-                @endif
-            </div>
-        </form>
+    {{-- Search bar for users --}}
+    <form method="GET" action="{{ route('admin.users') }}" class="mb-4" id="adminUserSearchForm">
+        <div class="flex items-center gap-2">
+            <input type="text" id="adminUserSearch" name="q" value="{{ request('q') }}" placeholder="Search users by name or email" class="w-full max-w-md rounded-md border border-[#4A4D6A] bg-[#1F2235] text-white px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500" />
+            <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">Search</button>
+            @if(request('q'))
+                <a href="{{ route('admin.users') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white">Clear</a>
+            @endif
+        </div>
+    </form>
 
-        <div class="bg-[#1F2235] shadow-md rounded-lg p-6">
-            <table class="min-w-full divide-y divide-gray-200" id="allUsersTable">
-                <thead class="bg-[#3C3F58]">
-                    <tr>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Name</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Email</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Role</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Approved</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Premium Status</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Actions</th>
-                        <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">Manage Premium</th>
+    <div class="rounded-lg">
+        <div class="overflow-x-auto">
+            <table class="min-w-full" style="table-layout: fixed; width: 100%;">
+                <thead>
+                    <tr style="background-color: #3C3F58; border-radius: 8px 8px 0 0;">
+                        <th class="table-header" style="border-radius: 8px 0 0 0; width: 15%;">Name</th>
+                        <th class="table-header" style="width: 20%;">Email</th>
+                        <th class="table-header" style="width: 10%;">Role</th>
+                        <th class="table-header" style="width: 10%;">Approved</th>
+                        <th class="table-header" style="width: 12%;">Plan</th>
+                        <th class="table-header" style="width: 13%;">Actions</th>
+                        <th class="table-header" style="border-radius: 0 8px 0 0; width: 20%;">Manage</th>
                     </tr>
                 </thead>
-                <tbody class="bg-[#1F2235] divide-y divide-[#4A4D6A]">
+                <tbody style="border-top: 1px solid #3C3F58;">
                     @forelse ($users as $user)
-                        <tr>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-white">{{ $user->name }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ $user->email }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300 capitalize">{{ $user->role }}</td>
-                            <td class="px-6 py-4 whitespace-nowrap">
-                                @if ($user->is_approved)
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">Yes</span>
+                        <tr class="user-table-row" style="border-bottom: 1px solid #3C3F58;">
+                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($user->name, 20) }}</td>
+                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 20%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($user->email, 25) }}</td>
+                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $user->role }}</td>
+                            <td class="px-6 py-4 text-sm font-bold" style="width: 10%; @if($user->is_approved) color: #10B981; @else color: #EF4444; @endif">
+                                @if($user->is_approved)
+                                    Yes
                                 @else
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-red-100 text-red-800">No</span>
+                                    No
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm">
-                                @if ($user->is_premium)
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-blue-100 text-blue-800">Premium</span>
+                            <td class="px-6 py-4 text-sm font-bold" style="width: 12%; @if($user->is_premium) color: #f89c00; @else color: #2563eb; @endif">
+                                @if($user->is_premium)
+                                    Premium
                                 @else
-                                    <span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-gray-100 text-gray-800">Standard</span>
+                                    Standard
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <td class="px-6 py-4 text-sm" style="width: 13%;">
                                 @if (!$user->is_approved)
                                     <form method="POST" action="{{ route('admin.approve', $user->id) }}" class="inline">
                                         @csrf
-                                        <button type="submit" class="text-indigo-600 hover:text-indigo-900">Approve</button>
+                                        <button type="submit" class="text-indigo-400 hover:text-indigo-300 transition-colors">Approve</button>
                                     </form>
                                 @else
                                     <form method="POST" action="{{ route('admin.revoke', $user->id) }}" class="inline">
                                         @csrf
-                                        <button type="submit" class="text-red-600 hover:text-red-900">Revoke</button>
+                                        <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">Revoke</button>
                                     </form>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div class="flex flex-col space-y-2">
-                                    <!-- Toggle Premium Button -->
-                                    <button onclick="togglePremium({{ $user->id }}, '{{ $user->name }}', {{ $user->is_premium ? 'true' : 'false' }})" 
-                                            class="px-3 py-1 text-xs rounded transition-colors {{ $user->is_premium ? 'bg-red-500 hover:bg-red-600 text-white' : 'bg-green-500 hover:bg-green-600 text-white' }}">
-                                        {{ $user->is_premium ? 'Remove Premium' : 'Grant Premium' }}
-                                    </button>
-                                    
-                                    <!-- Reset Premium Button -->
-                                    @if($user->is_premium)
-                                    <button onclick="resetPremium({{ $user->id }}, '{{ $user->name }}')" 
-                                            class="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded transition-colors">
-                                        Reset All Data
-                                    </button>
-                                    @endif
-                                    
-                                    <!-- View Details Button -->
-                                    <button onclick="viewPremiumDetails({{ $user->id }})" 
-                                            class="px-3 py-1 bg-blue-500 hover:bg-blue-600 text-white text-xs rounded transition-colors">
-                                        View Details
-                                    </button>
-                                </div>
-                            </td>
+                            <td class="px-6 py-4 text-sm" style="width: 20%;">
+    <div class="relative inline-block text-left">
+        <!-- Toggle Button -->
+        <button type="button" 
+                class="inline-flex items-center justify-center w-full px-3 py-1 text-xs font-medium text-white bg-[#3C3F58] rounded-md hover:bg-[#55597C] focus:outline-none transition-colors"
+                id="manageAccounts-menu-{{ $user->id }}"
+                aria-expanded="false"
+                aria-haspopup="true">
+            <img src="{{ asset('garage.png') }}" alt="Manage Accounts" class="w-4 h-4 mr-2">
+            <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" class="w-2 h-2 ml-2 transition-transform duration-200" id="manageAccounts-caret-{{ $user->id }}">
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div class="absolute right-0 mt-2 w-48 bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
+             id="manageAccounts-dropdown-{{ $user->id }}"
+             role="menu"
+             aria-orientation="vertical"
+             aria-labelledby="manageAccounts-menu-{{ $user->id }}">
+            <div class="py-1" role="none">
+                <!-- Toggle Premium Button -->
+                <button onclick="togglePremium({{ $user->id }}, '{{ $user->name }}', {{ $user->is_premium ? 'true' : 'false' }})" 
+                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
+                        role="menuitem">
+                    {{ $user->is_premium ? 'Remove Premium' : 'Grant Premium' }}
+                </button>
+                
+                <!-- Reset Premium Button (Only show for premium users) -->
+                @if($user->is_premium)
+                <button onclick="resetPremium({{ $user->id }}, '{{ $user->name }}')" 
+                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
+                        role="menuitem">
+                    Reset All Data
+                </button>
+                @endif
+                
+                <!-- View Details Button -->
+                <button onclick="viewPremiumDetails({{ $user->id }})" 
+                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
+                        role="menuitem">
+                    View Details
+                </button>
+            </div>
+        </div>
+    </div>
+</td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">No users found.</td>
+                            <td colspan="7" class="px-6 py-4 text-center text-sm" style="color: #ffffff;">No users found.</td>
                         </tr>
                     @endforelse
                 </tbody>
             </table>
-            <div class="mt-4" id="usersPagination">
-                {{ $users->links() }}
-            </div>
         </div>
-    </main>
+        <div class="mt-4" id="usersPagination">
+            {{ $users->links() }}
+        </div>
+    </div>
+</main>
 
-    <script>
-        // Predictive search for All Users (AJAX)
-        document.addEventListener('DOMContentLoaded', function() {
-            const input = document.getElementById('adminUserSearch');
-            const tableBody = document.querySelector('#allUsersTable tbody');
-            const pagination = document.getElementById('usersPagination');
-            const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
-            if (!input || !tableBody) return;
+<style>
+    .user-table-row {
+        transition: background-color 0.2s ease, color 0.2s ease;
+    }
+    .user-table-row:hover {
+        background-color: #676C98 !important;
+    }
+    .user-table-row:hover td {
+        color: #FFFFFF !important;
+    }
+    
+    /* Table Header */
+    .table-header {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+        text-align: left;
+        font-size: 0.75rem;
+        color: #ffffff;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+</style>
+
+<script>
+    // =========================================================================
+    // 1. Dropdown Logic (FIXED for animation and z-index/overflow)
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        // List of all dropdown menus and their caret IDs
+        const ALL_DROPDOWNS = [
+            { menu: 'profileDropdown' },
+            { menu: 'headerLanguageSubmenu2', caret: 'langCaret' },
+        ];
+        
+        /**
+         * Closes a specific dropdown menu by adding Tailwind transition classes.
+         * @param {string} menuId - The ID of the menu to close.
+         */
+        function closeDropdown(menuId) {
+            const d = ALL_DROPDOWNS.find(item => item.menu === menuId);
+            if (!d) return;
+
+            const menuEl = document.getElementById(menuId);
+            const caretEl = d.caret ? document.getElementById(d.caret) : null;
+            
+            if (menuEl && !menuEl.classList.contains('invisible')) {
+                // Apply classes to hide and reset transition state
+                menuEl.classList.add('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-10px]');
+                
+                // Re-apply overflow-hidden to the profile dropdown when it closes
+                if (menuId === 'profileDropdown') {
+                    menuEl.classList.add('overflow-hidden');
+                }
+                
+                // Reset the caret rotation
+                if (caretEl) {
+                    caretEl.classList.remove('rotate-180');
+                }
+                
+                // If the profile dropdown closes, ensure the nested language submenu closes too
+                if (menuId === 'profileDropdown') {
+                    closeDropdown('headerLanguageSubmenu2');
+                }
+            }
+        }
+
+        /**
+         * Toggles a single dropdown. Crucially, it only closes OTHER top-level menus.
+         * @param {string} btnId - The ID of the button/toggle element.
+         * @param {string} dropdownId - The ID of the dropdown menu element.
+         */
+        function toggleDropdown(btnId, dropdownId) {
+            const btn = document.getElementById(btnId);
+            const dropdown = document.getElementById(dropdownId);
+            const d = ALL_DROPDOWNS.find(item => item.menu === dropdownId);
+            const caret = d && d.caret ? document.getElementById(d.caret) : null;
+
+            if (btn && dropdown) {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const isHidden = dropdown.classList.contains('invisible');
+
+                    // 1. Close ALL unrelated menus.
+                    if (dropdownId === 'profileDropdown') {
+                        closeDropdown('headerLanguageSubmenu2');
+                        closeAllManageAccountsDropdowns(); // Close manage accounts dropdowns when profile opens
+                    } 
+                    // If language is clicked, we do nothing here, as closing the parent profileDropdown is wrong.
+
+                    // 2. Toggle the target dropdown
+                    if (isHidden) {
+                        // Open: Remove transform and visibility classes
+                        dropdown.classList.remove('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-10px]');
+                        
+                        // Crucial fix: Remove overflow-hidden from the parent profileDropdown 
+                        // so the nested language submenu can display outside its boundaries
+                        if (dropdownId === 'profileDropdown') {
+                            dropdown.classList.remove('overflow-hidden');
+                        }
+
+                        if (caret) {
+                            caret.classList.add('rotate-180');
+                        }
+                    } else {
+                        closeDropdown(dropdownId);
+                    }
+                });
+            }
+        }
+
+        // Initialize all required dropdowns
+        setTimeout(() => {
+            // Profile Dropdown (Top Level)
+            toggleDropdown('userProfileBtn', 'profileDropdown');
+            
+            // Language Toggle (NESTED inside Profile)
+            toggleDropdown('headerLanguageToggle2', 'headerLanguageSubmenu2');
+        }, 100);
+
+        // =========================================================================
+        // 2. Manage Accounts Dropdowns (formerly Premium Management)
+        // =========================================================================
+        function initializeManageAccountsDropdowns() {
+            // Find all manage accounts toggle buttons
+            const manageAccountsToggleButtons = document.querySelectorAll('button[id^="manageAccounts-menu-"]');
+            
+            manageAccountsToggleButtons.forEach(button => {
+                const userId = button.id.replace('manageAccounts-menu-', '');
+                const dropdown = document.getElementById(`manageAccounts-dropdown-${userId}`);
+                const caret = document.getElementById(`manageAccounts-caret-${userId}`);
+                
+                if (button && dropdown) {
+                    button.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const isHidden = dropdown.classList.contains('invisible');
+
+                        // Close all other dropdowns first (profile, language, and other manage accounts dropdowns)
+                        closeDropdown('profileDropdown');
+                        closeDropdown('headerLanguageSubmenu2');
+                        closeAllManageAccountsDropdowns();
+
+                        // Toggle current manage accounts dropdown
+                        if (isHidden) {
+                            // Open dropdown
+                            dropdown.classList.remove('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-10px]');
+                            if (caret) {
+                                caret.classList.add('rotate-180');
+                            }
+                        } else {
+                            closeManageAccountsDropdown(userId);
+                        }
+                    });
+                }
+            });
+        }
+
+        function closeManageAccountsDropdown(userId) {
+            const dropdown = document.getElementById(`manageAccounts-dropdown-${userId}`);
+            const caret = document.getElementById(`manageAccounts-caret-${userId}`);
+            
+            if (dropdown) {
+                dropdown.classList.add('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-10px]');
+            }
+            
+            if (caret) {
+                caret.classList.remove('rotate-180');
+            }
+        }
+
+        function closeAllManageAccountsDropdowns() {
+            const manageAccountsDropdowns = document.querySelectorAll('[id^="manageAccounts-dropdown-"]');
+            const manageAccountsCarets = document.querySelectorAll('[id^="manageAccounts-caret-"]');
+            
+            manageAccountsDropdowns.forEach(dropdown => {
+                dropdown.classList.add('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-10px]');
+            });
+            
+            manageAccountsCarets.forEach(caret => {
+                caret.classList.remove('rotate-180');
+            });
+        }
+
+        // Initialize manage accounts dropdowns
+        initializeManageAccountsDropdowns();
+
+        // Global listener to close dropdowns when clicking anywhere outside
+        document.addEventListener('click', function(e) {
+            // Check if click is inside any dropdown element
+            const clickedInsideProfile = document.getElementById('userProfileBtn')?.contains(e.target) || 
+                                       document.getElementById('profileDropdown')?.contains(e.target);
+            const clickedInsideLanguage = document.getElementById('headerLanguageToggle2')?.contains(e.target) || 
+                                        document.getElementById('headerLanguageSubmenu2')?.contains(e.target);
+            const clickedInsideManageAccounts = e.target.closest('[id^="manageAccounts-menu-"]') || 
+                                       e.target.closest('[id^="manageAccounts-dropdown-"]');
+
+            if (!clickedInsideProfile && !clickedInsideLanguage && !clickedInsideManageAccounts) {
+                closeDropdown('profileDropdown');
+                closeDropdown('headerLanguageSubmenu2');
+                closeAllManageAccountsDropdowns();
+            }
+        });
+
+        // =========================================================================
+        // 3. Predictive search for All Users (AJAX) - Keep this as is
+        // =========================================================================
+        const input = document.getElementById('adminUserSearch');
+        const tableBody = document.querySelector('#allUsersTable tbody');
+        const pagination = document.getElementById('usersPagination');
+        const csrf = document.querySelector('meta[name="csrf-token"]').getAttribute('content');
+        if (input && tableBody) {
             let timer = null; let currentPage = 1;
 
             const fetchUsers = async (page = 1) => {
@@ -282,214 +511,113 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
             input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(triggerFetch, 300); });
             const form = document.getElementById('adminUserSearchForm');
             form && form.addEventListener('submit', (e) => { e.preventDefault(); triggerFetch(); });
+        }
+    });
 
-            // =========================================================================
-            // 2. Dropdown Logic (FIXED for animation and z-index/overflow)
-            // =========================================================================
-
-            // List of all dropdown menus and their caret IDs
-            const ALL_DROPDOWNS = [
-                { menu: 'profileDropdown' },
-                { menu: 'headerLanguageSubmenu2', caret: 'langCaret' },
-            ];
-            
-            /**
-             * Closes a specific dropdown menu by adding Tailwind transition classes.
-             * @param {string} menuId - The ID of the menu to close.
-             */
-            function closeDropdown(menuId) {
-                const d = ALL_DROPDOWNS.find(item => item.menu === menuId);
-                if (!d) return;
-
-                const menuEl = document.getElementById(menuId);
-                const caretEl = d.caret ? document.getElementById(d.caret) : null;
-                
-                if (menuEl && !menuEl.classList.contains('invisible')) {
-                    // Apply classes to hide and reset transition state
-                    // Removed 'scale-95' for a simple top-to-bottom slide animation
-                    menuEl.classList.add('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-10px]');
-                    
-                    // Re-apply overflow-hidden to the profile dropdown when it closes
-                    if (menuId === 'profileDropdown') {
-                        menuEl.classList.add('overflow-hidden');
-                    }
-                    
-                    // Reset the caret rotation
-                    if (caretEl) {
-                        caretEl.classList.remove('rotate-180');
-                    }
-                    
-                    // If the profile dropdown closes, ensure the nested language submenu closes too
-                    if (menuId === 'profileDropdown') {
-                        closeDropdown('headerLanguageSubmenu2');
-                    }
+    // =========================================================================
+    // 4. Premium Management Functions (function names remain the same)
+    // =========================================================================
+    function togglePremium(userId, userName, isPremium) {
+        closeAllManageAccountsDropdowns(); // Close dropdown first
+        const action = isPremium ? 'remove premium from' : 'grant premium to';
+        if (confirm(`Are you sure you want to ${action} ${userName}?`)) {
+            fetch(`/admin/users/${userId}/toggle-premium`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                 }
-            }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload(); // Refresh to update the UI
+                } else {
+                    alert('Error: ' + (data.message || 'Something went wrong'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+    }
 
-            /**
-             * Toggles a single dropdown. Crucially, it only closes OTHER top-level menus.
-             * @param {string} btnId - The ID of the button/toggle element.
-             * @param {string} dropdownId - The ID of the dropdown menu element.
-             */
-            function toggleDropdown(btnId, dropdownId) {
-                const btn = document.getElementById(btnId);
-                const dropdown = document.getElementById(dropdownId);
-                const d = ALL_DROPDOWNS.find(item => item.menu === dropdownId);
-                const caret = d && d.caret ? document.getElementById(d.caret) : null;
+    function resetPremium(userId, userName) {
+        closeAllManageAccountsDropdowns(); // Close dropdown first
+        if (confirm(`Are you sure you want to COMPLETELY RESET all premium data for ${userName}? This will delete all their subscriptions and payments. This action cannot be undone.`)) {
+            fetch(`/admin/users/${userId}/reset-premium`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert(data.message);
+                    location.reload(); // Refresh to update the UI
+                } else {
+                    alert('Error: ' + (data.message || 'Something went wrong'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred. Please try again.');
+            });
+        }
+    }
 
-                if (btn && dropdown) {
-                    btn.addEventListener('click', (e) => {
-                        e.stopPropagation();
-                        const isHidden = dropdown.classList.contains('invisible');
-
-                        // 1. Close ALL unrelated menus.
-                        if (dropdownId === 'profileDropdown') {
-                            closeDropdown('headerLanguageSubmenu2');
-                        } 
-                        // If language is clicked, we do nothing here, as closing the parent profileDropdown is wrong.
-
-                        // 2. Toggle the target dropdown
-                        if (isHidden) {
-                            // Open: Remove transform and visibility classes
-                            // Removed 'scale-95' for a simple top-to-bottom slide animation
-                            dropdown.classList.remove('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-10px]');
-                            
-                            // Crucial fix: Remove overflow-hidden from the parent profileDropdown 
-                            // so the nested language submenu can display outside its boundaries
-                            if (dropdownId === 'profileDropdown') {
-                                dropdown.classList.remove('overflow-hidden');
-                            }
-
-                            if (caret) {
-                                caret.classList.add('rotate-180');
-                            }
-                        } else {
-                            closeDropdown(dropdownId);
-                        }
+    function viewPremiumDetails(userId) {
+        closeAllManageAccountsDropdowns(); // Close dropdown first
+        fetch(`/admin/users/${userId}/premium-details`)
+            .then(response => response.json())
+            .then(data => {
+                let details = `Premium Details for ${data.user.name}:\n\n`;
+                details += `Status: ${data.user.is_premium ? 'Premium' : 'Standard'}\n\n`;
+                
+                if (data.subscriptions.length > 0) {
+                    details += 'Subscriptions:\n';
+                    data.subscriptions.forEach(sub => {
+                        details += `- ${sub.plan_name} (${sub.status}) - ${sub.amount}\n`;
+                        details += `  From ${sub.starts_at} to ${sub.ends_at}\n`;
+                    });
+                    details += '\n';
+                }
+                
+                if (data.payments.length > 0) {
+                    details += 'Recent Payments:\n';
+                    data.payments.slice(0, 5).forEach(payment => {
+                        details += `- ${payment.amount} via ${payment.payment_method} (${payment.status}) - ${payment.created_at}\n`;
                     });
                 }
-            }
-
-            // Initialize all required dropdowns
-            setTimeout(() => {
-                // Profile Dropdown (Top Level)
-                toggleDropdown('userProfileBtn', 'profileDropdown');
                 
-                // Language Toggle (NESTED inside Profile)
-                toggleDropdown('headerLanguageToggle2', 'headerLanguageSubmenu2');
-            }, 100);
-
-            // Global listener to close dropdowns when clicking anywhere outside
-            document.addEventListener('click', function(e) {
-                // IDs of all elements that belong to a dropdown set
-                const profileToggle = document.getElementById('userProfileBtn');
-                const profileDropdown = document.getElementById('profileDropdown');
-                const languageToggle = document.getElementById('headerLanguageToggle2');
-                const languageDropdown = document.getElementById('headerLanguageSubmenu2');
-                
-                const clickedInsideAnyDropdown = 
-                    (profileToggle && profileToggle.contains(e.target)) ||
-                    (profileDropdown && profileDropdown.contains(e.target));
-                    
-                if (!clickedInsideAnyDropdown) {
-                    closeDropdown('profileDropdown');
+                if (data.subscriptions.length === 0 && data.payments.length === 0) {
+                    details += 'No subscription or payment history found.';
                 }
                 
-                // This handles cases where the click is outside the language dropdown itself but inside the profile menu
-                if (languageDropdown && !languageDropdown.contains(e.target) && !languageToggle.contains(e.target)) {
-                    // Close language submenu if click is outside it, but only if profileDropdown is still open
-                    if (profileDropdown && !profileDropdown.classList.contains('invisible')) {
-                        closeDropdown('headerLanguageSubmenu2');
-                    }
-                }
+                alert(details);
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error loading premium details.');
             });
+    }
+
+    // Helper function to close all manage accounts dropdowns
+    function closeAllManageAccountsDropdowns() {
+        const manageAccountsDropdowns = document.querySelectorAll('[id^="manageAccounts-dropdown-"]');
+        const manageAccountsCarets = document.querySelectorAll('[id^="manageAccounts-caret-"]');
+        
+        manageAccountsDropdowns.forEach(dropdown => {
+            dropdown.classList.add('opacity-0', 'invisible', 'pointer-events-none', 'translate-y-[-10px]');
         });
-
-        // Premium Management Functions
-        function togglePremium(userId, userName, isPremium) {
-            const action = isPremium ? 'remove premium from' : 'grant premium to';
-            if (confirm(`Are you sure you want to ${action} ${userName}?`)) {
-                fetch(`/admin/users/${userId}/toggle-premium`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        location.reload(); // Refresh to update the UI
-                    } else {
-                        alert('Error: ' + (data.message || 'Something went wrong'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
-                });
-            }
-        }
-
-        function resetPremium(userId, userName) {
-            if (confirm(`Are you sure you want to COMPLETELY RESET all premium data for ${userName}? This will delete all their subscriptions and payments. This action cannot be undone.`)) {
-                fetch(`/admin/users/${userId}/reset-premium`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        alert(data.message);
-                        location.reload(); // Refresh to update the UI
-                    } else {
-                        alert('Error: ' + (data.message || 'Something went wrong'));
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('An error occurred. Please try again.');
-                });
-            }
-        }
-
-        function viewPremiumDetails(userId) {
-            fetch(`/admin/users/${userId}/premium-details`)
-                .then(response => response.json())
-                .then(data => {
-                    let details = `Premium Details for ${data.user.name}:\n\n`;
-                    details += `Status: ${data.user.is_premium ? 'Premium' : 'Standard'}\n\n`;
-                    
-                    if (data.subscriptions.length > 0) {
-                        details += 'Subscriptions:\n';
-                        data.subscriptions.forEach(sub => {
-                            details += `- ${sub.plan_name} (${sub.status}) - ${sub.amount}\n`;
-                            details += `  From ${sub.starts_at} to ${sub.ends_at}\n`;
-                        });
-                        details += '\n';
-                    }
-                    
-                    if (data.payments.length > 0) {
-                        details += 'Recent Payments:\n';
-                        data.payments.slice(0, 5).forEach(payment => {
-                            details += `- ${payment.amount} via ${payment.payment_method} (${payment.status}) - ${payment.created_at}\n`;
-                        });
-                    }
-                    
-                    if (data.subscriptions.length === 0 && data.payments.length === 0) {
-                        details += 'No subscription or payment history found.';
-                    }
-                    
-                    alert(details);
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    alert('Error loading premium details.');
-                });
-        }
-    </script>
+        
+        manageAccountsCarets.forEach(caret => {
+            caret.classList.remove('rotate-180');
+        });
+    }
+</script>
 @endsection

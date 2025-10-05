@@ -6,7 +6,7 @@
         <meta name="csrf-token" content="{{ csrf_token() }}">
 
         <title>SecureDocs</title>
-        <link rel="icon" href="/logo-favicon.png" type="image/png"/>
+        <link rel="icon" href="{{ asset('logo-favicon.png') }}" type="image/png"/>
 
         <!-- Critical CSS to prevent FOUC -->
         <style>

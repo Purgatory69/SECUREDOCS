@@ -201,45 +201,45 @@
         </section>
 
         {{-- Recent Signups --}}
-<section class="mb-8">
-    <div class="rounded-lg">
-        <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-semibold text-white">{{ __('auth.db_recent_signups') }}</h3>
-        </div>
-        <div class="overflow-x-auto">
-            <table class="min-w-full" style="table-layout: fixed; width: 100%;">
-                <thead>
-                    <tr style="background-color: #3C3F58; border-radius: 8px 8px 0 0;">
-                        <th class="table-header" style="border-radius: 8px 0 0 0; width: 30%;">{{ __('auth.db_name') }}</th>
-                        <th class="table-header" style="width: 35%;">{{ __('auth.db_email') }}</th>
-                        <th class="table-header" style="width: 15%;">{{ __('auth.db_plan') }}</th>
-                        <th class="table-header" style="border-radius: 0 8px 0 0; width: 20%;">{{ __('auth.db_created') }}</th>
-                    </tr>
-                </thead>
-                <tbody style="border-top: 1px solid #3C3F58;">
-                    @forelse(($recentUsers ?? []) as $ru)
-                        <tr class="user-table-row" style="border-bottom: 1px solid #3C3F58;">
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($ru->name, 30) }}</td>
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($ru->email, 30) }}</td>
-                            <td class="px-6 py-4 text-sm font-bold" style="width: 15%; @if($ru->is_premium) color: #f89c00; @else color: #2563eb; @endif">
-                                @if($ru->is_premium)
-                                    {{ __('auth.db_premium') }}
-                                @else
-                                    {{ __('auth.db_standard') }}
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 20%;">{{ optional($ru->created_at)->format('Y-m-d  -  g:i A') }}</td>
-                        </tr>
-                    @empty
-                        <tr>
-                            <td colspan="4" class="px-6 py-4 text-center text-sm" style="color: #ffffff;">No recent signups.</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-    </div>
-</section>
+        <section class="mb-8">
+            <div class="rounded-lg">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-white">{{ __('auth.db_recent_signups') }}</h3>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full" style="table-layout: fixed; width: 100%;">
+                        <thead>
+                            <tr style="background-color: #3C3F58; border-radius: 8px 8px 0 0;">
+                                <th class="table-header" style="border-radius: 8px 0 0 0; width: 30%;">{{ __('auth.db_name') }}</th>
+                                <th class="table-header" style="width: 35%;">{{ __('auth.db_email') }}</th>
+                                <th class="table-header" style="width: 15%;">{{ __('auth.db_plan') }}</th>
+                                <th class="table-header" style="border-radius: 0 8px 0 0; width: 20%;">{{ __('auth.db_created') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody style="border-top: 1px solid #3C3F58;">
+                            @forelse(($recentUsers ?? []) as $ru)
+                                <tr class="user-table-row" style="border-bottom: 1px solid #3C3F58;">
+                                    <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 30%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($ru->name, 30) }}</td>
+                                    <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 35%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($ru->email, 30) }}</td>
+                                    <td class="px-6 py-4 text-sm font-bold" style="width: 15%; @if($ru->is_premium) color: #f89c00; @else color: #2563eb; @endif">
+                                        @if($ru->is_premium)
+                                            {{ __('auth.db_premium') }}
+                                        @else
+                                            {{ __('auth.db_standard') }}
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 20%;">{{ optional($ru->created_at)->format('Y-m-d  -  g:i A') }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="4" class="px-6 py-4 text-center text-sm" style="color: #ffffff;">No recent signups.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 
         <style>
             /* Sidebar styles */

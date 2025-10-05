@@ -70,7 +70,7 @@
         <x-slot name="logo">
             <head>
                 <title>{{ __('auth.login_header') }}</title>
-                <link rel="icon" href="/logo-white.png">
+                <<link rel="icon" href="{{ asset('logo-favicon.png') }}" type="image/png"/>
             </head>
             <a href="{{ url('/') }}">
                 <header class="-mt-2 mb-2 flex flex-col items-center py-8">

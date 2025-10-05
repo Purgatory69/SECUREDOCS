@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>{{ config('app.name', 'Securedocs') }} - WebAuthn</title>
-    <link rel="icon" href="{{ asset('logo-white.png') }}" type="image/png"/>
+    <link rel="icon" href="{{ asset('logo-favicon.png') }}" type="image/png"/>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.bunny.net">
