@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Illuminate\Support\Facades\Log;
 
-class AddNgrokHeaders
+class AddSecureHeaders
 {
     /**
      * Handle an incoming request.
@@ -18,13 +18,8 @@ class AddNgrokHeaders
     {
         $response = $next($request);
         
-        // Add ngrok-skip-browser-warning header to bypass ngrok's interstitial page
-        if (str_contains(config('app.url', ''), 'ngrok')) {
-            $response->headers->set('ngrok-skip-browser-warning', 'true');
-            
-            // Ensure cookies are sent with credentials for ngrok
-            $response->headers->set('Access-Control-Allow-Credentials', 'true');
-        }
+        // Headers for secure domain access
+        $response->headers->set('Access-Control-Allow-Credentials', 'true');
         
         // Debug: Log session cookie details on login attempts
         if ($request->is('login')) {

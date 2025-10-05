@@ -50,6 +50,9 @@ Route::get('/set-language/{language}', action: function ($language) {
 })->name('language.switch');
 
 // WebAuthn authentication routes
+Route::get('/webauthn/login', function () {
+    return view('webauthn.login');
+})->name('webauthn.login');
 Route::post('/webauthn/login/options', [WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
 Route::post('/webauthn/login/verify', [WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
 
@@ -224,6 +227,31 @@ Route::middleware([
     Route::delete('/webauthn/keys/{id}', [WebAuthnController::class, 'destroy'])->name('webauthn.keys.destroy');
     Route::post('/webauthn/register/options', [WebAuthnController::class, 'registerOptions'])->name('webauthn.register.options');
     Route::post('/webauthn/register/verify', [WebAuthnController::class, 'registerVerify'])->name('webauthn.register.verify');
+    
+    // Debug route for WebAuthn configuration (remove in production)
+    Route::get('/debug/webauthn-config', function () {
+        return response()->json([
+            'request_info' => [
+                'host' => request()->getHost(),
+                'url' => request()->url(),
+                'scheme' => request()->getScheme(),
+                'full_url' => request()->fullUrl(),
+            ],
+            'webauthn_config' => [
+                'rp_id' => config('webauthn.relying_party.id'),
+                'rp_name' => config('webauthn.relying_party.name'),
+                'origins' => config('webauthn.origins'),
+            ],
+            'app_config' => [
+                'app_url' => config('app.url'),
+                'app_env' => config('app.env'),
+            ],
+            'env_vars' => [
+                'WEBAUTHN_RP_ID' => env('WEBAUTHN_RP_ID'),
+                'APP_URL' => env('APP_URL'),
+            ]
+        ]);
+    });
 
     // WebAuthn-protected routes
     Route::middleware(['auth', 'auth.webauthn'])->group(function () {
@@ -404,8 +432,48 @@ Route::middleware([
         })->name('premium.test-upgrade'); */
     });
     
-    // PayMongo webhook (no auth required)
-    Route::post('/webhook/paymongo', [App\Http\Controllers\PaymentController::class, 'webhook'])->name('webhook.paymongo');
+    // PayMongo webhook (no auth/CSRF required - external service)
+    Route::post('/webhook/paymongo', [App\Http\Controllers\PaymentController::class, 'webhook'])
+        ->withoutMiddleware([\Illuminate\Foundation\Http\Middleware\VerifyCsrfToken::class])
+        ->name('webhook.paymongo');
+    
+    // Manual payment verification tool (for testing)
+    Route::get('/debug/verify-payment/{paymentId}', function ($paymentId) {
+        try {
+            $payment = \App\Models\Payment::findOrFail($paymentId);
+            
+            // Check if user owns this payment or is admin
+            if ($payment->user_id !== Auth::id() && !Auth::user()->hasRole('admin')) {
+                return response()->json(['error' => 'Unauthorized'], 403);
+            }
+            
+            $controller = new \App\Http\Controllers\PaymentController();
+            $reflection = new \ReflectionClass($controller);
+            $method = $reflection->getMethod('verifyAndCompletePayment');
+            $method->setAccessible(true);
+            
+            $verified = $method->invoke($controller, $payment);
+            
+            $payment->refresh();
+            
+            return response()->json([
+                'success' => $verified,
+                'payment' => [
+                    'id' => $payment->id,
+                    'status' => $payment->status,
+                    'paid_at' => $payment->paid_at,
+                    'user_is_premium' => $payment->user->is_premium
+                ],
+                'message' => $verified ? 'Payment verified and user upgraded!' : 'Payment not yet completed on PayMongo'
+            ]);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ], 500);
+        }
+    })->middleware('auth')->name('debug.verify-payment');
     
     // Debug route to test PayMongo connection
     Route::get('/debug/paymongo-test', function () {
@@ -655,6 +723,11 @@ Route::middleware([
     Route::get('/db-schema', function () {
         return view('db-schema');
     })->middleware(['auth:sanctum', 'verified', \App\Http\Middleware\RoleMiddleware::class.':admin'])->name('db-schema');
+
+    // Simple Database Schema View (admin only)
+    Route::get('/simple-db-schema', function () {
+        return view('simple-db-schema');
+    })->middleware(['auth:sanctum', 'verified', \App\Http\Middleware\RoleMiddleware::class.':admin'])->name('simple-db-schema');
 
     
 

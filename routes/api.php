@@ -60,7 +60,7 @@ Route::post('/ai/categorization-update', [FileController::class, 'updateCategori
 
 // Database schema (live) endpoint (admin-only via Sanctum)
 Route::get('/db-schema', [SchemaController::class, 'get'])
-    ->middleware(['auth:sanctum', 'role:admin'])
+    ->middleware(['auth:sanctum', \App\Http\Middleware\RoleMiddleware::class.':admin'])
     ->name('api.db-schema');
 
 // Permanent Storage API Routes (Premium users only)

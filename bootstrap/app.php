@@ -15,8 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         // Trust proxies (ngrok, cloudflare, etc.) for HTTPS detection
         $middleware->trustProxies(at: '*');
         
-        // Add ngrok headers to bypass interstitial page
-        $middleware->append(\App\Http\Middleware\AddNgrokHeaders::class);
+        // Add secure headers for HTTPS domain
+        $middleware->append(\App\Http\Middleware\AddSecureHeaders::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->render(function (\Throwable $e, \Illuminate\Http\Request $request) {

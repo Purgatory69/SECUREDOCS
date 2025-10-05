@@ -141,7 +141,6 @@ class PaymentController extends Controller
             ]);
 
             return response()->json([
-                'success' => false,
                 'message' => 'Payment processing failed: ' . $e->getMessage()
             ], 500);
         }
@@ -157,28 +156,29 @@ class PaymentController extends Controller
             Log::info('PayMongo webhook received', $payload);
 
             $eventType = $payload['data']['attributes']['type'] ?? null;
-            $paymentIntentId = $payload['data']['attributes']['data']['id'] ?? null;
+            $eventData = $payload['data']['attributes']['data'] ?? null;
 
-            if (!$paymentIntentId) {
+            if (!$eventData) {
+                Log::warning('No event data in webhook');
                 return response()->json(['success' => false], 400);
             }
 
-            $payment = Payment::where('payment_intent_id', $paymentIntentId)->first();
-            
-            if (!$payment) {
-                Log::warning('Payment not found for webhook', ['payment_intent_id' => $paymentIntentId]);
-                return response()->json(['success' => false], 404);
-            }
-
+            // Handle different event types
             switch ($eventType) {
+                case 'checkout_session.payment.paid':
+                    $this->handleCheckoutSessionPaid($eventData);
+                    break;
+
+                case 'payment.paid':
                 case 'payment_intent.succeeded':
-                    $this->handleSuccessfulPayment($payment, $payload);
+                    $this->handlePaymentSucceeded($eventData);
                     break;
-                    
+
+                case 'payment.failed':
                 case 'payment_intent.payment_failed':
-                    $this->handleFailedPayment($payment, $payload);
+                    $this->handlePaymentFailedEvent($eventData);
                     break;
-                    
+
                 default:
                     Log::info('Unhandled webhook event type', ['type' => $eventType]);
             }
@@ -196,6 +196,78 @@ class PaymentController extends Controller
     }
 
     /**
+     * Handle checkout session paid event
+     */
+    private function handleCheckoutSessionPaid(array $eventData): void
+    {
+        $checkoutSessionId = $eventData['id'] ?? null;
+        $metadata = $eventData['attributes']['metadata'] ?? [];
+        $paymentId = $metadata['payment_id'] ?? null;
+        
+        if (!$paymentId) {
+            Log::warning('No payment_id in checkout session metadata', ['event_data' => $eventData]);
+            return;
+        }
+        
+        $payment = Payment::find($paymentId);
+        
+        if (!$payment) {
+            Log::warning('Payment not found for checkout session', ['payment_id' => $paymentId]);
+            return;
+        }
+        
+        if ($payment->status === 'paid') {
+            Log::info('Payment already marked as paid', ['payment_id' => $paymentId]);
+            return;
+        }
+        
+        // Mark payment as successful
+        $this->handleSuccessfulPayment($payment, $eventData);
+    }
+    
+    /**
+     * Handle payment succeeded event
+     */
+    private function handlePaymentSucceeded(array $eventData): void
+    {
+        $paymentIntentId = $eventData['id'] ?? null;
+        
+        if (!$paymentIntentId) {
+            return;
+        }
+        
+        $payment = Payment::where('payment_intent_id', $paymentIntentId)->first();
+        
+        if (!$payment) {
+            Log::warning('Payment not found for payment intent', ['payment_intent_id' => $paymentIntentId]);
+            return;
+        }
+        
+        $this->handleSuccessfulPayment($payment, $eventData);
+    }
+    
+    /**
+     * Handle payment failed event
+     */
+    private function handlePaymentFailedEvent(array $eventData): void
+    {
+        $paymentIntentId = $eventData['id'] ?? null;
+        
+        if (!$paymentIntentId) {
+            return;
+        }
+        
+        $payment = Payment::where('payment_intent_id', $paymentIntentId)->first();
+        
+        if (!$payment) {
+            Log::warning('Payment not found for failed payment', ['payment_intent_id' => $paymentIntentId]);
+            return;
+        }
+        
+        $this->handleFailedPayment($payment, $eventData);
+    }
+
+    /**
      * Handle successful payment
      */
     private function handleSuccessfulPayment(Payment $payment, array $webhookData): void
@@ -208,25 +280,26 @@ class PaymentController extends Controller
                 'gateway_response' => $webhookData
             ]);
 
-            // Create or update subscription
-            $subscription = Subscription::create([
-                'user_id' => $payment->user_id,
-                'plan_name' => 'premium',
-                'status' => 'active',
-                'amount' => $payment->amount,
-                'currency' => $payment->currency,
-                'billing_cycle' => 'monthly',
-                'starts_at' => now(),
-                'ends_at' => now()->addMonth(),
-                'auto_renew' => true
-            ]);
+            // Create subscription with explicit PostgreSQL boolean casting
+            $subscription = new Subscription();
+            $subscription->user_id = $payment->user_id;
+            $subscription->plan_name = 'premium';
+            $subscription->status = 'active';
+            $subscription->amount = $payment->amount;
+            $subscription->currency = $payment->currency;
+            $subscription->billing_cycle = 'monthly';
+            $subscription->starts_at = now();
+            $subscription->ends_at = now()->addMonth();
+            $subscription->auto_renew = DB::raw('true::boolean');
+            $subscription->save();
 
             // Update payment with subscription
             $payment->update(['subscription_id' => $subscription->id]);
 
             // Update user premium status
             $user = User::find($payment->user_id);
-            $user->update(['is_premium' => true]);
+            $user->is_premium = DB::raw('true::boolean');
+            $user->save();
 
             Log::info('User upgraded to premium', [
                 'user_id' => $payment->user_id,
@@ -429,20 +502,47 @@ class PaymentController extends Controller
     }
 
     /**
-     * Payment success page
+     * Payment success page - Verify payment status with PayMongo
      */
     public function success(Request $request)
     {
         $paymentId = $request->get('payment_id');
         $payment = null;
+        $verificationError = null;
         
         if ($paymentId) {
             $payment = Payment::where('id', $paymentId)
                 ->where('user_id', Auth::id())
                 ->first();
+                
+            if ($payment && $payment->status === 'pending') {
+                // Verify payment status with PayMongo
+                try {
+                    $verified = $this->verifyAndCompletePayment($payment);
+                    
+                    if ($verified) {
+                        // Refresh payment to get updated status
+                        $payment->refresh();
+                        
+                        Log::info('Payment verified and completed on success page', [
+                            'payment_id' => $payment->id,
+                            'user_id' => $payment->user_id,
+                            'status' => $payment->status
+                        ]);
+                    } else {
+                        $verificationError = 'Payment verification failed. Please contact support if you completed the payment.';
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Payment verification error on success page', [
+                        'payment_id' => $payment->id,
+                        'error' => $e->getMessage()
+                    ]);
+                    $verificationError = 'Unable to verify payment status. Please contact support.';
+                }
+            }
         }
         
-        return view('premium.success', compact('payment'));
+        return view('premium.success', compact('payment', 'verificationError'));
     }
 
     /**
@@ -464,6 +564,101 @@ class PaymentController extends Controller
         }
         
         return view('premium.cancel', compact('payment'));
+    }
+
+    /**
+     * Verify payment status with PayMongo and complete if paid
+     */
+    private function verifyAndCompletePayment(Payment $payment): bool
+    {
+        try {
+            // Get checkout session from PayMongo
+            $checkoutSessionId = $payment->payment_intent_id;
+            
+            if (!$checkoutSessionId) {
+                Log::warning('No checkout session ID found', ['payment_id' => $payment->id]);
+                return false;
+            }
+            
+            // Retrieve checkout session from PayMongo
+            $url = "https://api.paymongo.com/v1/checkout_sessions/{$checkoutSessionId}";
+            $response = $this->makePayMongoRequest($url, 'GET');
+            
+            if (!isset($response['data'])) {
+                Log::error('Invalid PayMongo response', ['response' => $response]);
+                return false;
+            }
+            
+            $checkoutSession = $response['data'];
+            $status = $checkoutSession['attributes']['status'] ?? null;
+            $payments = $checkoutSession['attributes']['payments'] ?? [];
+            
+            Log::info('PayMongo checkout session retrieved', [
+                'payment_id' => $payment->id,
+                'checkout_status' => $status,
+                'has_payments' => !empty($payments),
+                'payment_count' => count($payments)
+            ]);
+            
+            // Check if payment was successful
+            if ($status === 'paid' || !empty($payments)) {
+                // Payment successful - upgrade user
+                DB::transaction(function () use ($payment, $checkoutSession) {
+                    // Update payment status
+                    $payment->update([
+                        'status' => 'paid',
+                        'paid_at' => now(),
+                        'gateway_response' => $checkoutSession
+                    ]);
+
+                    // Create subscription with explicit PostgreSQL boolean casting
+                    $subscription = new Subscription();
+                    $subscription->user_id = $payment->user_id;
+                    $subscription->plan_name = 'premium';
+                    $subscription->status = 'active';
+                    $subscription->amount = $payment->amount;
+                    $subscription->currency = $payment->currency;
+                    $subscription->billing_cycle = 'monthly';
+                    $subscription->starts_at = now();
+                    $subscription->ends_at = now()->addMonth();
+                    $subscription->auto_renew = DB::raw('true::boolean');
+                    $subscription->save();
+
+                    // Update payment with subscription
+                    $payment->update(['subscription_id' => $subscription->id]);
+
+                    // Update user premium status
+                    $user = User::find($payment->user_id);
+                    $user->is_premium = DB::raw('true::boolean');
+                    $user->save();
+
+                    Log::info('User upgraded to premium via verification', [
+                        'user_id' => $payment->user_id,
+                        'payment_id' => $payment->id,
+                        'subscription_id' => $subscription->id
+                    ]);
+                });
+                
+                return true;
+            }
+            
+            // Payment not completed yet
+            Log::info('Payment not yet completed', [
+                'payment_id' => $payment->id,
+                'checkout_status' => $status
+            ]);
+            
+            return false;
+            
+        } catch (\Exception $e) {
+            Log::error('Payment verification failed', [
+                'payment_id' => $payment->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return false;
+        }
     }
 
     /**

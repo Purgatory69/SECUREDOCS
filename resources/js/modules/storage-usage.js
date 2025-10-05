@@ -11,10 +11,10 @@ class StorageUsageManager {
     init() {
         this.loadStorageUsage();
         this.attachEventListeners();
-        // Update storage usage every 30 seconds
+        // Update storage usage every 60 seconds
         this.updateInterval = setInterval(() => {
             this.loadStorageUsage();
-        }, 30000);
+        }, 60000);
     }
 
     async loadStorageUsage() {

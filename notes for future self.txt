@@ -16,3 +16,6 @@ to upload to blockchain need ang user og crypto wallet like ronin or metamask pa
 
 pkill -f "php artisan serve"
 
+
+
+\cloudflared.exe tunnel run securedocs

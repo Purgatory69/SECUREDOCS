@@ -166,10 +166,9 @@
                 <button type="submit" class="bg-[#f89c00] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">{{ __('auth.login') }}</button>
             </div>
 
-            <button type="button" id="biometric-login-button" class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">
-                {{ __('auth.login_biometrics') }}
-            </button>
-            <p id="biometric-login-status" class="text-sm text-red-600 mt-2 text-center"></p>
+            <a href="{{ route('webauthn.login') }}" class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition text-center inline-block">
+                🔒 {{ __('auth.login_biometrics') }}
+            </a>
 
         </form>
 

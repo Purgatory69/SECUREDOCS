@@ -94,9 +94,21 @@ class WebAuthnCredential extends BaseWebAuthnCredential
             // Ensure required fields have default values if not explicitly set
             $model->type = $model->type ?? 'public-key';
             $model->response = $model->response ?? ['type' => 'public-key'];
-            $model->rp_id = $model->rp_id ?? config('app.url');
+            $model->rp_id = $model->rp_id ?? config('webauthn.relying_party.id');
             $model->origin = $model->origin ?? config('app.url');
             $model->attestation_format = $model->attestation_format ?? 'none';
+            
+            // Debug logging for WebAuthn configuration
+            Log::debug('WebAuthn Config Debug', [
+                'app_url' => config('app.url'),
+                'webauthn_rp_id' => config('webauthn.relying_party.id'),
+                'webauthn_origins' => config('webauthn.origins'),
+                'model_rp_id' => $model->rp_id,
+                'model_origin' => $model->origin,
+                'current_domain' => request()->getHost(),
+                'request_url' => request()->url(),
+                'request_scheme' => request()->getScheme(),
+            ]);
             $model->counter = $model->counter ?? 0;
             $model->aaguid = $model->aaguid ?? '00000000-0000-0000-0000-000000000000';
 

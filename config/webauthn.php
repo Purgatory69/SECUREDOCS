@@ -78,7 +78,7 @@ return [
     |
     */
 
-    'model' => WebauthnKey::class,
+    'model' => \App\Models\WebauthnCredential::class,
 
     /*
     |--------------------------------------------------------------------------
@@ -96,6 +96,20 @@ return [
         'name' => env('APP_NAME', 'Laravel'),
         'id' => env('WEBAUTHN_RP_ID', parse_url(config('app.url'), PHP_URL_HOST)),
         // 'icon' => env('WEBAUTHN_ICON_URL'), // Optional: Add a URL to your app's icon if you have one
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | WebAuthn Origins
+    |--------------------------------------------------------------------------
+    |
+    | List of allowed origins for WebAuthn. This is required for Cloudflare
+    | tunnels and other proxy setups.
+    |
+    */
+
+    'origins' => [
+        env('APP_URL', 'https://localhost'),
     ],
 
     /*

@@ -12,9 +12,23 @@
             </div>
 
             <!-- Success Message -->
-            <h1 class="text-2xl font-bold text-white mb-4">Payment Successful!</h1>
+            <h1 class="text-2xl font-bold text-white mb-4">
+                @if($payment && $payment->status === 'paid')
+                    Payment Successful!
+                @elseif($verificationError ?? false)
+                    Payment Verification Issue
+                @else
+                    Payment Processing
+                @endif
+            </h1>
             <p class="text-gray-400 mb-6">
-                Welcome to SecureDocs Premium! Your account has been upgraded successfully.
+                @if($payment && $payment->status === 'paid')
+                    Welcome to SecureDocs Premium! Your account has been upgraded successfully.
+                @elseif($verificationError ?? false)
+                    {{ $verificationError }}
+                @else
+                    Your payment is being processed. This may take a few moments.
+                @endif
             </p>
 
             @if($payment)

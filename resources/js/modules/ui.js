@@ -51,6 +51,11 @@ function closeAllDropdowns(exceptDropdowns = null) {
                     element.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
                     element.classList.remove('opacity-100', 'visible', 'translate-y-0');
                     element.style.pointerEvents = 'none';
+                } else if (key === 'new') {
+                    // New dropdown uses simplified approach
+                    element.classList.add('hidden');
+                    element.style.display = 'none';
+                    element.style.pointerEvents = 'none';
                 } else {
                     // Other dropdowns use hidden
                     element.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'hidden');
@@ -162,9 +167,11 @@ export function initializeNewDropdown() {
     if (newButton && newDropdown) {
         // Ensure dropdown starts hidden
         newDropdown.classList.add('hidden');
+        newDropdown.style.display = 'none';
         
         newButton.addEventListener('click', (e) => {
             e.stopPropagation();
+            e.preventDefault();
             
             // Check current state and toggle accordingly
             const isHidden = newDropdown.classList.contains('hidden');
@@ -174,15 +181,27 @@ export function initializeNewDropdown() {
                 closeAllDropdowns('new');
                 activeDropdown = 'new';
                 
-                // Show dropdown
-                newDropdown.classList.remove('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
-                newDropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
+                // Show dropdown with simplified approach
+                newDropdown.classList.remove('hidden');
+                newDropdown.style.display = 'block';
+                newDropdown.style.pointerEvents = 'auto';
+                
+                // Force a reflow to ensure the element is rendered
+                newDropdown.offsetHeight;
             } else {
                 // Hide dropdown
-                newDropdown.classList.add('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
-                newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+                newDropdown.classList.add('hidden');
+                newDropdown.style.display = 'none';
+                newDropdown.style.pointerEvents = 'none';
                 activeDropdown = null;
             }
+        });
+        
+        // Ensure dropdown items are clickable
+        const dropdownItems = newDropdown.querySelectorAll('[id$="Option"], [onclick]');
+        dropdownItems.forEach(item => {
+            item.style.pointerEvents = 'auto';
+            item.style.cursor = 'pointer';
         });
     }
 

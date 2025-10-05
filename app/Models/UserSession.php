@@ -47,6 +47,7 @@ class UserSession extends Model
         'logged_out_at' => 'datetime',
     ];
 
+
     // Login methods
     const LOGIN_PASSWORD = 'password';
     const LOGIN_WEBAUTHN = 'webauthn';

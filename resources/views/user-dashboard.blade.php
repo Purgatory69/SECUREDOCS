@@ -450,13 +450,14 @@
 
     <!-- Dropdown Menu - Simplified Structure -->
     <div id="newDropdown" 
-     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C] hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
-     style="background-color: #55597C;">
+     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-[100] bg-[#55597C] hidden"
+     style="background-color: #55597C; pointer-events: auto;">
         <div>
             <div id="uploadFileOption"
-                class="flex items-center px-5 py-4 text-sm transition-colors text-white"
-                onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0.5rem 0.5rem 0 0;';"
-                onmouseout="this.style.cssText = 'border-radius: 0.5rem 0.5rem 0 0;';">
+                class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
+                style="cursor: pointer; pointer-events: auto;"
+                onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0.5rem 0.5rem 0 0; cursor: pointer; pointer-events: auto;';"
+                onmouseout="this.style.cssText = 'border-radius: 0.5rem 0.5rem 0 0; cursor: pointer; pointer-events: auto;';">
                 <img src="{{ asset('file.png') }}" alt="File" class="mr-4 w-4 h-4">
                 <span class="font-medium">{{ __('auth.db_new_file') }}</span>
             </div>
@@ -464,9 +465,10 @@
             @if(auth()->user()->is_premium)
             <div id="openPermanentStorageBtn"
                 class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
+                style="cursor: pointer; pointer-events: auto;"
                 onclick="openPermanentStorageModal()"
-                onmouseover="this.style.cssText = 'background-color: #55597C;';"
-                onmouseout="this.style.cssText = '';">
+                onmouseover="this.style.cssText = 'background-color: #55597C; cursor: pointer; pointer-events: auto;';"
+                onmouseout="this.style.cssText = 'cursor: pointer; pointer-events: auto;';">
                 <span class="mr-4 text-lg">⛓️</span>
                 <div class="flex-1">
                     <div class="font-medium">Permanent Storage</div>
@@ -477,9 +479,10 @@
             @endif
             
             <div id="createFolderOption"
-                class="flex items-center px-5 py-4 text-sm transition-colors text-white"
-                onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0 0 0.5rem 0.5rem;';"
-                onmouseout="this.style.cssText = 'border-radius: 0 0 0.5rem 0.5rem;';">
+                class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
+                style="cursor: pointer; pointer-events: auto;"
+                onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0 0 0.5rem 0.5rem; cursor: pointer; pointer-events: auto;';"
+                onmouseout="this.style.cssText = 'border-radius: 0 0 0.5rem 0.5rem; cursor: pointer; pointer-events: auto;';">
                 <img src="{{ asset('folder-closed-black-shape.png') }}" alt="File" class="mr-4 w-4 h-4">
                 <span class="font-medium">{{ __('auth.db_new_folder') }}</span>
             </div>

@@ -8,6 +8,7 @@ use App\Models\UserSession;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 class DeviceDetectionService
 {
     public function __construct()
@@ -278,6 +279,29 @@ class DeviceDetectionService
             $sessionId = session()->getId() ?: 'fallback_' . uniqid();
         }
 
+        // Debug: Log the boolean values being inserted
+        $booleanValues = [
+            'is_mobile' => (bool) $deviceInfo['is_mobile'],
+            'is_tablet' => (bool) $deviceInfo['is_tablet'], 
+            'is_desktop' => (bool) $deviceInfo['is_desktop'],
+            'is_suspicious' => (bool) $this->detectSuspiciousActivity($user, $deviceInfo, $locationInfo),
+            'trusted_device' => (bool) !$isNewDevice,
+        ];
+        
+        Log::debug('UserSession boolean values', [
+            'original_values' => [
+                'is_mobile' => $deviceInfo['is_mobile'],
+                'is_tablet' => $deviceInfo['is_tablet'],
+                'is_desktop' => $deviceInfo['is_desktop'],
+            ],
+            'cast_values' => $booleanValues,
+            'types' => [
+                'is_mobile' => gettype($booleanValues['is_mobile']),
+                'is_tablet' => gettype($booleanValues['is_tablet']),
+                'is_desktop' => gettype($booleanValues['is_desktop']),
+            ]
+        ]);
+
         return UserSession::create([
             'user_id' => $user->id,
             'session_id' => $sessionId,
@@ -290,12 +314,12 @@ class DeviceDetectionService
             'device_type' => $deviceInfo['device_type'],
             'browser' => $deviceInfo['browser'],
             'platform' => $deviceInfo['platform'],
-            'is_mobile' => $deviceInfo['is_mobile'],
-            'is_tablet' => $deviceInfo['is_tablet'],
-            'is_desktop' => $deviceInfo['is_desktop'],
+            'is_mobile' => $booleanValues['is_mobile'] ? 1 : 0,
+            'is_tablet' => $booleanValues['is_tablet'] ? 1 : 0,
+            'is_desktop' => $booleanValues['is_desktop'] ? 1 : 0,
             'login_method' => 'web', // Can be extended for other methods
-            'is_suspicious' => $this->detectSuspiciousActivity($user, $deviceInfo, $locationInfo),
-            'trusted_device' => !$isNewDevice,
+            'is_suspicious' => $booleanValues['is_suspicious'] ? 1 : 0,
+            'trusted_device' => $booleanValues['trusted_device'] ? 1 : 0,
             'expires_at' => now()->addDays(30), // Session expires in 30 days
         ]);
     }
