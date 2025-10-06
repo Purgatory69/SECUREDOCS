@@ -42,7 +42,7 @@
             <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
             
             <!-- Notification Dropdown -->
-            <div id="notificationDropdown" class="hidden absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] transition-all duration-200">
+            <div id="notificationDropdown" class="hidden absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50">
                 <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
                     <div class="text-sm font-medium">Notifications</div>
                     <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>
@@ -450,14 +450,13 @@
 
     <!-- Dropdown Menu - Simplified Structure -->
     <div id="newDropdown" 
-     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-[100] bg-[#55597C] hidden"
-     style="background-color: #55597C; pointer-events: auto;">
+     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C] hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
+     style="background-color: #55597C;">
         <div>
             <div id="uploadFileOption"
-                class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
-                style="cursor: pointer; pointer-events: auto;"
-                onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0.5rem 0.5rem 0 0; cursor: pointer; pointer-events: auto;';"
-                onmouseout="this.style.cssText = 'border-radius: 0.5rem 0.5rem 0 0; cursor: pointer; pointer-events: auto;';">
+                class="flex items-center px-5 py-4 text-sm transition-colors text-white"
+                onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0.5rem 0.5rem 0 0;';"
+                onmouseout="this.style.cssText = 'border-radius: 0.5rem 0.5rem 0 0;';">
                 <img src="{{ asset('file.png') }}" alt="File" class="mr-4 w-4 h-4">
                 <span class="font-medium">{{ __('auth.db_new_file') }}</span>
             </div>
@@ -465,10 +464,9 @@
             @if(auth()->user()->is_premium)
             <div id="openPermanentStorageBtn"
                 class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
-                style="cursor: pointer; pointer-events: auto;"
                 onclick="openPermanentStorageModal()"
-                onmouseover="this.style.cssText = 'background-color: #55597C; cursor: pointer; pointer-events: auto;';"
-                onmouseout="this.style.cssText = 'cursor: pointer; pointer-events: auto;';">
+                onmouseover="this.style.cssText = 'background-color: #55597C;';"
+                onmouseout="this.style.cssText = '';">
                 <span class="mr-4 text-lg">⛓️</span>
                 <div class="flex-1">
                     <div class="font-medium">Permanent Storage</div>
@@ -479,10 +477,9 @@
             @endif
             
             <div id="createFolderOption"
-                class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
-                style="cursor: pointer; pointer-events: auto;"
-                onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0 0 0.5rem 0.5rem; cursor: pointer; pointer-events: auto;';"
-                onmouseout="this.style.cssText = 'border-radius: 0 0 0.5rem 0.5rem; cursor: pointer; pointer-events: auto;';">
+                class="flex items-center px-5 py-4 text-sm transition-colors text-white"
+                onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0 0 0.5rem 0.5rem;';"
+                onmouseout="this.style.cssText = 'border-radius: 0 0 0.5rem 0.5rem;';">
                 <img src="{{ asset('folder-closed-black-shape.png') }}" alt="File" class="mr-4 w-4 h-4">
                 <span class="font-medium">{{ __('auth.db_new_folder') }}</span>
             </div>
@@ -611,6 +608,14 @@
     <div id="db-js-localization-data" class="hidden" data-my-documents="{{ __('auth.db_my_documents') }}"></div>
     <!-- Hidden file input for uploading new versions -->
     <input type="file" id="newVersionInput" class="hidden" />
+    <script>
+        window.I18N = window.I18N || {};
+        // Read the localized text from the hidden HTML element
+        const localData = document.getElementById('db-js-localization-data');
+        if (localData) {
+            window.I18N.dbMyDocuments = localData.getAttribute('data-my-documents');
+        }
+    </script>
 
     <style>
     /* Search placeholder text - set for lower opacity */

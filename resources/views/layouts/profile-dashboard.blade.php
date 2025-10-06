@@ -6,7 +6,7 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     <title>User Profile - {{ config('app.name', 'Laravel') }}</title>
-    <link rel="icon" href="{{ asset('logo-white.png') }}" type="image/png"/>
+    <link rel="icon" href="{{ asset('logo-favicon.png') }}" type="image/png"/>
     <link rel="stylesheet" href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap"/>
 
     <!-- Styles -->

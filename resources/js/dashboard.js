@@ -16,8 +16,16 @@ import { initializePermanentStorageModal } from './modules/permanent-storage.js'
 import { NotificationManager } from './modules/notifications.js';
 import StorageUsageManager from './modules/storage-usage.js';
 
+
 // --- Supabase Client Check ---
 if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_KEY) {
+}
+
+// --- Helper to Get Translated "My Documents" Text ---
+function getMyDocumentsText() {
+    return window.I18N?.dbMyDocuments || 
+           document.getElementById('db-js-localization-data')?.getAttribute('data-my-documents') || 
+           'My Documents';
 }
 
 // --- Global State ---
@@ -25,7 +33,31 @@ if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_KEY) {
 const state = {
     lastMainSearch: '',
     currentParentId: localStorage.getItem('currentParentId') || null,
-    breadcrumbs: JSON.parse(localStorage.getItem('breadcrumbs')) || [{ id: null, name: 'My Documents' }]
+    // Use function to get translated text - will be evaluated when needed
+    get breadcrumbs() {
+        const stored = localStorage.getItem('breadcrumbs');
+        if (stored) {
+            try {
+                const parsed = JSON.parse(stored);
+                // Update root breadcrumb name with current translation
+                if (parsed.length > 0 && (parsed[0].id === null || parsed[0].id === 'null')) {
+                    parsed[0].name = getMyDocumentsText();
+                }
+                return parsed;
+            } catch (e) {
+                console.error('Error parsing breadcrumbs from localStorage:', e);
+            }
+        }
+        // Default fallback with translated text
+        return [{ id: null, name: getMyDocumentsText() }];
+    },
+    set breadcrumbs(value) {
+        // When setting breadcrumbs, ensure root has translated name
+        if (value && value.length > 0 && (value[0].id === null || value[0].id === 'null')) {
+            value[0].name = getMyDocumentsText();
+        }
+        localStorage.setItem('breadcrumbs', JSON.stringify(value));
+    }
 };
 
 // --- App Initialization ---
@@ -46,7 +78,7 @@ function initializeApp() {
         currentFolderIdInput.value = state.currentParentId;
     }
     // --- Initialize All Imported Modules ---
-    // initializeN8nChat();
+    initializeN8nChat();
     initializeUploadModal();
     // Disabled for now: do not auto-open the Blockchain modal on sidebar click.
     // setupBlockchainLazyInit();

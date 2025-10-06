@@ -70,7 +70,7 @@
         <x-slot name="logo">
             <head>
                 <title>{{ __('auth.login_header') }}</title>
-                <link rel="icon" href="/logo-white.png">
+                <<link rel="icon" href="{{ asset('logo-favicon.png') }}" type="image/png"/>
             </head>
             <a href="{{ url('/') }}">
                 <header class="-mt-2 mb-2 flex flex-col items-center py-8">
@@ -166,9 +166,10 @@
                 <button type="submit" class="bg-[#f89c00] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">{{ __('auth.login') }}</button>
             </div>
 
-            <a href="{{ route('webauthn.login') }}" class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition text-center inline-block">
-                🔒 {{ __('auth.login_biometrics') }}
-            </a>
+            <button type="button" id="biometric-login-button" class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">
+                {{ __('auth.login_biometrics') }}
+            </button>
+            <p id="biometric-login-status" class="text-sm text-red-600 mt-2 text-center"></p>
 
         </form>
 
@@ -227,20 +228,46 @@
             }
         });
 
-        // Keep session alive on the login page
+        // Keep session and CSRF token fresh on the login page to avoid 419 after being idle
         document.addEventListener('DOMContentLoaded', function() {
-            // Periodic keepalive every 4 minutes to prevent session timeout
+            const form = document.querySelector('form[action="{{ route('login') }}"][method="POST"]');
+            const csrfInput = document.querySelector('input[name="_token"]');
+
+            // Periodic keepalive every 4 minutes
             try {
                 setInterval(() => {
                     fetch('{{ url('/keepalive') }}', {
-                        credentials: 'include',
+                        credentials: 'same-origin',
                         headers: { 'X-Requested-With': 'XMLHttpRequest' }
                     }).catch(() => {});
                 }, 4 * 60 * 1000);
             } catch (e) {}
-            
-            // Note: Removed token refresh on submit as it can cause issues with ngrok/proxies
-            // The session should remain valid as long as the user doesn't idle too long
+
+            // Before submit, regenerate a fresh token to prevent TokenMismatch (419)
+            if (form) {
+                form.addEventListener('submit', async function(e) {
+                    try {
+                        e.preventDefault();
+                        const res = await fetch('{{ url('/keepalive') }}?regen=1', {
+                            credentials: 'same-origin',
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'Accept': 'application/json'
+                            }
+                        });
+                        if (res.ok) {
+                            const data = await res.json().catch(() => null);
+                            if (data && data.token && csrfInput) {
+                                csrfInput.value = data.token;
+                            }
+                        }
+                    } catch (err) {
+                        // Ignore and continue with submit
+                    }
+                    // Submit the form (password not logged anywhere)
+                    form.submit();
+                });
+            }
         });
     </script>
 

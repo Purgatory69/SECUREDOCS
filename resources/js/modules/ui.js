@@ -1,86 +1,5 @@
 // Contains general UI helper functions and initializers.
 
-// Global dropdown state manager
-let activeDropdown = null;
-
-/**
- * Closes all dropdowns except the specified ones
- * @param {string|string[]} exceptDropdowns - The dropdown(s) to keep open (optional)
- */
-function closeAllDropdowns(exceptDropdowns = null) {
-    // Convert single exception to array for easier handling
-    const exceptions = Array.isArray(exceptDropdowns) ? exceptDropdowns : (exceptDropdowns ? [exceptDropdowns] : []);
-    
-    // Define dropdown groups - language is part of profile group
-    const profileGroup = ['profile', 'language'];
-    
-    const dropdowns = {
-        'new': { element: document.getElementById('newDropdown'), arrow: document.getElementById('uploadIcon') },
-        'profile': { element: document.getElementById('profileDropdown'), arrow: null },
-        'language': { element: document.getElementById('headerLanguageSubmenu2'), arrow: document.getElementById('langCaret') },
-        'notification': { element: document.getElementById('notificationDropdown'), arrow: null }
-    };
-
-    Object.keys(dropdowns).forEach(key => {
-        let shouldClose = true;
-        
-        // Check if this dropdown should stay open
-        if (exceptions.length > 0) {
-            // If any exception is in the profile group, keep all profile group dropdowns open
-            const hasProfileGroupException = exceptions.some(ex => profileGroup.includes(ex));
-            if (hasProfileGroupException && profileGroup.includes(key)) {
-                shouldClose = false;
-            }
-            // If this specific dropdown is in exceptions, keep it open
-            else if (exceptions.includes(key)) {
-                shouldClose = false;
-            }
-        }
-        
-        if (shouldClose) {
-            const { element, arrow } = dropdowns[key];
-            
-            if (element) {
-                // Close dropdown with appropriate classes based on dropdown type
-                if (key === 'profile') {
-                    // Profile dropdown uses scale-95
-                    element.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
-                    element.classList.remove('opacity-100', 'visible', 'translate-y-0');
-                } else if (key === 'language') {
-                    // Language dropdown uses pointerEvents
-                    element.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
-                    element.classList.remove('opacity-100', 'visible', 'translate-y-0');
-                    element.style.pointerEvents = 'none';
-                } else if (key === 'new') {
-                    // New dropdown uses simplified approach
-                    element.classList.add('hidden');
-                    element.style.display = 'none';
-                    element.style.pointerEvents = 'none';
-                } else {
-                    // Other dropdowns use hidden
-                    element.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'hidden');
-                    element.classList.remove('opacity-100', 'visible', 'translate-y-0', 'block');
-                    element.style.pointerEvents = 'none';
-                }
-                
-                // Reset arrow if exists
-                if (arrow) {
-                    arrow.style.transform = 'rotate(0deg)';
-                }
-            }
-        }
-    });
-    
-    if (exceptions.length === 0) {
-        activeDropdown = null;
-    }
-}
-
-// Expose globally so notifications.js can use it
-if (typeof window !== 'undefined') {
-    window.closeAllDropdowns = closeAllDropdowns;
-}
-
 /**
  * Creates and displays a notification toast.
  * @param {string} message The message to display.
@@ -159,6 +78,31 @@ export function formatFileSize(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
+// Track which dropdown is currently active
+let activeDropdown = null;
+
+// Close all dropdowns or specific ones
+function closeAllDropdowns(except = []) {
+    const dropdowns = {
+        new: { element: document.getElementById('newDropdown'), classes: ['hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]'] },
+        profile: { element: document.getElementById('profileDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] },
+        language: { element: document.getElementById('headerLanguageSubmenu2'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]'], arrow: document.getElementById('langCaret') },
+        notification: { element: document.getElementById('notificationDropdown'), classes: ['hidden'] }
+    };
+
+    for (const [key, config] of Object.entries(dropdowns)) {
+        if (!except.includes(key) && config.element) {
+            config.classes.forEach(cls => config.element.classList.add(cls));
+            if (config.arrow) {
+                config.arrow.style.transform = 'rotate(0deg)';
+            }
+            if (key === 'language') {
+                config.element.style.pointerEvents = 'none';
+            }
+        }
+    }
+}
+
 export function initializeNewDropdown() {
     const newButton = document.getElementById('newBtn');
     const newDropdown = document.getElementById('newDropdown');
@@ -167,45 +111,28 @@ export function initializeNewDropdown() {
     if (newButton && newDropdown) {
         // Ensure dropdown starts hidden
         newDropdown.classList.add('hidden');
-        newDropdown.style.display = 'none';
         
         newButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            e.preventDefault();
             
             // Check current state and toggle accordingly
             const isHidden = newDropdown.classList.contains('hidden');
             
             if (isHidden) {
-                // Close all other dropdowns first
-                closeAllDropdowns('new');
+                // Close other dropdowns first
+                closeAllDropdowns(['new']);
                 activeDropdown = 'new';
-                
-                // Show dropdown with simplified approach
-                newDropdown.classList.remove('hidden');
-                newDropdown.style.display = 'block';
-                newDropdown.style.pointerEvents = 'auto';
-                
-                // Force a reflow to ensure the element is rendered
-                newDropdown.offsetHeight;
+                // Show dropdown
+                newDropdown.classList.remove('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
+                newDropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
             } else {
                 // Hide dropdown
-                newDropdown.classList.add('hidden');
-                newDropdown.style.display = 'none';
-                newDropdown.style.pointerEvents = 'none';
+                newDropdown.classList.add('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
+                newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
                 activeDropdown = null;
             }
         });
-        
-        // Ensure dropdown items are clickable
-        const dropdownItems = newDropdown.querySelectorAll('[id$="Option"], [onclick]');
-        dropdownItems.forEach(item => {
-            item.style.pointerEvents = 'auto';
-            item.style.cursor = 'pointer';
-        });
     }
-
-    // Global click handler is managed separately
 }
 
 export function initializeUserProfile() {
@@ -220,27 +147,25 @@ export function initializeUserProfile() {
     userProfileBtn.addEventListener('click', function (event) {
         event.stopPropagation();
         
-        // Check if dropdown is currently hidden (has opacity-0 or invisible)
+        // Check if dropdown is currently hidden
         const isHidden = profileDropdown.classList.contains('opacity-0') || 
                          profileDropdown.classList.contains('invisible');
         
         if (isHidden) {
-            // Close all other dropdowns first (but keep profile group)
+            // Close other dropdowns first (but keep profile group)
             closeAllDropdowns(['profile', 'language']);
             activeDropdown = 'profile';
             
-            // Show profile dropdown
-            profileDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+            // Show profile dropdown and remove overflow-hidden to allow nested language dropdown
+            profileDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95', 'overflow-hidden');
             profileDropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
         } else {
             // Hide profile dropdown
-            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95', 'overflow-hidden');
             profileDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
             activeDropdown = null;
         }
     });
-
-    // Global click handler is managed separately
 }
 
 export function updateBreadcrumbsDisplay(breadcrumbs, currentView = 'main') {
@@ -402,13 +327,12 @@ function initializeLanguageDropdown() {
     toggle.addEventListener('click', function(e) {
         e.stopPropagation();
         
-        // Check if dropdown is currently hidden (similar to profile dropdown)
-        const isHidden = dropdown.classList.contains('opacity-0') || 
+        // Check if dropdown is currently hidden
+        const isHidden = dropdown.classList.contains('opacity-0') ||
                          dropdown.classList.contains('invisible');
         
         if (isHidden) {
-            // Close all other dropdowns first (but keep profile group)
-            closeAllDropdowns(['profile', 'language']);
+            // Don't close profile dropdown since language is nested inside it
             activeDropdown = 'language';
             
             // Open dropdown
@@ -424,11 +348,9 @@ function initializeLanguageDropdown() {
             if (arrow) {
                 arrow.style.transform = 'rotate(0deg)';
             }
-            activeDropdown = null;
+            activeDropdown = 'profile'; // Return to profile state
         }
     });
-    
-    // Global click handler is managed separately
 }
 
 export function initializeUi(dependencies) {
@@ -443,45 +365,38 @@ export function initializeUi(dependencies) {
     
     // Global click handler to close all dropdowns when clicking outside
     document.addEventListener('click', function(e) {
-        const dropdownGroups = {
-            new: [
-                document.getElementById('newBtn'),
-                document.getElementById('newDropdown')
-            ],
-            profile: [
-                document.getElementById('userProfileBtn'),
-                document.getElementById('profileDropdown')
-            ],
-            language: [
-                document.getElementById('headerLanguageToggle2'),
-                document.getElementById('headerLanguageSubmenu2')
-            ],
-            notification: [
-                document.getElementById('notificationBell'),
-                document.getElementById('notificationDropdown')
-            ]
+        const dropdownElements = {
+            new: [document.getElementById('newBtn'), document.getElementById('newDropdown')],
+            profile: [document.getElementById('userProfileBtn'), document.getElementById('profileDropdown')],
+            language: [document.getElementById('headerLanguageToggle2'), document.getElementById('headerLanguageSubmenu2')],
+            notification: [document.getElementById('notificationBell'), document.getElementById('notificationDropdown')]
         };
         
-        // Check which specific element was clicked
-        let clickedGroup = null;
-        for (const [groupName, elements] of Object.entries(dropdownGroups)) {
-            if (elements.some(element => element && element.contains(e.target))) {
-                clickedGroup = groupName;
+        // Check if click is inside any dropdown
+        let clickedInside = false;
+        for (const elements of Object.values(dropdownElements)) {
+            if (elements.some(el => el && el.contains(e.target))) {
+                clickedInside = true;
                 break;
             }
         }
         
         // If clicked outside all dropdowns, close everything
-        if (!clickedGroup) {
+        if (!clickedInside) {
             closeAllDropdowns();
+            activeDropdown = null;
         }
-        // If clicked in profile or language group, they're handled by their own click handlers
-        // The global handler only closes dropdowns when clicking OUTSIDE
     });
 }
 
 export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, stateObj) {
-    const dbMyDocuments = window.I18N?.dbMyDocuments || 'My Documents';
+    // Function to get translated text, checking multiple times if needed
+    const getMyDocumentsText = () => {
+        return window.I18N?.dbMyDocuments || 
+               document.getElementById('db-js-localization-data')?.getAttribute('data-my-documents') || 
+               'My Documents';
+    };
+    
     const myDocumentsLink = document.getElementById('my-documents-link');
     const trashLink = document.getElementById('trash-link');
     const blockchainLink = document.getElementById('blockchain-storage-link');
@@ -573,6 +488,7 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
 
     myDocumentsLink?.addEventListener('click', (e) => {
         e.preventDefault();
+        const dbMyDocuments = getMyDocumentsText(); // Get fresh value on click
         if (headerTitle) headerTitle.textContent = dbMyDocuments;
         if (newButton) newButton.style.display = 'block';
         clearActiveStates();
