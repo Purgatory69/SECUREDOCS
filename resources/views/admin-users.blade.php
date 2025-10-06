@@ -147,97 +147,97 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
     </form>
 
     <div class="rounded-lg">
-        <div class="overflow-x-auto">
+        <div>
             <table class="min-w-full" style="table-layout: fixed; width: 100%;">
-                <thead>
-                    <tr style="background-color: #3C3F58; border-radius: 8px 8px 0 0;">
-                        <th class="table-header" style="border-radius: 8px 0 0 0; width: 15%;">Name</th>
-                        <th class="table-header" style="width: 20%;">Email</th>
-                        <th class="table-header" style="width: 10%;">Role</th>
-                        <th class="table-header" style="width: 10%;">Approved</th>
-                        <th class="table-header" style="width: 12%;">Plan</th>
-                        <th class="table-header" style="width: 13%;">Actions</th>
-                        <th class="table-header" style="border-radius: 0 8px 0 0; width: 20%;">Manage</th>
-                    </tr>
-                </thead>
+            <thead>
+            <tr style="background-color: #3C3F58; border-radius: 8px 8px 0 0;">
+                <th class="table-header" style="border-radius: 8px 0 0 0; width: 22%;">Name</th>
+                <th class="table-header" style="width: 26%;">Email</th>
+                <th class="table-header" style="width: 9%;">Role</th>
+                <th class="table-header" style="width: 6.5%; text-align: center;">Approved</th>
+                <th class="table-header" style="width: 11%;">Plan</th>
+                <th class="table-header" style="width: 12%; text-align:center; padding-left: 30px;">Actions</th>
+                <th class="table-header" style="border-radius: 0 8px 0 0; width: 8%; text-align: right; padding-right: 40px;">Manage</th>
+            </tr>
+            </thead>
                 <tbody style="border-top: 1px solid #3C3F58;">
                     @forelse ($users as $user)
                         <tr class="user-table-row" style="border-bottom: 1px solid #3C3F58;">
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($user->name, 20) }}</td>
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 20%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($user->email, 25) }}</td>
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $user->role }}</td>
-                            <td class="px-6 py-4 text-sm font-bold" style="width: 10%; @if($user->is_approved) color: #10B981; @else color: #EF4444; @endif">
+                            <td class="px-6 py-4 text-sm" style="color:#ffffff; width:22%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ Str::limit($user->name, 28) }}</td>
+                            <td class="px-6 py-4 text-sm" style="color:#ffffff; width:26%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ Str::limit($user->email, 32) }}</td>
+                            <td class="px-6 py-4 text-sm text-center" style="color:#ffffff; width:9%; text-transform:capitalize; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ucfirst($user->role) }}</td>
+                            <td class="px-6 py-4 text-sm font-bold text-center" style="width:6.5%; @if($user->is_approved) color:#10B981; @else color:#EF4444; @endif">
                                 @if($user->is_approved)
                                     Yes
                                 @else
                                     No
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-sm font-bold" style="width: 12%; @if($user->is_premium) color: #f89c00; @else color: #2563eb; @endif">
+                            <td class="px-6 py-4 text-sm font-bold text-center" style="width:11%; @if($user->is_premium) color:#f89c00; @else color:#2563eb; @endif">
                                 @if($user->is_premium)
                                     Premium
                                 @else
                                     Standard
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-sm" style="width: 13%;">
-                                @if (!$user->is_approved)
-                                    <form method="POST" action="{{ route('admin.approve', $user->id) }}" class="inline">
+                            <td class="px-6 py-4 text-sm text-center" style="width:12%; padding-left:30px;">
+                                @if(!$user->is_approved)
+                                    <form method="POST" action="{{ route('admin.approve',$user->id) }}" class="inline">
                                         @csrf
                                         <button type="submit" class="text-indigo-400 hover:text-indigo-300 transition-colors">Approve</button>
                                     </form>
                                 @else
-                                    <form method="POST" action="{{ route('admin.revoke', $user->id) }}" class="inline">
+                                    <form method="POST" action="{{ route('admin.revoke',$user->id) }}" class="inline">
                                         @csrf
                                         <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">Revoke</button>
                                     </form>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-sm" style="width: 20%;">
-    <div class="relative inline-block text-left">
-        <!-- Toggle Button -->
-        <button type="button" 
-                class="inline-flex items-center justify-center w-full px-3 py-1 text-xs font-medium text-white bg-[#3C3F58] rounded-md hover:bg-[#55597C] focus:outline-none transition-colors"
-                id="manageAccounts-menu-{{ $user->id }}"
-                aria-expanded="false"
-                aria-haspopup="true">
-            <img src="{{ asset('garage.png') }}" alt="Manage Accounts" class="w-4 h-4 mr-2">
-            <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" class="w-2 h-2 ml-2 transition-transform duration-200" id="manageAccounts-caret-{{ $user->id }}">
-        </button>
+                            <td class="px-6 py-4 text-sm text-right" style="width:8%; padding-right:40px;">
+                                <div class="relative inline-block text-left">
+                                    <!-- Toggle Button -->
+                                    <button type="button" 
+                                            class="inline-flex items-center justify-center w-full px-3 py-1 text-xs font-medium text-white bg-[#3C3F58] rounded-md hover:bg-[#55597C] focus:outline-none transition-colors"
+                                            id="manageAccounts-menu-{{ $user->id }}"
+                                            aria-expanded="false"
+                                            aria-haspopup="true">
+                                        <img src="{{ asset('garage.png') }}" alt="Manage Accounts" style="margin-left: 10px; margin-right: 12px;" class="w-4 h-4">
+                                        <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" style="margin-right: 12px;" class="w-2 h-2 transition-transform duration-200" id="manageAccounts-caret-{{ $user->id }}">
+                                    </button>
 
-        <!-- Dropdown Menu -->
-        <div class="absolute right-0 mt-2 w-48 bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
-             id="manageAccounts-dropdown-{{ $user->id }}"
-             role="menu"
-             aria-orientation="vertical"
-             aria-labelledby="manageAccounts-menu-{{ $user->id }}">
-            <div class="py-1" role="none">
-                <!-- Toggle Premium Button -->
-                <button onclick="togglePremium({{ $user->id }}, '{{ $user->name }}', {{ $user->is_premium ? 'true' : 'false' }})" 
-                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
-                        role="menuitem">
-                    {{ $user->is_premium ? 'Remove Premium' : 'Grant Premium' }}
-                </button>
-                
-                <!-- Reset Premium Button (Only show for premium users) -->
-                @if($user->is_premium)
-                <button onclick="resetPremium({{ $user->id }}, '{{ $user->name }}')" 
-                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
-                        role="menuitem">
-                    Reset All Data
-                </button>
-                @endif
-                
-                <!-- View Details Button -->
-                <button onclick="viewPremiumDetails({{ $user->id }})" 
-                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
-                        role="menuitem">
-                    View Details
-                </button>
-            </div>
-        </div>
-    </div>
-</td>
+                                    <!-- Dropdown Menu - Made narrower -->
+                                    <div style="width: 140px;" class="absolute right-0 mt-2 bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
+                                        id="manageAccounts-dropdown-{{ $user->id }}"
+                                        role="menu"
+                                        aria-orientation="vertical"
+                                        aria-labelledby="manageAccounts-menu-{{ $user->id }}">
+                                        <div class="py-1" role="none">
+                                            <!-- Toggle Premium Button -->
+                                            <button onclick="togglePremium({{ $user->id }}, '{{ $user->name }}', {{ $user->is_premium ? 'true' : 'false' }})" 
+                                                    class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
+                                                    role="menuitem">
+                                                {{ $user->is_premium ? 'Remove Premium' : 'Grant Premium' }}
+                                            </button>
+                                            
+                                            <!-- Reset Premium Button (Only show for premium users) -->
+                                            @if($user->is_premium)
+                                            <button onclick="resetPremium({{ $user->id }}, '{{ $user->name }}')" 
+                                                    class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
+                                                    role="menuitem">
+                                                Reset All Data
+                                            </button>
+                                            @endif
+                                            
+                                            <!-- View Details Button -->
+                                            <button onclick="viewPremiumDetails({{ $user->id }})" 
+                                                    class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
+                                                    role="menuitem">
+                                                View Details
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                         </tr>
                     @empty
                         <tr>
@@ -254,17 +254,10 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
 </main>
 
 <style>
-    .user-table-row {
-        transition: background-color 0.2s ease, color 0.2s ease;
-    }
-    .user-table-row:hover {
-        background-color: #676C98 !important;
-    }
-    .user-table-row:hover td {
-        color: #FFFFFF !important;
-    }
+    .user-table-row {transition: background-color 0.2s ease, color 0.2s ease;}
+    .user-table-row:hover {background-color: #676C98 !important;}
+    .user-table-row:hover td {color: #FFFFFF !important;}
     
-    /* Table Header */
     .table-header {
         padding-left: 1.5rem;
         padding-right: 1.5rem;
@@ -277,6 +270,72 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
+
+    /* Simple consistent padding for all columns */
+    .table-header {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    .user-table-row td {
+        padding-left: 24px;
+        padding-right: 24px;
+    }
+
+    /* Adjust spacing for new column proportions (9–11–10–8) */
+    .table-header:nth-child(4),
+    .table-header:nth-child(5),
+    .table-header:nth-child(6),
+    .table-header:nth-child(7),
+    .user-table-row td:nth-child(4),
+    .user-table-row td:nth-child(5),
+    .user-table-row td:nth-child(6),
+    .user-table-row td:nth-child(7) {
+        padding-left: 10px;
+        padding-right: 10px;
+    }
+
+/* Fine-tune horizontal spacing for Role–Approved–Plan–Actions–Manage */
+.table-header:nth-child(3),
+.table-header:nth-child(4),
+.table-header:nth-child(5),
+.user-table-row td:nth-child(3),
+.user-table-row td:nth-child(4),
+.user-table-row td:nth-child(5) {
+    /* make these three closer together */
+    padding-left: 6px;
+    padding-right: 6px;
+}
+
+/* Give Plan a bit more breathing room before Actions */
+.table-header:nth-child(5),
+.user-table-row td:nth-child(5) {
+    padding-right: 18px; /* adds visual gap before Actions */
+}
+
+/* Center Role, Approved, and Plan text */
+.table-header:nth-child(3),
+.table-header:nth-child(4),
+.table-header:nth-child(5),
+.user-table-row td:nth-child(3),
+.user-table-row td:nth-child(4),
+.user-table-row td:nth-child(5) {
+    text-align: center;
+}
+
+/* Center Actions column */
+.table-header:nth-child(6),
+.user-table-row td:nth-child(6) {
+    text-align: center;
+}
+
+/* Keep Manage right aligned with edge padding */
+.table-header:last-child,
+.user-table-row td:last-child {
+    text-align: right;
+    padding-right: 32px;
+}
+
 </style>
 
 <script>
@@ -485,13 +544,13 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
                     const approveForm = !u.is_approved ? `<form method=\"POST\" action=\"${u.urls.approve}\" class=\"inline\"><input type=\"hidden\" name=\"_token\" value=\"${csrf}\"><button type=\"submit\" class=\"text-indigo-600 hover:text-indigo-900\">Approve</button></form>` : `<form method=\"POST\" action=\"${u.urls.revoke}\" class=\"inline\"><input type=\"hidden\" name=\"_token\" value=\"${csrf}\"><button type=\"submit\" class=\"text-red-600 hover:text-red-900\">Revoke</button></form>`;
                     const premiumForm = `<form method=\"POST\" action=\"${u.urls.premium}\" class=\"space-y-1\"><input type=\"hidden\" name=\"_token\" value=\"${csrf}\"><div class=\"flex items-center\"><input type=\"checkbox\" name=\"is_premium\" ${u.is_premium ? 'checked' : ''} class=\"mr-1 h-3 w-3 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500\"><label class=\"text-xs\">Premium</label></div><button type=\"submit\" class=\"px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600\">Update</button></form>`;
                     return `<tr>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900\">${escapeHtml(u.name)}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-500\">${escapeHtml(u.email)}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize\">${escapeHtml(u.role || '')}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap\">${approvedBadge}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm\">${planBadge}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium\">${approveForm}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium\">${premiumForm}</td>
+                        <td class="px-6 py-4 text-sm font-medium text-white" style="width:22%;">${escapeHtml(u.name)}</td>
+                        <td class="px-6 py-4 text-sm text-gray-400" style="width:26%;">${escapeHtml(u.email)}</td>
+                        <td class="px-6 py-4 text-sm text-center text-gray-400 capitalize" style="width:9%;">${escapeHtml(u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : '')}</td>
+                        <td class="px-6 py-4 text-sm text-center" style="width:6.5%;">${approvedBadge}</td>
+                        <td class="px-6 py-4 text-sm text-center" style="width:11%;">${planBadge}</td>
+                        <td class="px-6 py-4 text-sm text-center font-medium" style="width:12%; padding-left:30px;">${approveForm}</td>
+                        <td class="px-6 py-4 text-sm text-right font-medium" style="width:8%; padding-right:40px;">${premiumForm}</td>
                     </tr>`;
                 }).join('');
                 tableBody.innerHTML = html;
