@@ -42,11 +42,13 @@ class File extends Model
     protected $fillable = [
         'user_id',
         'file_name',
+        'file_type',
         'mime_type',
         'file_path',
         'file_size',
         'parent_id',
         'is_folder',
+        'is_blockchain_stored',
         'is_permanent_stored',
         'is_vectorized',
         'vectorized_at',
@@ -64,6 +66,7 @@ class File extends Model
      */
     protected $casts = [
         'is_folder' => 'boolean',
+        'is_blockchain_stored' => 'boolean',
         'is_permanent_stored' => 'boolean',
         'is_vectorized' => 'boolean',
         'vectorized_at' => 'datetime',

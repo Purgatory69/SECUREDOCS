@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use App\Models\WebAuthnCredential;
 use App\Models\File;
 use App\Models\Notification;
+use App\Notifications\CustomVerifyEmail;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
 use Laravel\Jetstream\HasProfilePhoto;
@@ -198,5 +199,13 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     public function subscriptions(): HasMany
     {
         return $this->hasMany(\App\Models\Subscription::class);
+    }
+
+    /**
+     * Send the email verification notification.
+     */
+    public function sendEmailVerificationNotification(): void
+    {
+        $this->notify(new CustomVerifyEmail);
     }
 }

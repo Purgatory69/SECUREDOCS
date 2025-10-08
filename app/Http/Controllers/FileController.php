@@ -189,7 +189,20 @@ class FileController extends Controller
         if ($otpSecurity && $otpSecurity->isOtpRequiredFor('preview')) {
             // Check if user has verified OTP for this file recently
             $sessionKey = "otp_verified_file_{$file->id}";
-            if (!session()->has($sessionKey) || session($sessionKey) < now()->subMinutes($otpSecurity->otp_valid_duration_minutes)) {
+            $sessionTime = session($sessionKey);
+            $expiryTime = now()->subMinutes($otpSecurity->otp_valid_duration_minutes);
+            
+            Log::info('OTP Preview Check', [
+                'file_id' => $file->id,
+                'session_key' => $sessionKey,
+                'has_session' => session()->has($sessionKey),
+                'session_time' => $sessionTime ? $sessionTime->toISOString() : null,
+                'expiry_time' => $expiryTime->toISOString(),
+                'is_expired' => $sessionTime ? $sessionTime < $expiryTime : true,
+                'otp_duration_minutes' => $otpSecurity->otp_valid_duration_minutes
+            ]);
+            
+            if (!session()->has($sessionKey) || $sessionTime < $expiryTime) {
                 return redirect()->route('user.dashboard')->with('error', 'OTP verification required to preview this file. Please verify via email first.');
             }
         }
@@ -223,7 +236,21 @@ class FileController extends Controller
         if ($otpSecurity && ($otpSecurity->isOtpRequiredFor('preview') || $otpSecurity->isOtpRequiredFor('download'))) {
             // Check if user has verified OTP for this file recently
             $sessionKey = "otp_verified_file_{$file->id}";
-            if (!session()->has($sessionKey) || session($sessionKey) < now()->subMinutes($otpSecurity->otp_valid_duration_minutes)) {
+            $sessionTime = session($sessionKey);
+            $expiryTime = now()->subMinutes($otpSecurity->otp_valid_duration_minutes);
+            
+            Log::info('OTP Proxy Check', [
+                'file_id' => $file->id,
+                'session_key' => $sessionKey,
+                'has_session' => session()->has($sessionKey),
+                'session_time' => $sessionTime ? $sessionTime->toISOString() : null,
+                'expiry_time' => $expiryTime->toISOString(),
+                'is_expired' => $sessionTime ? $sessionTime < $expiryTime : true,
+                'require_preview' => $otpSecurity->isOtpRequiredFor('preview'),
+                'require_download' => $otpSecurity->isOtpRequiredFor('download')
+            ]);
+            
+            if (!session()->has($sessionKey) || $sessionTime < $expiryTime) {
                 abort(403, 'OTP verification required to access this file');
             }
         }
@@ -696,9 +723,9 @@ class FileController extends Controller
                 'file_type' => $validated['file_type'],
                 'mime_type' => $validated['mime_type'],
                 'parent_id' => $validated['parent_id'],
-                'is_folder' => false,
-                'is_blockchain_stored' => false,
-                'is_vectorized' => false,
+                'is_folder' => DB::raw('FALSE'),
+                'is_blockchain_stored' => DB::raw('FALSE'),
+                'is_vectorized' => DB::raw('FALSE'),
             ]);
 
             return response()->json([

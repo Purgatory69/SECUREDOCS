@@ -12,7 +12,8 @@ import { initializeUi, updateBreadcrumbsDisplay, initializeTooltips } from './mo
 import { initializeFileFolderManagement, loadUserFiles, loadTrashItems } from './modules/file-folder.js';
 import { loadBlockchainItems } from './modules/blockchain-page.js';
 import { initializeSearch } from './modules/search.js';
-import { initializePermanentStorageModal } from './modules/permanent-storage.js';
+// OLD: import { initializePermanentStorageModal } from './modules/permanent-storage.js'; // REMOVED - using client-side now
+import { initializeClientArweaveModal } from './modules/client-arweave-modal.js';
 import { NotificationManager } from './modules/notifications.js';
 import StorageUsageManager from './modules/storage-usage.js';
 
@@ -78,7 +79,7 @@ function initializeApp() {
         currentFolderIdInput.value = state.currentParentId;
     }
     // --- Initialize All Imported Modules ---
-    initializeN8nChat();
+    // initializeN8nChat();
     initializeUploadModal();
     // Disabled for now: do not auto-open the Blockchain modal on sidebar click.
     // setupBlockchainLazyInit();
@@ -99,9 +100,17 @@ function initializeApp() {
         breadcrumbs: state.breadcrumbs
     });
 
-    // --- Initialize Permanent Storage System ---
-    // Initialize the permanent storage modal for Arweave uploads
-    initializePermanentStorageModal();
+    // --- Initialize Client-Side Arweave System ---
+    // Initialize the client-side Arweave modal (user pays directly with MetaMask)
+    const clientArweaveModal = document.getElementById('clientArweaveModal');
+    console.log('Client Arweave modal check:', !!clientArweaveModal);
+    
+    if (clientArweaveModal) {
+        console.log('Initializing client-side Arweave modal...');
+        initializeClientArweaveModal();
+    } else {
+        console.log('Skipping client Arweave initialization - modal not found');
+    }
     
     // --- Delayed Initialization (10 seconds) ---
     // Delay heavy API calls to improve initial page load performance
@@ -113,8 +122,11 @@ function initializeApp() {
         window.notificationManager = new NotificationManager();
         
         // --- Initialize Storage Usage Manager ---
-        // Initialize storage usage display and premium upgrade prompts
-        window.storageManager = new StorageUsageManager();
+        // Initialize storage usage display and premium upgrade prompts (only on user dashboard)
+        const storageUsageElement = document.getElementById('storageUsage');
+        if (storageUsageElement) {
+            window.storageManager = new StorageUsageManager();
+        }
         
         console.log('Delayed services initialized!');
     }, 10000); // 10 second delay

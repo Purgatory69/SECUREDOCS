@@ -251,8 +251,8 @@ class FileOtpController extends Controller
             // Generate OTP
             $otp = $otpSecurity->generateOtp();
 
-            // Send email (mock for now - you can implement real email later)
-            $this->sendOtpEmail($user, $otpSecurity->file_name, $otp);
+            // Send email with beautiful template
+            $this->sendOtpEmail($user, $otpSecurity->file_name, $otp, $otpSecurity->otp_valid_duration_minutes);
 
             return response()->json([
                 'success' => true,
@@ -309,11 +309,19 @@ class FileOtpController extends Controller
                 $fileId = $request->file_type === 'regular' ? $request->file_id : null;
                 $permanentId = $request->file_type === 'permanent' ? $request->file_id : null;
                 
+                $sessionTime = now();
+                
                 if ($fileId) {
-                    session(["otp_verified_file_{$fileId}" => now()]);
+                    session(["otp_verified_file_{$fileId}" => $sessionTime]);
+                    Log::info('OTP Session Set', [
+                        'file_id' => $fileId,
+                        'session_key' => "otp_verified_file_{$fileId}",
+                        'session_time' => $sessionTime->toISOString(),
+                        'duration_minutes' => $otpSecurity->otp_valid_duration_minutes
+                    ]);
                 }
                 if ($permanentId) {
-                    session(["otp_verified_permanent_{$permanentId}" => now()]);
+                    session(["otp_verified_permanent_{$permanentId}" => $sessionTime]);
                 }
                 
                 return response()->json([
@@ -396,30 +404,27 @@ class FileOtpController extends Controller
     }
 
     /**
-     * Send OTP email via Mailtrap
+     * Send OTP email with beautiful template
      */
-    private function sendOtpEmail($user, $fileName, $otp): void
+    private function sendOtpEmail($user, $fileName, $otp, $expiryMinutes = 10): void
     {
         try {
-            // Send real email using Laravel Mail (works with Mailtrap)
-            Mail::raw(
-                "Hello {$user->name},\n\n" .
-                "You requested access to the file: {$fileName}\n\n" .
-                "Your One-Time Password (OTP) is: {$otp}\n\n" .
-                "This OTP will expire in 10 minutes.\n\n" .
-                "If you didn't request this, please ignore this email.\n\n" .
-                "Best regards,\n" .
-                "SecureDocs Team",
-                function ($message) use ($user, $fileName) {
-                    $message->to($user->email, $user->name)
-                            ->subject("SecureDocs - OTP for {$fileName}");
-                }
-            );
+            // Send email using the beautiful template
+            Mail::send('emails.otp-verification', [
+                'user' => $user,
+                'fileName' => $fileName,
+                'otp' => $otp,
+                'expiryMinutes' => $expiryMinutes
+            ], function ($message) use ($user, $fileName) {
+                $message->to($user->email, $user->name)
+                        ->subject("🔐 SecureDocs - File Access OTP for {$fileName}");
+            });
 
             Log::info('OTP Email Sent Successfully', [
                 'user_email' => $user->email,
                 'file_name' => $fileName,
-                'otp_code' => $otp
+                'otp_code' => $otp,
+                'template' => 'emails.otp-verification'
             ]);
         } catch (\Exception $e) {
             Log::error('Failed to send OTP email', [

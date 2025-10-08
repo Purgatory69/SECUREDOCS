@@ -110,11 +110,28 @@ class AdminController extends Controller
      */
     public function approve($id)
     {
+        // Find the user
+        $user = User::findOrFail($id);
+        
+        // Update approval status
         DB::table('users')
             ->where('id', $id)
             ->update(['is_approved' => DB::raw('true')]);
 
-        return redirect()->route('admin.users')->with('success', 'User approved successfully.');
+        // Create notification for the user
+        \App\Models\Notification::create([
+            'user_id' => $user->id,
+            'type' => 'success',
+            'title' => 'Account Verified! 🎉',
+            'message' => 'Congratulations! Your SecureDocs account has been verified and approved. You now have full access to all features.',
+            'data' => [
+                'action' => 'account_approved',
+                'approved_at' => now()->toISOString(),
+                'approved_by' => auth()->user()->name ?? 'Admin'
+            ]
+        ]);
+
+        return redirect()->route('admin.users')->with('success', 'User approved successfully and notification sent.');
     }
 
     /**
@@ -122,11 +139,28 @@ class AdminController extends Controller
      */
     public function revoke($id)
     {
+        // Find the user
+        $user = \App\Models\User::findOrFail($id);
+        
+        // Update approval status
         DB::table('users')
             ->where('id', $id)
             ->update(['is_approved' => DB::raw('false')]);
 
-        return redirect()->route('admin.users')->with('success', 'User approval revoked successfully.');
+        // Create notification for the user
+        \App\Models\Notification::create([
+            'user_id' => $user->id,
+            'type' => 'warning',
+            'title' => 'Account Access Revoked',
+            'message' => 'Your SecureDocs account access has been temporarily revoked. Please contact support if you believe this is an error.',
+            'data' => [
+                'action' => 'account_revoked',
+                'revoked_at' => now()->toISOString(),
+                'revoked_by' => auth()->user()->name ?? 'Admin'
+            ]
+        ]);
+
+        return redirect()->route('admin.users')->with('success', 'User approval revoked successfully and notification sent.');
     }
 
     /**
@@ -315,6 +349,19 @@ class AdminController extends Controller
                         'auto_renew' => false
                     ]);
                 
+                // Create notification for premium removal
+                \App\Models\Notification::create([
+                    'user_id' => $user->id,
+                    'type' => 'warning',
+                    'title' => 'Premium Access Removed',
+                    'message' => 'Your Premium subscription has been cancelled by an administrator. You will continue to have access to standard features.',
+                    'data' => [
+                        'action' => 'premium_removed',
+                        'removed_at' => now()->toISOString(),
+                        'removed_by' => auth()->user()->name ?? 'Admin'
+                    ]
+                ]);
+                
                 $message = "User {$user->name} premium status removed successfully.";
             } else {
                 // Grant premium status
@@ -331,6 +378,20 @@ class AdminController extends Controller
                     'starts_at' => now(),
                     'ends_at' => now()->addYear(), // Give 1 year for admin grants
                     'auto_renew' => false
+                ]);
+                
+                // Create notification for premium grant
+                \App\Models\Notification::create([
+                    'user_id' => $user->id,
+                    'type' => 'success',
+                    'title' => 'Premium Access Granted! 🎉',
+                    'message' => 'Congratulations! You have been granted Premium access by an administrator. Enjoy all premium features including blockchain storage, AI categorization, and more!',
+                    'data' => [
+                        'action' => 'premium_granted',
+                        'granted_at' => now()->toISOString(),
+                        'granted_by' => auth()->user()->name ?? 'Admin',
+                        'expires_at' => now()->addYear()->toISOString()
+                    ]
                 ]);
                 
                 $message = "User {$user->name} granted premium status successfully.";

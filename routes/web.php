@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use App\Livewire\Dashboard;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\FileSharingController;
@@ -14,6 +15,7 @@ use App\Http\Controllers\BlockchainController;
 use App\Http\Controllers\WebAuthnController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PermanentStorageController;
+use App\Http\Controllers\ArweaveClientController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SchemaController;
 use Illuminate\Http\Request;
@@ -168,14 +170,23 @@ Route::middleware([
     // Include Arweave routes
     require __DIR__.'/arweave_routes.php';
     
-    // Permanent Storage Routes (Web-based for session auth)
+    // Client-Side Arweave Routes (New approach - no server-side payments)
+    Route::prefix('arweave-client')->group(function () {
+        Route::post('/wallet-info', [ArweaveClientController::class, 'getWalletInfo'])->name('arweave.wallet-info');
+        Route::post('/update-balance', [ArweaveClientController::class, 'updateBalance'])->name('arweave.update-balance');
+        Route::post('/save-upload', [ArweaveClientController::class, 'saveUpload'])->name('arweave.save-upload');
+        Route::get('/uploads', [ArweaveClientController::class, 'getUploads'])->name('arweave.uploads');
+        Route::get('/stats', [ArweaveClientController::class, 'getStats'])->name('arweave.stats');
+    });
+
+    // OLD: Permanent Storage Routes (DISABLED - use client-side instead)
     Route::prefix('permanent-storage')->group(function () {
-        Route::post('/calculate-cost', [PermanentStorageController::class, 'calculateCost'])->name('permanent-storage.calculate-cost');
-        Route::post('/create-payment', [PermanentStorageController::class, 'createPayment'])->name('permanent-storage.create-payment');
-        Route::get('/payment-status/{paymentId}', [PermanentStorageController::class, 'checkPaymentStatus'])->name('permanent-storage.payment-status');
-        Route::post('/upload', [PermanentStorageController::class, 'uploadToArweave'])->name('permanent-storage.upload');
-        Route::get('/history', [PermanentStorageController::class, 'getHistory'])->name('permanent-storage.history');
-        Route::get('/supported-options', [PermanentStorageController::class, 'getSupportedOptions'])->name('permanent-storage.supported-options');
+        Route::any('/{any}', function() {
+            return response()->json([
+                'error' => 'Server-side permanent storage is disabled. Please use client-side Arweave uploads.',
+                'redirect' => '/dashboard'
+            ], 410); // Gone
+        })->where('any', '.*');
     });
 
     // File OTP Security routes
@@ -186,6 +197,28 @@ Route::middleware([
         Route::post('/verify', [App\Http\Controllers\FileOtpController::class, 'verifyOtp'])->name('file-otp.verify');
         Route::get('/status', [App\Http\Controllers\FileOtpController::class, 'getOtpStatus'])->name('file-otp.status');
     });
+
+    // Test email routes (remove in production)
+    Route::get('/test-email-verification', function () {
+        $user = Auth::user();
+        $user->sendEmailVerificationNotification();
+        return 'Email verification sent to ' . $user->email;
+    })->name('test.email-verification');
+
+    Route::get('/test-otp-email', function () {
+        $user = Auth::user();
+        // Create a test OTP email
+        Mail::send('emails.otp-verification', [
+            'user' => $user,
+            'fileName' => 'test-document.pdf',
+            'otp' => '123456',
+            'expiryMinutes' => 10
+        ], function ($message) use ($user) {
+            $message->to($user->email, $user->name)
+                    ->subject('🔐 SecureDocs - Test OTP Email');
+        });
+        return 'Test OTP email sent to ' . $user->email;
+    })->name('test.otp-email');
 
     // File vector and blockchain management routes
     Route::delete('/files/{file}/remove-from-vector', [FileController::class, 'removeFromVector'])->name('files.remove-from-vector');

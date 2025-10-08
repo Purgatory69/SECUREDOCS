@@ -2260,7 +2260,7 @@ async function showMoveModal(itemId) {
                 
                 // Refresh current view
                 if (window.loadUserFiles) {
-                    loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+                    window.loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
                 }
                 
                 showNotification('Item moved successfully', 'success');
@@ -2552,8 +2552,14 @@ function renderOtpSecurityContent(fileId, otpData) {
 
     // Add event listeners
     document.getElementById('saveOtpSettings').addEventListener('click', () => saveOtpSettings(fileId));
-    document.getElementById('closeOtpModal').addEventListener('click', () => document.getElementById('otpSecurityModal').remove());
-    document.getElementById('cancelOtpModal').addEventListener('click', () => document.getElementById('otpSecurityModal').remove());
+    document.getElementById('closeOtpModal').addEventListener('click', () => {
+        const modal = document.getElementById('otpSecurityModal');
+        if (modal) modal.remove();
+    });
+    document.getElementById('cancelOtpModal').addEventListener('click', () => {
+        const modal = document.getElementById('otpSecurityModal');
+        if (modal) modal.remove();
+    });
     
     // Add disable OTP event listeners if OTP is enabled
     if (isEnabled) {
@@ -2606,11 +2612,14 @@ async function saveOtpSettings(fileId) {
             showNotification(isEnabled ? 'OTP protection enabled successfully' : 'OTP protection disabled successfully', 'success');
             
             // Close modal
-            document.getElementById('otpSecurityModal').remove();
+            const modal = document.getElementById('otpSecurityModal');
+            if (modal) {
+                modal.remove();
+            }
             
             // Refresh file list to show OTP indicator
             if (window.loadUserFiles) {
-                window.loadUserFiles(state.currentPage, state.lastMainSearch, state.currentParentId);
+                window.loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
             }
         } else {
             throw new Error(result.message || 'Failed to update OTP settings');
@@ -2685,11 +2694,14 @@ async function confirmDisableOtp(fileId) {
             showNotification('OTP protection disabled successfully', 'success');
             
             // Close modal
-            document.getElementById('otpSecurityModal').remove();
+            const modal = document.getElementById('otpSecurityModal');
+            if (modal) {
+                modal.remove();
+            }
             
             // Refresh file list to remove OTP indicator
             if (window.loadUserFiles) {
-                window.loadUserFiles(state.currentPage, state.lastMainSearch, state.currentParentId);
+                window.loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
             }
         } else {
             throw new Error(result.message || 'Failed to disable OTP protection');

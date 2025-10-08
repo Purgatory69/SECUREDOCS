@@ -14,71 +14,112 @@ export async function loadBlockchainItems() {
         itemsContainer.dataset.view = 'blockchain';
         itemsContainer.innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
 
-        const response = await fetch('/blockchain/files');
-        if (!response.ok) throw new Error('Failed to fetch blockchain files');
+        // Fetch Arweave uploads instead of regular blockchain files
+        const response = await fetch('/arweave-client/uploads');
+        if (!response.ok) throw new Error('Failed to fetch Arweave files');
         
         const data = await response.json();
         
         if (!data.success) {
-            throw new Error(data.message || 'Failed to load blockchain files');
+            throw new Error(data.message || 'Failed to load Arweave files');
         }
 
-        const items = data.files || [];
-        displayBlockchainItems(items);
+        const items = data.uploads || [];
+        displayArweaveItems(items);
         
     } catch (error) {
-        console.error('Error loading blockchain files:', error);
-        itemsContainer.innerHTML = `<div class="text-center py-8 text-red-600">Failed to load blockchain files: ${error.message}</div>`;
+        console.error('Error loading Arweave files:', error);
+        itemsContainer.innerHTML = `<div class="text-center py-8 text-red-600">Failed to load Arweave files: ${error.message}</div>`;
     }
 }
 
-function displayBlockchainItems(items) {
+function displayArweaveItems(items) {
     const itemsContainer = document.getElementById('filesContainer');
     
     if (!items || items.length === 0) {
         itemsContainer.innerHTML = `
             <div class="flex flex-col items-center justify-center py-16 text-center">
-                <div class="text-6xl mb-4">⛓️</div>
+                <div class="text-6xl mb-4">🚀</div>
                 <h3 class="text-lg font-medium text-white mb-2">No files on Arweave yet</h3>
                 <p class="text-gray-400 mb-4">Upload files to Arweave for permanent decentralized storage</p>
-                <button onclick="document.getElementById('uploadFileOption').click()" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">
-                    Upload to Arweave
+                <button id="openClientArweaveBtn" class="px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-dark">
+                    🚀 Upload to Arweave
                 </button>
             </div>
         `;
         return;
     }
 
-    // Transform API data to match the expected format for renderFiles
-    const transformedItems = items.map(item => ({
-        id: item.id,
-        file_name: item.file_name,
-        file_size: item.file_size,
-        mime_type: item.mime_type,
-        created_at: item.created_at,
-        updated_at: item.updated_at,
-        is_folder: false, // blockchain files are never folders
-        is_blockchain_stored: true,
-        ipfs_hash: item.ipfs_hash,
-        file_path: item.file_path,
-        // Add blockchain-specific metadata for enhanced actions
-        blockchain_provider: item.blockchain_provider || 'pinata',
-        blockchain_url: item.blockchain_url || item.pinata_gateway_url,
-        is_permanent_storage: item.is_permanent_storage || false,
-        permanent_storage_enabled_at: item.permanent_storage_enabled_at,
-        blockchain_metadata: {
-            provider: item.blockchain_provider || 'pinata',
-            gateway_url: item.blockchain_url || item.pinata_gateway_url,
-            encrypted: item.encrypted || false,
-            upload_timestamp: item.upload_timestamp,
-            pin_status: 'pinned',
-            redundancy_level: 3,
-            is_permanent: item.is_permanent_storage || false
-        }
-    }));
+    // Transform Arweave transaction data to display format
+    let html = '';
+    
+    items.forEach(item => {
+        const fileIcon = '📄'; // Simple file icon
+        const uploadDate = new Date(item.created_at).toLocaleDateString();
+        
+        html += `
+            <div class="file-card bg-[#24243B] border-2 border-[#3C3F58] rounded-lg p-4 hover:bg-[#3C3F58] hover:border-[#55597C] transition-colors cursor-pointer">
+                <div class="flex flex-col h-full">
+                    <!-- File Icon and Name -->
+                    <div class="flex items-center mb-3">
+                        <div class="text-3xl mr-3">${fileIcon}</div>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-sm font-medium text-white truncate" title="${item.file_name || 'Untitled'}">
+                                ${item.file_name || 'Untitled'}
+                            </h3>
+                            <p class="text-xs text-gray-400">Uploaded: ${uploadDate}</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Arweave Status -->
+                    <div class="flex items-center mb-2">
+                        <div class="flex items-center">
+                            <span class="w-2 h-2 bg-green-400 rounded-full mr-2"></span>
+                            <span class="text-xs text-green-400">Permanently Stored</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="mt-auto flex gap-2">
+                        <button onclick="window.open('${item.url}', '_blank')" 
+                                class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors">
+                            🌐 View
+                        </button>
+                        <button onclick="copyArweaveUrl('${item.url}')" 
+                                class="px-3 py-2 bg-gray-600 hover:bg-gray-700 text-white text-xs rounded transition-colors">
+                            📋 Copy URL
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+    });
+    
+    itemsContainer.innerHTML = html;
+}
 
-    // Use the same renderFiles function as My Documents for consistency
-    renderFiles(transformedItems);
+// Helper function to get file icon based on mime type
+function getFileIcon(mimeType) {
+    if (!mimeType) return '📄';
+    
+    if (mimeType.startsWith('image/')) return '🖼️';
+    if (mimeType.startsWith('video/')) return '🎥';
+    if (mimeType.startsWith('audio/')) return '🎵';
+    if (mimeType === 'application/pdf') return '📕';
+    if (mimeType.includes('text/') || mimeType.includes('document')) return '📝';
+    if (mimeType.includes('zip') || mimeType.includes('archive')) return '🗜️';
+    
+    return '📄';
+}
+
+// Copy Arweave URL to clipboard
+function copyArweaveUrl(url) {
+    navigator.clipboard.writeText(url).then(() => {
+        showNotification('Arweave URL copied to clipboard!', 'success');
+    }).catch(err => {
+        console.error('Failed to copy URL:', err);
+        showNotification('Failed to copy URL', 'error');
+    });
 }
 
 // Blockchain action functions
@@ -180,3 +221,4 @@ export async function enablePermanentStorage(fileId) {
 window.downloadFromBlockchain = downloadFromBlockchain;
 window.removeFromBlockchain = removeFromBlockchain;
 window.enablePermanentStorage = enablePermanentStorage;
+window.copyArweaveUrl = copyArweaveUrl;

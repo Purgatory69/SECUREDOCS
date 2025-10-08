@@ -328,114 +328,6 @@
     </div>
 </div>
 
-<!-- Permanent Storage Modal -->
-<div id="permanentStorageModal" class="fixed inset-0 z-50 items-center justify-center hidden">
-    <div id="permanentStorageBackdrop" class="fixed inset-0 bg-black bg-opacity-50 transition-opacity"></div>
-    <div class="bg-[#141326] rounded-lg shadow-xl w-full max-w-2xl mx-4 relative z-10 transform transition-all border border-[#3C3F58]">
-        <div class="flex items-center justify-between p-6 border-b border-[#3C3F58]">
-            <h3 class="text-xl font-semibold text-white">⛓️ Permanent Storage</h3>
-            <button id="closePermanentStorageBtn" class="text-gray-400 hover:text-white text-2xl focus:outline-none">
-                &times;
-            </button>
-        </div>
-
-        <div class="p-6">
-            <!-- Step 1: File Selection -->
-            <div id="fileSelectionStep" class="space-y-6">
-                <div class="text-center">
-                    <h4 class="text-lg font-medium text-white mb-2">💰 Pay & Upload to Arweave</h4>
-                    <p class="text-gray-400">Pay with crypto to store your file permanently on the decentralized web</p>
-                    <p class="text-sm text-green-400 mt-1">✨ No service fees • You only pay Arweave storage cost (~$0.005/MB)</p>
-                </div>
-                
-                <div id="permanentStorageDropZone" 
-                     class="border-2 border-dashed border-[#3C3F58] bg-[#1F2235] rounded-lg p-8 text-center cursor-pointer hover:border-[#f89c00] transition-colors">
-                    <div class="text-4xl mb-4">📄</div>
-                    <p class="text-lg font-medium text-white mb-2">Drop your file here or click to browse</p>
-                    <p class="text-sm text-gray-400">Maximum file size: 100MB</p>
-                    <input type="file" id="permanentStorageFileInput" class="hidden" accept="*/*">
-                </div>
-                
-                <div id="selectedFileInfo"></div>
-            </div>
-
-            <!-- Step 2: Cost Calculation -->
-            <div id="costCalculationStep" class="hidden space-y-6">
-                <div class="text-center">
-                    <h4 class="text-lg font-medium text-white mb-2">Storage Cost</h4>
-                    <p class="text-gray-400">Review the cost for permanent storage on Arweave</p>
-                </div>
-                
-                <!-- Currency Selection -->
-                <div class="bg-[#1F2235] rounded-lg p-4 border border-[#3C3F58]">
-                    <label class="block text-sm font-medium text-white mb-2">Display Currency</label>
-                    <select id="currencySelector" class="w-full bg-[#3C3F58] text-white border border-[#3C3F58] rounded-lg px-3 py-2 focus:outline-none focus:border-[#f89c00]">
-                        <option value="USD">USD ($)</option>
-                        <option value="PHP">PHP (₱)</option>
-                        <option value="EUR">EUR (€)</option>
-                        <option value="GBP">GBP (£)</option>
-                        <option value="JPY">JPY (¥)</option>
-                    </select>
-                </div>
-                
-                <div id="costBreakdown"></div>
-            </div>
-
-            <!-- Step 3: Wallet Connection -->
-            <div id="walletConnectionStep" class="hidden space-y-6">
-                <div class="text-center">
-                    <h4 class="text-lg font-medium text-white mb-2">Connect Your Wallet</h4>
-                    <p class="text-gray-400">Choose your preferred cryptocurrency wallet to make payment</p>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <button id="connectMetaMaskBtn" 
-                            class="flex flex-col items-center p-4 border border-[#3C3F58] bg-[#1F2235] rounded-lg hover:border-[#f89c00] hover:bg-[#2A2A3E] transition-colors">
-                        <div class="text-3xl mb-2">🦊</div>
-                        <div class="font-medium text-white">MetaMask</div>
-                        <div class="text-xs text-gray-400">Ethereum & Polygon</div>
-                    </button>
-                    
-                    <button id="connectRoninBtn" 
-                            class="flex flex-col items-center p-4 border border-[#3C3F58] bg-[#1F2235] rounded-lg hover:border-[#f89c00] hover:bg-[#2A2A3E] transition-colors">
-                        <div class="text-3xl mb-2">⚔️</div>
-                        <div class="font-medium text-white">Ronin Wallet</div>
-                        <div class="text-xs text-gray-400">Ronin Network</div>
-                    </button>
-                    
-                    <button id="connectWalletConnectBtn" 
-                            class="flex flex-col items-center p-4 border border-[#3C3F58] bg-[#1F2235] rounded-lg hover:border-[#f89c00] hover:bg-[#2A2A3E] transition-colors">
-                        <div class="text-3xl mb-2">🔗</div>
-                        <div class="font-medium text-white">WalletConnect</div>
-                        <div class="text-xs text-gray-400">Universal</div>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Step 4: Payment -->
-            <div id="paymentStep" class="hidden space-y-6">
-                <div id="paymentDetails"></div>
-            </div>
-
-            <!-- Step 5: Uploading -->
-            <div id="uploadingStep" class="hidden space-y-6">
-                <div class="text-center">
-                    <h4 class="text-lg font-medium text-white mb-4">Uploading to Arweave</h4>
-                    <div class="w-full bg-[#3C3F58] rounded-full h-3 mb-4">
-                        <div id="uploadProgress" class="bg-[#f89c00] h-3 rounded-full transition-all duration-300" style="width: 0%"></div>
-                    </div>
-                    <p id="uploadProgressText" class="text-sm text-gray-400">Preparing upload...</p>
-                </div>
-            </div>
-
-            <!-- Step 6: Success -->
-            <div id="successStep" class="hidden space-y-6">
-                <div id="successDetails"></div>
-            </div>
-        </div>
-    </div>
-</div>
-
 <div class="bg-[#141326] py-4">
 <!-- New Button container -->
 <div class="relative mx-4 my-2">
@@ -462,17 +354,17 @@
             </div>
             
             @if(auth()->user()->is_premium)
-            <div id="openPermanentStorageBtn"
+            <div id="openClientArweaveBtn"
                 class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
-                onclick="openPermanentStorageModal()"
+                onclick="openClientArweaveModal()"
                 onmouseover="this.style.cssText = 'background-color: #55597C;';"
                 onmouseout="this.style.cssText = '';">
-                <span class="mr-4 text-lg">⛓️</span>
+                <span class="mr-4 text-lg">🚀</span>
                 <div class="flex-1">
-                    <div class="font-medium">Permanent Storage</div>
-                    <div class="text-xs text-gray-300">Store on Arweave blockchain</div>
+                    <div class="font-medium">Arweave Storage (Direct)</div>
+                    <div class="text-xs text-gray-300">Pay with your wallet - No fees</div>
                 </div>
-                <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-green-500 text-white">NEW</span>
             </div>
             @endif
             
@@ -525,30 +417,7 @@
             #newDropdown{background:#3c3f58!important;}
         </style>
 
-        <!-- <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
-                    <span class="mr-4 text-lg w-6 text-center">🔄</span>
-                    <span>Shared with Me</span>
-                </li> -->
-        <!-- <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
-                    <span class="mr-4 text-lg w-6 text-center">⭐</span>
-                    <span>Starred</span>
-                </li> -->
-        <!-- <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
-                    <span class="mr-4 text-lg w-6 text-center">🔒</span>
-                    <span>Secure Vault</span>
-                </li> -->
-        <!-- <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
-                    <span class="mr-4 text-lg w-6 text-center">⏱️</span>
-                    <span>Recent</span>
-                </li> -->
-        <!-- <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
-                    <span class="mr-4 text-lg w-6 text-center">🔗</span>
-                    <span>Blockchain Verified</span>
-                </li> -->
-        <!-- <li class="py-3 px-6 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light">
-                    <span class="mr-4 text-lg w-6 text-center">🗑️</span>
-                    <span>Trash</span>
-                </li> -->
+
     </ul>
 
     <!-- Storage Usage Display -->
@@ -942,128 +811,7 @@
     };
 </script>
     <!-- Activity Log Modal -->
-    <div id="activityModal" class="finxed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full hidden z-50">
-        <div class="relative top-20 mx-auto p-5 border w-11/12 md:w-4/5 lg:w-3/5 shadow-lg rounded-md bg-white">
-            <div class="mt-3">
-                <!-- Modal Header -->
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-medium text-gray-900">Activity & Audit Logs</h3>
-                    <button id="closeActivityModal" class="text-gray-400 hover:text-gray-600">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                        </svg>
-                    </button>
-                </div>
 
-                <!-- Activity Stats -->
-                <div id="activityStats" class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-                    <div class="bg-blue-50 p-4 rounded-lg text-center">
-                        <div class="text-2xl font-bold text-blue-600" id="todayCount">-</div>
-                        <div class="text-sm text-blue-500">Today</div>
-                    </div>
-                    <div class="bg-green-50 p-4 rounded-lg text-center">
-                        <div class="text-2xl font-bold text-green-600" id="weekCount">-</div>
-                        <div class="text-sm text-green-500">This Week</div>
-                    </div>
-                    <div class="bg-yellow-50 p-4 rounded-lg text-center">
-                        <div class="text-2xl font-bold text-yellow-600" id="monthCount">-</div>
-                        <div class="text-sm text-yellow-500">This Month</div>
-                    </div>
-                    <div class="bg-purple-50 p-4 rounded-lg text-center">
-                        <div class="text-2xl font-bold text-purple-600" id="totalCount">-</div>
-                        <div class="text-sm text-purple-500">Total</div>
-                    </div>
-                </div>
-
-                <!-- Filters and Controls -->
-                <div class="flex flex-wrap gap-3 mb-4">
-                    <select id="activityTypeFilter" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
-                        <option value="">All Types</option>
-                        <option value="file">File Activities</option>
-                        <option value="auth">Authentication</option>
-                        <option value="system">System</option>
-                    </select>
-                    
-                    <select id="riskLevelFilter" class="px-3 py-2 border border-gray-300 rounded-md text-sm">
-                        <option value="">All Risk Levels</option>
-                        <option value="low">Low Risk</option>
-                        <option value="medium">Medium Risk</option>
-                        <option value="high">High Risk</option>
-                        <option value="critical">Critical Risk</option>
-                    </select>
-
-                    <input type="date" id="dateFromFilter" class="px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="From Date">
-                    <input type="date" id="dateToFilter" class="px-3 py-2 border border-gray-300 rounded-md text-sm" placeholder="To Date">
-                    
-                    <button id="applyActivityFilters" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm">
-                        Apply Filters
-                    </button>
-                    
-                    <button id="exportActivities" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 text-sm">
-                        📊 Export
-                    </button>
-                </div>
-
-                <!-- Activity Timeline -->
-                <div class="mb-4">
-                    <h4 class="text-md font-medium text-gray-800 mb-2">Activity Timeline</h4>
-                    <div id="activityTimeline" class="h-32 bg-gray-50 rounded-lg p-4 flex items-center justify-center">
-                        <span class="text-gray-500">Loading timeline...</span>
-                    </div>
-                </div>
-
-                <!-- Activity List -->
-                <div class="max-h-96 overflow-y-auto">
-                    <div id="activityList" class="space-y-3">
-                        <!-- Activities will be loaded here -->
-                        <div class="text-center py-8 text-gray-500">
-                            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
-                            Loading activities...
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Load More Button -->
-                <div class="text-center mt-4">
-                    <button id="createFolderBtn" class="flex items-center gap-2 px-4 py-2 bg-[#2A2D47] text-gray-100 rounded-lg border border-[#4A4D6A] hover:bg-[#3C3F58] transition-colors">
-                        <span class="text-lg">📁</span>
-                        Create Folder
-                    </button>
-                    
-                    <button data-action="ai-categorize" class="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200 shadow-lg hover:shadow-xl">
-                        <span class="text-lg">🤖</span>
-                        AI Categorize
-                    </button>
-
-                <!-- Tabs for Additional Views -->
-                <div class="mt-6">
-                    <div class="border-b border-gray-200">
-                        <nav class="-mb-px flex space-x-8">
-                            <button class="activity-tab-btn border-b-2 border-blue-500 py-2 px-1 text-sm font-medium text-blue-600" data-tab="activities">
-                                Activities
-                            </button>
-                            <button class="activity-tab-btn border-b-2 border-transparent py-2 px-1 text-sm font-medium text-gray-500 hover:text-gray-700" data-tab="sessions">
-                                Sessions
-                            </button>
-                        </nav>
-                    </div>
-
-                    <!-- Tab Contents -->
-                    <div id="activitiesTab" class="activity-tab-content mt-4">
-                        <!-- Main activity list above -->
-                    </div>
-
-                    <div id="sessionsTab" class="activity-tab-content mt-4 hidden">
-                        <div id="userSessions" class="space-y-3">
-                            <!-- Sessions will be loaded here -->
-                        </div>
-                    </div>
-                    
-                </div>
-            </div>
-        </div>
-    </div>
-    
 
 
     <!-- Blockchain Storage Modal -->
@@ -1274,9 +1022,17 @@
                                     </div>
                                 </div>
 
-                                <button type="submit" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
-                                    Upload to Blockchain
+                                <!-- OLD SYSTEM DISABLED -->
+                                <button type="button" disabled class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-400 bg-gray-300 cursor-not-allowed">
+                                    ⚠️ Server-Side Uploads (Deprecated)
                                 </button>
+                                <p class="text-xs text-gray-500 mt-1 text-center">Old system disabled - use direct Arweave instead!</p>
+                                
+                                <!-- NEW: Client-Side Arweave Upload -->
+                                <button type="button" onclick="openClientArweaveModal()" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-3">
+                                    🚀 Upload to Arweave (Direct)
+                                </button>
+                                <p class="text-xs text-gray-500 mt-1 text-center">New: Pay directly with your wallet - no service fees!</p>
                             </form>
                         </div>
                     </div>
@@ -1429,6 +1185,9 @@
             </div>
         </div>
     </div>
+
+<!-- Include Client-Side Arweave Modal -->
+@include('modals.client-arweave-modal')
 
 @endsection
 

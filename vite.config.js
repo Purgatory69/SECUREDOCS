@@ -17,6 +17,9 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+    define: {
+        global: 'globalThis',
+    },
     build: {
         // Optimize for faster loading
         rollupOptions: {
@@ -26,7 +29,7 @@ export default defineConfig({
                     vendor: ['@supabase/supabase-js'],
                 }
             }
-        }
+        },
     },
     server: {
         cors: {
