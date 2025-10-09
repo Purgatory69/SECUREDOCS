@@ -11,6 +11,28 @@
             </div>
         </div>
 
+        {{-- Search Bar --}}
+        <div style="margin-left: -5px; outline: none;" class="flex-grow max-w-[720px] relative pl-6">
+            <div class="flex items-center">
+                <div class="relative flex-1">
+                    <img src="{{ asset('magnifying-glass.png') }}" alt="Search" class="absolute top-1/2 -translate-y-1/2 w-4 h-4" style="left: 18px;">
+                    <form method="GET" action="{{ route('admin.users') }}" id="adminUserSearchForm" class="w-full">
+                        <input type="text" id="adminUserSearch" name="q" value="{{ request('q') }}" placeholder="{{ __('auth.au_searchholder') }}"
+                            class="w-full py-3 pl-12 pr-12 mt-4 mb-4 rounded-full border-none bg-[#3C3F58] text-base text-white focus:outline-none focus:shadow-md"
+                            style="color: white; outline: none; padding-right: 20px;"
+                            onfocus="this.style.setProperty('--placeholder-opacity', '0.5');"
+                            onblur="this.style.setProperty('--placeholder-opacity', '0.5');">
+                    </form>
+                </div>
+                <button type="button" 
+                        id="smartClearButton"
+                        class="clear-search-link ml-2 mt-4 mb-4 px-4 py-3 text-sm text-white rounded-full transition-all duration-100 ease-in whitespace-nowrap"
+                        @if(!request('q')) disabled @endif>
+                    {{ __('auth.au_clear') }}
+                </button>
+            </div>
+        </div>
+
         {{-- Spacer --}}
         <div class="flex-grow"></div>
 
@@ -24,7 +46,7 @@
             <img src="{{ asset('user-shape.png') }}" alt="Profile" class="w-6 h-6 object-contain">
         </div>
         <div id="profileDropdown"
-class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200">
+        class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200">
             <div class="p-4 border-border-color flex items-center">
                 <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 cursor-pointer transition"
                     style="background-color: #55597C;">
@@ -100,41 +122,45 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
     {{-- Sidebar --}}
     <div id="adminSidebar" style="background-color: #141326;" class="py-4 overflow-y-auto">
         <div class="px-6 py-3 mb-4">
-            <h2 class="text-lg font-semibold text-white">Admin Menu</h2>
+            <h2 class="text-lg font-semibold text-white">{{ __('auth.db_admin_menu') }}</h2>
         </div>
         <ul id="sidebar" class="mt-2">
-        <a href="{{ route('admin.dashboard') }}"
-            class="py-3 px-6 flex items-center cursor-pointer rounded-r-2xl mr-4">
+            <a href="{{ route('admin.dashboard') }}"
+                class="py-3 px-6 flex items-center cursor-pointer rounded-r-2xl mr-4">
                 <img src="{{ asset('graph-bar.png') }}" alt="Dashboard" class="mr-4 w-5 h-5">
-                <span class="text-sm">Dashboard</span>
+                <span class="text-sm">{{ __('auth.db_dashboard') }}</span>
             </a>
             <a class="activeTab py-3 px-6 flex items-center cursor-pointer rounded-r-2xl mr-4 {{ request()->routeIs('admin.users') ? 'activeTab' : '' }}">
                 <img src="{{ asset('people.png') }}" alt="Manage Users" class="mr-4 w-5 h-5">
-                <span class="text-sm">Manage Users</span>
+                <span class="text-sm">{{ __('auth.db_manage_users') }}</span>
             </a>
-
-            <style>
-                /* Sidebar styles */
-                #sidebar>a{background:#141326!important;color:#fff!important;transition:filter .15s;}
-                #sidebar>a:hover{filter:brightness(1.5)!important;}
-                #sidebar>a.activeTab{background:#2B2C61!important;color:#fff!important;}
-                #sidebar>a.activeTab:hover{filter:none!important;}
-                #sidebar>a *{color:inherit!important;}
-            </style>
         </ul>
     </div>
 
     {{-- Main Content --}}
 <main style="background-color: #24243B; border-top-left-radius: 32px; margin-left: 13px;" class="p-6">
-    <h1 class="text-2xl font-semibold text-white mb-6">All Users</h1>
+    <h1 class="text-2xl font-semibold text-white mb-6">
+        @if(request('q'))
+            {{ __('auth.au_users_with') }} <span class="text-[#f89c00]">"{{ Str::limit(request('q'), 20) }}"</span>
+        @else
+            {{ __('auth.au_all_users') }}
+        @endif
+    </h1>
 
     @if (session('success'))
-        <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
-            <strong class="font-bold">Success!</strong>
-            <span class="block sm:inline">{{ session('success') }}</span>
+        <div style="background-color: #10B981;" class="text-white px-4 py-3 rounded-lg mb-4" role="alert">
+            <strong class="font-bold">{{ __('auth.success_generic') }}</strong>
+            <span class="block sm:inline">
+                @if(is_array(session('success')))
+                    {{ __(session('success')['key'], session('success')['params']) }}
+                @else
+                    {{ session('success') }}
+                @endif
+            </span>
         </div>
     @endif
 
+    <!--
     {{-- Search bar for users --}}
     <form method="GET" action="{{ route('admin.users') }}" class="mb-4" id="adminUserSearchForm">
         <div class="flex items-center gap-2">
@@ -144,142 +170,259 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
                 <a href="{{ route('admin.users') }}" class="px-3 py-2 text-sm text-gray-300 hover:text-white">Clear</a>
             @endif
         </div>
-    </form>
+    </form> -->
 
     <div class="rounded-lg">
-        <div class="overflow-x-auto">
+        <!-- Fixed header table -->
+        <div style="overflow: hidden;">
             <table class="min-w-full" style="table-layout: fixed; width: 100%;">
-                <thead>
-                    <tr style="background-color: #3C3F58; border-radius: 8px 8px 0 0;">
-                        <th class="table-header" style="border-radius: 8px 0 0 0; width: 15%;">Name</th>
-                        <th class="table-header" style="width: 20%;">Email</th>
-                        <th class="table-header" style="width: 10%;">Role</th>
-                        <th class="table-header" style="width: 10%;">Approved</th>
-                        <th class="table-header" style="width: 12%;">Plan</th>
-                        <th class="table-header" style="width: 13%;">Actions</th>
-                        <th class="table-header" style="border-radius: 0 8px 0 0; width: 20%;">Manage</th>
-                    </tr>
-                </thead>
+            <thead>
+                <tr style="background-color: #3C3F58; border-radius: 8px 8px 0 0;">
+                    <th class="table-header" style="border-radius: 8px 0 0 0; width: 22%;">{{ __('auth.db_name') }}</th>
+                    <th class="table-header" style="width: 26%;">{{ __('auth.db_email') }}</th>
+                    <th class="table-header" style="width: 9%;">{{ __('auth.au_role') }}</th>
+                    <th class="table-header" style="width: 6.5%; text-align: center;">{{ __('auth.au_approved') }}</th>
+                    <th class="table-header" style="width: 11%;">{{ __('auth.db_plan') }}</th>
+                    <th class="table-header" style="width: 12%; text-align:center; padding-left: 30px;">{{ __('auth.au_actions') }}</th>
+                    <th class="table-header" style="border-radius: 0 8px 0 0; width: 10%; text-align: center; padding-right: 40px;">{{ __('auth.au_manage') }}</th>
+                </tr>
+            </thead>
+            </table>
+        </div>
+
+        <!-- Scrollable body table -->
+        <div class="table-body-container" style="max-height: 450px;  scrollbar-width: none; -ms-overflow-style: none;">
+            <table class="min-w-full" style="table-layout: fixed; width: 100%;">
                 <tbody style="border-top: 1px solid #3C3F58;">
                     @forelse ($users as $user)
                         <tr class="user-table-row" style="border-bottom: 1px solid #3C3F58;">
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 15%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($user->name, 20) }}</td>
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 20%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ Str::limit($user->email, 25) }}</td>
-                            <td class="px-6 py-4 text-sm" style="color: #ffffff; width: 10%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ $user->role }}</td>
-                            <td class="px-6 py-4 text-sm font-bold" style="width: 10%; @if($user->is_approved) color: #10B981; @else color: #EF4444; @endif">
-                                @if($user->is_approved)
-                                    Yes
-                                @else
-                                    No
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm font-bold" style="width: 12%; @if($user->is_premium) color: #f89c00; @else color: #2563eb; @endif">
-                                @if($user->is_premium)
-                                    Premium
-                                @else
-                                    Standard
-                                @endif
-                            </td>
-                            <td class="px-6 py-4 text-sm" style="width: 13%;">
-                                @if (!$user->is_approved)
-                                    <form method="POST" action="{{ route('admin.approve', $user->id) }}" class="inline">
+                            <td class="px-6 py-4 text-sm" style="color:#ffffff; width:22%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ Str::limit($user->name, 28) }}</td>
+                            <td class="px-6 py-4 text-sm" style="color:#ffffff; width:26%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ Str::limit($user->email, 32) }}</td>
+                            <td class="px-6 py-4 text-sm text-center" style="color:#ffffff; width:9%; text-transform:capitalize; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ucfirst($user->role) }}</td>
+                            <td class="px-6 py-4 text-sm text-center" style="width:6.5%; color:#ffffff;">@if($user->is_approved) {{ __('auth.au_yes') }} @else {{ __('auth.au_no') }} @endif</td>
+                            <td class="px-6 py-4 text-sm text-center" style="width:11%; color:#ffffff;">@if($user->is_premium) {{ __('auth.db_premium') }} @else {{ __('auth.db_standard') }} @endif</td>
+                            <td class="px-6 py-4 text-sm text-center" style="width:12%; padding-left:30px;">
+                                @if(!$user->is_approved)
+                                    <form method="POST" action="{{ route('admin.approve',$user->id) }}" class="inline">
                                         @csrf
-                                        <button type="submit" class="text-indigo-400 hover:text-indigo-300 transition-colors">Approve</button>
+                                        <button type="submit" class="approve-btn transition-all duration-200 ease-in-out">{{ __('auth.au_approve') }}</button>
                                     </form>
                                 @else
-                                    <form method="POST" action="{{ route('admin.revoke', $user->id) }}" class="inline">
+                                    <form method="POST" action="{{ route('admin.revoke',$user->id) }}" class="inline">
                                         @csrf
-                                        <button type="submit" class="text-red-400 hover:text-red-300 transition-colors">Revoke</button>
+                                        <button type="submit" class="revoke-btn transition-all duration-200 ease-in-out">{{ __('auth.au_revoke') }}</button>
                                     </form>
                                 @endif
                             </td>
-                            <td class="px-6 py-4 text-sm" style="width: 20%;">
-    <div class="relative inline-block text-left">
-        <!-- Toggle Button -->
-        <button type="button" 
-                class="inline-flex items-center justify-center w-full px-3 py-1 text-xs font-medium text-white bg-[#3C3F58] rounded-md hover:bg-[#55597C] focus:outline-none transition-colors"
-                id="manageAccounts-menu-{{ $user->id }}"
-                aria-expanded="false"
-                aria-haspopup="true">
-            <img src="{{ asset('garage.png') }}" alt="Manage Accounts" class="w-4 h-4 mr-2">
-            <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" class="w-2 h-2 ml-2 transition-transform duration-200" id="manageAccounts-caret-{{ $user->id }}">
-        </button>
+                            <td class="px-6 py-4 text-sm text-right" style="width:10%; padding-right:40px;">
+                                <div class="relative inline-block text-left">
+                                    <!-- Toggle Button -->
+                                    <button type="button" 
+                                        class="manage-btn inline-flex items-center justify-center px-2 py-1 text-xs font-medium text-white rounded-md focus:outline-none transition-colors"
+                                        style="min-width: auto;"
+                                        id="manageAccounts-menu-{{ $user->id }}"
+                                        aria-expanded="false"
+                                        aria-haspopup="true">
+                                        <img src="{{ asset('garage.png') }}" alt="Manage Accounts" style="margin-left: 10px; margin-right: 12px;" class="w-4 h-4">
+                                        <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" style="margin-right: 12px;" class="w-2 h-2 transition-transform duration-200" id="manageAccounts-caret-{{ $user->id }}">
+                                    </button>
+                                    <!-- Dropdown Menu - Made narrower -->
+                                    <div style="width: 170px; border: 3px solid #24243B;"" class="absolute right-0 mt-2 bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
+                                        id="manageAccounts-dropdown-{{ $user->id }}"
+                                        role="menu"
+                                        aria-orientation="vertical"
+                                        aria-labelledby="manageAccounts-menu-{{ $user->id }}">
+                                        <div class="py-0" role="none">
+                                            <!-- Toggle Premium Button -->
+                                            <button onclick="togglePremium({{ $user->id }}, '{{ $user->name }}', {{ $user->is_premium ? 'true' : 'false' }})" 
+                                                    class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors rounded-t-lg"
+                                                    style="border-radius: 8px 8px 0 0;"
+                                                    role="menuitem">
+                                                {{ $user->is_premium ? __('auth.au_remove_premium') : __('auth.au_grant_premium') }}
+                                            </button>
 
-        <!-- Dropdown Menu -->
-        <div class="absolute right-0 mt-2 w-48 bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
-             id="manageAccounts-dropdown-{{ $user->id }}"
-             role="menu"
-             aria-orientation="vertical"
-             aria-labelledby="manageAccounts-menu-{{ $user->id }}">
-            <div class="py-1" role="none">
-                <!-- Toggle Premium Button -->
-                <button onclick="togglePremium({{ $user->id }}, '{{ $user->name }}', {{ $user->is_premium ? 'true' : 'false' }})" 
-                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
-                        role="menuitem">
-                    {{ $user->is_premium ? 'Remove Premium' : 'Grant Premium' }}
-                </button>
-                
-                <!-- Reset Premium Button (Only show for premium users) -->
-                @if($user->is_premium)
-                <button onclick="resetPremium({{ $user->id }}, '{{ $user->name }}')" 
-                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
-                        role="menuitem">
-                    Reset All Data
-                </button>
-                @endif
-                
-                <!-- View Details Button -->
-                <button onclick="viewPremiumDetails({{ $user->id }})" 
-                        class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors"
-                        role="menuitem">
-                    View Details
-                </button>
-            </div>
-        </div>
-    </div>
-</td>
+                                            <!-- Reset Premium Button (Only show for premium users) -->
+                                            @if($user->is_premium)
+                                            <button onclick="resetPremium({{ $user->id }}, '{{ $user->name }}')" 
+                                                    class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors rounded-none"
+                                                    style="border-radius: 0;"
+                                                    role="menuitem">
+                                                {{ __('auth.au_reset_all_data') }}
+                                            </button>
+                                            @endif
+
+                                            <!-- View Details Button -->
+                                            <button onclick="viewPremiumDetails({{ $user->id }})" 
+                                                    class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors rounded-b-lg"
+                                                    style="border-radius: 0 0 8px 8px;"
+                                                    role="menuitem">
+                                                {{ __('auth.au_view_details') }}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="7" class="px-6 py-4 text-center text-sm" style="color: #ffffff;">No users found.</td>
-                        </tr>
-                    @endforelse
+                        @empty
+                            <tr>
+                                <td colspan="7" class="pt-8 px-6 py-4 text-center text-sm" style="color: #ffffff;">{{ __('auth.au_no_users_found') }}</td>
+                            </tr>
+                        @endforelse
                 </tbody>
             </table>
         </div>
-        <div class="mt-4" id="usersPagination">
-            {{ $users->links() }}
-        </div>
+    </div>
+
+    <div class="mt-10 mb-4 flex justify-center" id="usersPagination">
+        {{ $users->onEachSide(1)->links('vendor.pagination.custom') }}
     </div>
 </main>
 
 <style>
-    .user-table-row {
-        transition: background-color 0.2s ease, color 0.2s ease;
-    }
-    .user-table-row:hover {
-        background-color: #676C98 !important;
-    }
-    .user-table-row:hover td {
-        color: #FFFFFF !important;
-    }
+    /* ===== SEARCH & CLEAR ===== */
+    #adminUserSearch::placeholder {color: rgba(255, 255, 255, 0.5); opacity: 1;}
+    .clear-search-link {background-color: transparent; transition: all 0.1s ease-in;}
+    .clear-search-link:hover {background-color: #2B2C61;}
+    .clear-search-link:disabled {opacity: 0.3; cursor: not-allowed; color: transparent !important;}
+    .clear-search-link:disabled:hover {background-color: transparent !important; filter: none !important; cursor: default !important;}
+
+    /* ===== SIDEBAR STYLES ===== */
+    #sidebar>a{background:#141326!important;color:#fff!important;transition:filter .15s;}
+    #sidebar>a:hover{filter:brightness(1.5)!important;}
+    #sidebar>a.activeTab{background:#2B2C61!important;color:#fff!important;}
+    #sidebar>a.activeTab:hover{filter:none!important;}
+    #sidebar>a *{color:inherit!important;}
+
+    /* ===== TABLE STYLES ===== */
+    .user-table-row {transition: background-color 0.2s ease, color 0.2s ease;}
+    .user-table-row:hover {background-color: #55597C !important;}
+    .user-table-row:hover td {color: #FFFFFF !important;}
+    .user-table-row td {padding-left: 24px;padding-right: 24px;}
     
-    /* Table Header */
-    .table-header {
-        padding-left: 1.5rem;
-        padding-right: 1.5rem;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        text-align: left;
-        font-size: 0.75rem;
-        color: #ffffff;
-        font-weight: bold;
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
+    /* Fine-tune horizontal spacing for Role–Approved–Plan–Actions–Manage */
+    .table-header {padding-left: 24px; padding-right: 24px; padding-top: 1rem; padding-bottom: 1rem; text-align: left;
+        font-size: 0.75rem; color: #ffffff; font-weight: bold; text-transform: uppercase; letter-spacing: 0.05em;}
+    .table-header:nth-child(4), .table-header:nth-child(5), .table-header:nth-child(6), .table-header:nth-child(7),
+    .user-table-row td:nth-child(4), .user-table-row td:nth-child(5), .user-table-row td:nth-child(6), .user-table-row td:nth-child(7) {
+        padding-left: 10px; padding-right: 10px;}
+    .table-header:nth-child(3), .table-header:nth-child(4), .table-header:nth-child(5), .table-header:nth-child(6),
+    .user-table-row td:nth-child(3), .user-table-row td:nth-child(4), .user-table-row td:nth-child(5), .user-table-row td:nth-child(6) {
+        padding-left: 6px; padding-right: 6px; text-align: center;}
+    .table-header:last-child, .user-table-row td:last-child {text-align: right; padding-right: 32px;}
+    .table-header:nth-child(5), .user-table-row td:nth-child(5) {padding-right: 18px;}
+
+    /* ===== TABLE CONTAINER ===== */
+    .table-body-container::-webkit-scrollbar {display: none;}
+    .table-body-container table td, .table-body-container table th {width: inherit;}
+    
+    /* ===== ACTION BUTTONS ===== */
+    .approve-btn, .revoke-btn {font-weight: 600; padding: 6px 14px; border-radius: 8px; background-color: transparent; border: none;
+        transition: background-color 0.2s ease-in-out, color 0.2s ease-in-out, filter 0.2s ease-in-out;}
+    .approve-btn { color: #10B981; }
+    .revoke-btn { color: #EF4444; }
+    .approve-btn:hover {background-color: #10B981; color: #ffffff;}
+    .revoke-btn:hover {background-color: #EF4444; color: #ffffff;}
+    .user-table-row:hover .approve-btn {color: #ffffff;}
+    .user-table-row:hover .revoke-btn {color: #ffffff;}
+    .manage-btn {background-color: #3C3F58 !important;  transition: background-color 0.2s ease-in-out !important;
+        padding-left: 8px !important; padding-right: 8px !important; min-width: auto !important;}
+    .manage-btn:hover {background-color: #676C98 !important;}
+
+    /* ===== TABLE CONTAINER ===== */
+    #usersPagination .flex.items-center {gap: 5px;}
+    #usersPagination a, #usersPagination span {display: flex; align-items: center; justify-content: center; min-width: 32px;
+        height: 32px; border-radius: 6px; font-size: 14px; font-weight: 500; transition: all 0.2s ease-in-out;}
+    #usersPagination a:hover {background-color: #55597C !important;}
+    #usersPagination .bg-\[\#f89c00\] {color: #000000 !important; font-weight: 700;}
+    #usersPagination .bg-\[\#3C3F58\] {color: #ffffff !important;}
+    #usersPagination .text-gray-400 {opacity: 0.4; cursor: not-allowed;}
+    #usersPagination img {display: block;}
+
+    /* ===== DROPDOWN STYLES ===== */
+    [id^="manageAccounts-dropdown-"] button:first-child {border-top-left-radius: 8px !important;
+        border-top-right-radius: 8px !important; border-bottom-left-radius: 0 !important; border-bottom-right-radius: 0 !important;}
+    [id^="manageAccounts-dropdown-"] button:last-child { border-bottom-left-radius: 8px !important;
+        border-bottom-right-radius: 8px !important; border-top-left-radius: 0 !important; border-top-right-radius: 0 !important;}
+    [id^="manageAccounts-dropdown-"] button:not(:first-child):not(:last-child) {border-radius: 0 !important;}
+    [id^="manageAccounts-dropdown-"] button:hover {background-color: #55597C !important; width: 100% !important;}
 </style>
 
+<!--
+        PLS PLS PLS AWAY NI IMALHIN SA LAING JS.
+        IT'S WORKING AS INTENDED. I AINT FIXING IT AGAIN.
+        FOR THE LOVE OF GOD PLS DON'T CHANGE IT. MALUOY INTAWN.
+        IT TAKES ME FOREVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
+    -->
 <script>
+    // =========================================================================
+    // Smart Clear Button Logic
+    // =========================================================================
+    document.addEventListener('DOMContentLoaded', function() {
+        const smartClearButton = document.getElementById('smartClearButton');
+        const searchInput = document.getElementById('adminUserSearch');
+        const searchForm = document.getElementById('adminUserSearchForm');
+        
+        // Function to update Clear button state
+        function updateClearButtonState() {
+            const currentSearchValue = searchInput.value.trim();
+            const hasSearchResults = window.location.search.includes('q=');
+            
+            // Enable Clear button only if there's text in search OR we're viewing search results
+            if (currentSearchValue || hasSearchResults) {
+                smartClearButton.disabled = false;
+            } else {
+                smartClearButton.disabled = true;
+            }
+        }
+        
+        if (smartClearButton && searchInput) {
+            // Initial state check
+            updateClearButtonState();
+            
+            smartClearButton.addEventListener('click', function() {
+                // Don't do anything if button is disabled
+                if (smartClearButton.disabled) return;
+                
+                const currentSearchValue = searchInput.value.trim();
+                const hasSearchResults = window.location.search.includes('q=');
+                
+                // Condition 1: If searchbar is empty, do nothing (shouldn't happen due to disabled state)
+                if (!currentSearchValue && !hasSearchResults) {
+                    return; // Do nothing
+                }
+                
+                // Condition 2: If searchbar has value but not submitted (no search results showing)
+                if (currentSearchValue && !hasSearchResults) {
+                    searchInput.value = ''; // Just clear the input field
+                    searchInput.focus(); // Keep focus on search bar
+                    updateClearButtonState(); // Disable the button after clearing
+                }
+                
+                // Condition 3: If searchbar has value AND we're viewing search results
+                if (hasSearchResults) {
+                    window.location.href = "{{ route('admin.users') }}"; // Original behavior - show all users
+                }
+            });
+            
+            // Update button state when user types
+            searchInput.addEventListener('input', function() {
+                updateClearButtonState();
+            });
+            
+            // Also clear input on Escape key press and update button state
+            searchInput.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape') {
+                    searchInput.value = '';
+                    updateClearButtonState();
+                    // Don't trigger click if button is disabled
+                    if (!smartClearButton.disabled) {
+                        smartClearButton.click();
+                    }
+                }
+            });
+        }
+    });
+
     // =========================================================================
     // 1. Dropdown Logic (FIXED for animation and z-index/overflow)
     // =========================================================================
@@ -485,13 +628,13 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
                     const approveForm = !u.is_approved ? `<form method=\"POST\" action=\"${u.urls.approve}\" class=\"inline\"><input type=\"hidden\" name=\"_token\" value=\"${csrf}\"><button type=\"submit\" class=\"text-indigo-600 hover:text-indigo-900\">Approve</button></form>` : `<form method=\"POST\" action=\"${u.urls.revoke}\" class=\"inline\"><input type=\"hidden\" name=\"_token\" value=\"${csrf}\"><button type=\"submit\" class=\"text-red-600 hover:text-red-900\">Revoke</button></form>`;
                     const premiumForm = `<form method=\"POST\" action=\"${u.urls.premium}\" class=\"space-y-1\"><input type=\"hidden\" name=\"_token\" value=\"${csrf}\"><div class=\"flex items-center\"><input type=\"checkbox\" name=\"is_premium\" ${u.is_premium ? 'checked' : ''} class=\"mr-1 h-3 w-3 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500\"><label class=\"text-xs\">Premium</label></div><button type=\"submit\" class=\"px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600\">Update</button></form>`;
                     return `<tr>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900\">${escapeHtml(u.name)}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-500\">${escapeHtml(u.email)}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm text-gray-500 capitalize\">${escapeHtml(u.role || '')}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap\">${approvedBadge}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm\">${planBadge}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium\">${approveForm}</td>
-                        <td class=\"px-6 py-4 whitespace-nowrap text-sm font-medium\">${premiumForm}</td>
+                        <td class="px-6 py-4 text-sm font-medium text-white" style="width:22%;">${escapeHtml(u.name)}</td>
+                        <td class="px-6 py-4 text-sm text-gray-400" style="width:26%;">${escapeHtml(u.email)}</td>
+                        <td class="px-6 py-4 text-sm text-center text-gray-400 capitalize" style="width:9%;">${escapeHtml(u.role ? u.role.charAt(0).toUpperCase() + u.role.slice(1) : '')}</td>
+                        <td class="px-6 py-4 text-sm text-center" style="width:6.5%;">${approvedBadge}</td>
+                        <td class="px-6 py-4 text-sm text-center" style="width:11%;">${planBadge}</td>
+                        <td class="px-6 py-4 text-sm text-center font-medium" style="width:12%; padding-left:30px;">${approveForm}</td>
+                        <td class="px-6 py-4 text-sm text-right font-medium" style="width:8%; padding-right:40px;">${premiumForm}</td>
                     </tr>`;
                 }).join('');
                 tableBody.innerHTML = html;
@@ -509,8 +652,20 @@ class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg 
 
             const triggerFetch = () => { fetchUsers(1).catch(()=>{}); };
             input.addEventListener('input', () => { clearTimeout(timer); timer = setTimeout(triggerFetch, 300); });
-            const form = document.getElementById('adminUserSearchForm');
-            form && form.addEventListener('submit', (e) => { e.preventDefault(); triggerFetch(); });
+    
+    // =========================================================================
+    // ADDED: Enter key support for the new search design
+    // =========================================================================
+    input.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            clearTimeout(timer); // Clear any pending input timeout
+            triggerFetch();
+        }
+    });
+    
+    const form = document.getElementById('adminUserSearchForm');
+    form && form.addEventListener('submit', (e) => { e.preventDefault(); triggerFetch(); });
         }
     });
 
