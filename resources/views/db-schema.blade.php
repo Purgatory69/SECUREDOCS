@@ -124,6 +124,7 @@
     <button id="fit">Fit</button>
     <button id="reset">Reset</button>
     <button id="refresh">Refresh</button>
+    <button id="liveToggle" aria-pressed="false">Live: Off</button>
     <span class="legend">
       <span class="badge">PK</span>
       <span class="badge">FK</span>
@@ -156,6 +157,7 @@
     const fitBtn = document.getElementById('fit');
     const resetBtn = document.getElementById('reset');
     const refreshBtn = document.getElementById('refresh');
+    const liveToggle = document.getElementById('liveToggle');
     const notice = document.getElementById('notice');
     const retryBtn = document.getElementById('retryBtn');
 
@@ -165,6 +167,8 @@
     // Data state
     let schema = null;            // { tables: [...] }
     const tables = new Map();     // name -> { el, headerEl, colsEl, x, y, w, h }
+    let live = false;             // live auto-refresh flag
+    let liveTimer = null;         // interval id
 
     // Helpers
     function applyTransform() {
@@ -461,6 +465,18 @@
       }
     }
 
+    function setLive(on) {
+      live = !!on;
+      liveToggle.setAttribute('aria-pressed', String(live));
+      liveToggle.textContent = 'Live: ' + (live ? 'On' : 'Off');
+      if (liveTimer) { clearInterval(liveTimer); liveTimer = null; }
+      if (live) {
+        // refresh immediately, then every 60s
+        loadSchema();
+        liveTimer = setInterval(loadSchema, 60 * 1000);
+      }
+    }
+
     // Init
     applyTransform();
     enablePanZoom();
@@ -473,6 +489,7 @@
     fitBtn.addEventListener('click', () => fitView());
     resetBtn.addEventListener('click', () => resetView());
     refreshBtn.addEventListener('click', () => loadSchema());
+    liveToggle.addEventListener('click', () => setLive(!live));
     retryBtn.addEventListener('click', () => loadSchema());
 
     // Recompute links on window resize (since table sizes might flow differently)

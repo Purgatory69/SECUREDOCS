@@ -48,7 +48,7 @@
             <div id="stepWalletConnection" class="hidden space-y-6">
                 <div class="text-center">
                     <h4 class="text-lg font-medium text-white mb-2">🔗 Connect Your Wallet</h4>
-                    <p class="text-gray-400 mb-4">Connect MetaMask to initialize your Bundlr account</p>
+                    <p class="text-gray-400 mb-4">Use the Bundlr wallet widget (B button) in the navigation bar first</p>
                 </div>
                 
                 <!-- Wallet Status Display -->

@@ -35,6 +35,59 @@
     </div>
 
     <div class="flex items-center ml-auto gap-4">
+        <!-- Bundlr Wallet Widget (Premium Only) -->
+        @if(auth()->user()->is_premium)
+        <div class="relative">
+            <button id="bundlrWalletBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg transition-colors text-white text-sm" title="Bundlr Wallet">
+                <div class="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold">
+                    B
+                </div>
+                <div class="hidden md:block">
+                    <div class="text-xs text-gray-400">Bundlr</div>
+                    <div id="walletBalance" class="text-xs font-medium">Click to Initialize</div>
+                </div>
+            </button>
+            
+            <!-- Bundlr Wallet Dropdown -->
+            <div id="bundlrWalletDropdown" class="hidden absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50">
+                <div class="px-4 py-3 border-b border-[#4A4D6A]">
+                    <div class="text-sm font-medium mb-2">Bundlr Wallet</div>
+                    <div class="text-xs text-gray-400" id="walletStatus">Click Initialize to connect</div>
+                </div>
+                <div class="p-4 space-y-3">
+                    <!-- Balance Display -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm">Balance:</span>
+                        <span id="walletBalanceDetail" class="text-sm font-medium text-green-400">-- MATIC</span>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="space-y-2">
+                        <button id="initializeBundlrBtn" class="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">
+                            🚀 Initialize Bundlr
+                        </button>
+                        <div class="text-xs text-gray-400 mb-2">
+                            💡 Need MATIC in your wallet to fund Bundlr
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="fundAmountSelect" class="flex-1 px-3 py-2 bg-[#3C3F58] rounded text-sm">
+                                <option value="0.01">0.01 MATIC</option>
+                                <option value="0.05">0.05 MATIC</option>
+                                <option value="0.1">0.1 MATIC</option>
+                            </select>
+                            <button id="fundBundlrBtn" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors" disabled>
+                                💳 Fund
+                            </button>
+                        </div>
+                        <button id="refreshBalanceBtn" class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition-colors" disabled>
+                            🔄 Refresh Balance
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        @endif
+        
         <div class="relative">
             <button id="notificationBell" class="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[#3C3F58] transition-colors" title="Notifications" aria-label="Notifications">
             <img src="{{ asset('notifications.png') }}" alt="Notifications" class="w-6 h-6 object-contain">

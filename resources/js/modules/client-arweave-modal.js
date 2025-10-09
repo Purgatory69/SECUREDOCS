@@ -3,14 +3,8 @@
  * Direct user uploads to Arweave via their own MetaMask wallet
  */
 
-import { 
-    initializeClientBundlr, 
-    fetchUserBalance, 
-    fundUserBundlr, 
-    uploadToArweaveClientSide, 
-    calculateUploadCost,
-    isBundlrInitialized 
-} from './client-side-bundlr.js';
+// Using the new bundlr-wallet-widget.js instead of old client-side-bundlr.js
+// All Bundlr functionality now comes from the navigation widget
 
 let currentFile = null;
 let uploadCost = 0;
@@ -117,20 +111,25 @@ function setupEventListeners() {
             }
             
             try {
-                // Check if we have sufficient balance
-                const bundlr = await initializeClientBundlr();
-                const balance = await fetchUserBalance(bundlr);
+                // Check if Bundlr widget is ready
+                if (!window.isWalletReady || !window.isWalletReady()) {
+                    showError('Please initialize Bundlr first using the B button in navigation');
+                    return;
+                }
+                
+                const balance = window.getCurrentBalance();
                 
                 if (balance >= 0.005) {
                     console.log('✅ Sufficient balance, proceeding to upload');
                     showStep('upload');
                 } else {
-                    console.log('💳 Insufficient balance, need to fund');
-                    showStep('funding');
+                    console.log('❌ Insufficient balance:', balance, 'MATIC (need ≥0.005)');
+                    showError(`Insufficient balance: ${balance.toFixed(6)} MATIC. Please fund your Bundlr account first (need ≥0.005 MATIC).`);
+                    return; // Block upload
                 }
             } catch (error) {
                 console.error('❌ Error checking balance:', error);
-                showStep('upload'); // Proceed anyway
+                showError('Failed to check balance: ' + error.message);
             }
         });
     }
@@ -217,75 +216,49 @@ async function handleFileSelection(event) {
     currentFile = file;
     updateFileInfo(`${file.name} (${formatFileSize(file.size)})`);
     
-    // Calculate upload cost if Bundlr is initialized
-    if (isBundlrInitialized()) {
-        try {
-            const cost = await calculateUploadCost(file.size);
-            uploadCost = parseFloat(cost.costMatic);
-            updateUploadCost(cost.costMatic);
-        } catch (error) {
-            console.warn('Failed to calculate cost:', error);
-            updateUploadCost('~0.005');
-        }
+    // Calculate upload cost if Bundlr widget is initialized
+    if (window.isWalletReady && window.isWalletReady()) {
+        // Use estimated cost since we don't have the old calculateUploadCost function
+        const estimatedCost = Math.max(0.001, file.size / 1000000 * 0.001); // Rough estimate
+        uploadCost = estimatedCost;
+        updateUploadCost(estimatedCost.toFixed(6));
+    } else {
+        updateUploadCost('~0.005');
     }
-    
     showStep('walletConnection');
 }
 
 /**
- * Handle wallet connection
+ * Handle wallet connection - Use existing Bundlr widget
  */
 async function handleConnectWallet() {
     try {
         showLoading('connectWalletBtn', 'Connecting...');
         
-        const result = await initializeClientBundlr();
-        
-        if (result.success) {
-            console.log('✅ Wallet connected successfully');
+        // Check if Bundlr widget is already initialized
+        if (window.isWalletReady && window.isWalletReady()) {
+            console.log('✅ Using existing Bundlr wallet connection');
+            const balance = window.getCurrentBalance();
+            console.log('🔍 Real widget balance:', balance, 'MATIC');
+            updateBalance(balance);
             
-            // Update balance display
-            updateBalance(result.balance);
-            
-            // Show wallet as connected
-            const walletAddress = window.ethereum.selectedAddress;
-            showWalletConnected(walletAddress, result.balance);
-            
-            // Save wallet info to backend
-            await saveWalletInfo();
-            
-            // Always go to balance check step first
+            // Show wallet connected status and proceed to balance check
+            showWalletConnected(window.ethereum.selectedAddress, balance);
             showStep('balanceCheck');
-            
-            // Update the balance display in step 3 (YouTube style)
-            const balanceDisplay = document.getElementById('currentBundlrBalance');
-            if (balanceDisplay) {
-                balanceDisplay.textContent = parseFloat(result.balance).toFixed(6);
-            }
-            
-            // Check if balance is sufficient for 0.005 MATIC uploads
-            const sufficientDisplay = document.getElementById('balanceSufficient');
-            if (sufficientDisplay) {
-                if (parseFloat(result.balance) >= 0.005) {
-                    sufficientDisplay.innerHTML = '✅ Yes';
-                    sufficientDisplay.className = 'text-green-400';
-                } else {
-                    sufficientDisplay.innerHTML = '❌ No (Need ≥0.005)';
-                    sufficientDisplay.className = 'text-red-400';
-                }
-            }
-            
-        } else {
-            throw new Error(result.error);
+            return;
         }
+        
+        // If not initialized, guide user to use the widget
+        showError('Please initialize Bundlr first using the "B" button in the navigation bar, then try again.');
         
     } catch (error) {
         console.error('❌ Failed to connect wallet:', error);
-        showError('Failed to connect wallet: ' + error.message);
+        showError('Please use the Bundlr wallet widget (B button) in the navigation to connect first.');
     } finally {
         hideLoading('connectWalletBtn', 'Connect MetaMask');
     }
 }
+
 
 /**
  * Handle Bundlr funding
@@ -326,56 +299,68 @@ async function handleFundBundlr() {
 }
 
 /**
- * Handle upload to Arweave
+ * Handle upload to Arweave using wallet widget  
  */
 async function handleUploadToArweave() {
     if (!currentFile) {
         showError('Please select a file first');
         return;
     }
-    
+
+    // Check if wallet widget is initialized
+    if (!window.isWalletReady || !window.isWalletReady()) {
+        showError('Please initialize Bundlr wallet first using the "B" button in the navigation');
+        return;
+    }
+
     try {
-        showLoading('uploadToArweaveBtn', 'Uploading...');
+        showStep('uploadProgress');
+        console.log('🚀 Starting Arweave upload using wallet widget...', currentFile.name);
+
+        updateProgress(0, 'Preparing upload...');
         
-        // Get current balance before upload
-        const balanceBefore = await fetchUserBalance();
+        // Check balance
+        const balance = window.getCurrentBalance();
+        const uploadCost = 0.005; // Estimated cost in MATIC
         
-        // Upload file
-        const result = await uploadToArweaveClientSide(currentFile, {
-            userId: window.Laravel?.user?.id
-        });
+        updateProgress(25, 'Checking balance...');
         
-        if (result.success) {
-            console.log('✅ File uploaded successfully');
-            
-            // Save upload record to backend
-            await saveUploadRecord({
-                arweave_tx_id: result.transactionId,
-                arweave_url: result.url,
-                file_name: currentFile.name,
-                file_size: currentFile.size,
-                mime_type: currentFile.type,
-                upload_cost: uploadCost,
-                bundlr_balance_before: balanceBefore,
-                bundlr_balance_after: result.remainingBalance
-            });
-            
-            showStep('success');
-            
-            // Show success info
-            document.getElementById('arweaveSuccessUrl').href = result.url;
-            document.getElementById('arweaveSuccessUrl').textContent = result.url;
-            document.getElementById('arweaveSuccessBalance').textContent = result.remainingBalance + ' MATIC';
-            
-        } else {
-            throw new Error(result.error);
+        if (balance < uploadCost) {
+            throw new Error(`Insufficient Bundlr balance (${balance.toFixed(6)} MATIC). Please fund your account using the wallet widget.`);
         }
         
+        updateProgress(50, 'Uploading file to Arweave...');
+        
+        // Upload using wallet widget
+        const result = await window.uploadFileWithBundlr(currentFile);
+        
+        if (!result.success) {
+            throw new Error(result.error || 'Upload failed');
+        }
+        
+        updateProgress(90, 'Saving upload record...');
+        
+        // Create simple upload data for saving
+        const uploadData = {
+            arweave_url: result.url,
+            file_name: currentFile.name
+        };
+        
+        // Save to database (optional)
+        await saveUploadRecord(uploadData);
+        
+        updateProgress(100, 'Upload completed!');
+        
+        // Show success with Arweave URL
+        showSuccess(result.url);
+        
+        console.log('✅ Upload completed successfully via wallet widget');
+        console.log('🔗 Arweave URL:', result.url);
+        console.log('💰 Remaining balance:', result.remainingBalance, 'MATIC');
+        
     } catch (error) {
-        console.error('❌ Failed to upload file:', error);
-        showError('Failed to upload file: ' + error.message);
-    } finally {
-        hideLoading('uploadToArweaveBtn', 'Upload to Arweave');
+        console.error('❌ Upload failed:', error);
+        showError(error.message);
     }
 }
 
@@ -499,13 +484,40 @@ function updateFileInfo(text) {
     if (element) element.textContent = text;
 }
 function updateBalance(balance) {
-    const element = document.getElementById('bundlrBalanceDisplay');
-    if (element) element.textContent = balance;
+    // Update all balance displays in the modal
+    const bundlrBalanceDisplay = document.getElementById('bundlrBalanceDisplay');
+    const currentBundlrBalance = document.getElementById('currentBundlrBalance');
+    
+    if (bundlrBalanceDisplay) {
+        bundlrBalanceDisplay.textContent = balance.toFixed(6);
+    }
+    
+    if (currentBundlrBalance) {
+        currentBundlrBalance.textContent = balance.toFixed(6);
+    }
+    
+    console.log('💰 Updated modal balance displays to:', balance.toFixed(6), 'MATIC');
 }
 
 function updateUploadCost(cost) {
     const element = document.getElementById('uploadCostDisplay');
     if (element) element.textContent = `~${cost} MATIC (~$${(parseFloat(cost) * 0.7).toFixed(4)})`;
+}
+
+function updateBalanceSufficiency(isSufficient, balance) {
+    const sufficientElement = document.getElementById('balanceSufficient');
+    
+    if (sufficientElement) {
+        if (isSufficient) {
+            sufficientElement.textContent = '✅ Yes';
+            sufficientElement.className = 'text-green-400';
+        } else {
+            sufficientElement.textContent = '❌ No (Need ≥0.005)';
+            sufficientElement.className = 'text-red-400';
+        }
+    }
+    
+    console.log('💰 Balance sufficiency:', isSufficient ? '✅ Sufficient' : '❌ Insufficient', `(${balance.toFixed(6)} MATIC)`);
 }
 
 /**
@@ -558,33 +570,42 @@ function showSuccess(message) {
 /**
  * Handle balance checking
  */
-async function handleCheckBalance() {
+async function checkBalance() {
     try {
         console.log('🔍 Checking Bundlr balance...');
         showLoading('checkBalanceBtn', 'Checking...');
         
-        const bundlr = await initializeClientBundlr();
-        if (!bundlr) {
-            throw new Error('Failed to initialize Bundlr');
+        // Use the real Bundlr widget connection
+        if (!window.isWalletReady || !window.isWalletReady()) {
+            throw new Error('Bundlr not initialized. Please use the B button in navigation first.');
         }
         
-        const balance = await fetchUserBalance(bundlr);
-        console.log('💰 Current balance:', balance);
+        const balance = window.getCurrentBalance();
+        console.log('💰 Current Bundlr balance:', balance, 'MATIC');
         
-        // Update display
-        updateBalanceDisplay(balance);
+        updateBalance(balance);
         
-        hideLoading('checkBalanceBtn', '🔍 Check Balance');
-        showSuccess('Balance updated successfully!');
+        // Check if balance is sufficient for upload
+        const sufficientForUpload = balance >= 0.005;
+        updateBalanceSufficiency(sufficientForUpload, balance);
+        
+        if (sufficientForUpload) {
+            console.log('✅ Balance sufficient for upload');
+            showStep('upload');
+        } else {
+            console.log('❌ Insufficient balance, showing funding options');
+            showStep('funding');
+        }
         
     } catch (error) {
         console.error('❌ Failed to check balance:', error);
-        hideLoading('checkBalanceBtn', '🔍 Check Balance');
         showError('Failed to check balance: ' + error.message);
         
         // Show error state
         document.getElementById('bundlrBalanceDisplay').innerHTML = 'Error';
         document.getElementById('sufficientBalanceDisplay').innerHTML = '❌ Error';
+    } finally {
+        hideLoading('checkBalanceBtn', 'Check Balance');
     }
 }
 
@@ -603,17 +624,29 @@ async function handleFundBundlrAccount() {
         console.log('💳 Funding Bundlr account...');
         showLoading('fundBundlrAccountBtn', 'Funding...');
         
-        // Initialize Bundlr
-        const bundlr = await initializeClientBundlr();
-        if (!bundlr) {
-            throw new Error('Failed to initialize Bundlr');
+        // Check if Bundlr widget is ready
+        if (!window.isWalletReady || !window.isWalletReady()) {
+            throw new Error('Bundlr not initialized. Please use the B button in navigation first.');
         }
         
         // Fund with 0.01 MATIC (like YouTube video)
         const fundAmount = 0.01;
         console.log(`💰 Funding Bundlr with ${fundAmount} MATIC...`);
         
-        const result = await fundUserBundlr(fundAmount);
+        // Use the real Bundlr widget instance
+        if (!window.bundlrInstance) {
+            throw new Error('Bundlr instance not found');
+        }
+        
+        const conv = new BigNumber(fundAmount).multipliedBy(window.bundlrInstance.currencyConfig.base[1]);
+        const response = await window.bundlrInstance.fund(conv);
+        console.log('Wallet funded: ', response);
+        
+        // Get updated balance  
+        const bal = await window.bundlrInstance.getLoadedBalance();
+        const newBalance = parseFloat(ethers.utils.formatEther(bal.toString()));
+        
+        const result = { success: true, newBalance: newBalance };
         
         if (result.success) {
             console.log('✅ Bundlr funded successfully!');
@@ -631,7 +664,16 @@ async function handleFundBundlrAccount() {
         
     } catch (error) {
         console.error('❌ Failed to fund Bundlr:', error);
-        showError('Failed to fund Bundlr: ' + error.message);
+        
+        // Better error messages for common MetaMask errors
+        let errorMessage = error.message;
+        if (error.code === -32603 || error.message.includes('Internal JSON-RPC error')) {
+            errorMessage = 'Insufficient MATIC in wallet. Please add MATIC to your MetaMask wallet first.';
+        } else if (error.code === 4001) {
+            errorMessage = 'Transaction rejected by user';
+        }
+        
+        showError('Failed to fund Bundlr: ' + errorMessage);
     } finally {
         hideLoading('fundBundlrAccountBtn', '💳 Fund Account');
     }
@@ -645,33 +687,24 @@ async function handleRefreshBundlrBalance() {
         console.log('🔄 Refreshing Bundlr balance...');
         showLoading('refreshBundlrBalanceBtn', 'Refreshing...');
         
-        const bundlr = await initializeClientBundlr();
-        if (!bundlr) {
-            throw new Error('Failed to initialize Bundlr');
+        // Use the real Bundlr widget connection
+        if (!window.isWalletReady || !window.isWalletReady()) {
+            throw new Error('Bundlr not initialized. Please use the B button in navigation first.');
         }
         
-        const balance = await fetchUserBalance(bundlr);
-        console.log('💰 Current balance:', balance);
-        
-        // Update balance display
-        const balanceDisplay = document.getElementById('currentBundlrBalance');
-        const sufficientDisplay = document.getElementById('balanceSufficient');
-        
-        if (balanceDisplay) {
-            balanceDisplay.textContent = balance.toFixed(6);
+        // Trigger refresh on the widget and get updated balance
+        if (window.bundlrInstance) {
+            const bal = await window.bundlrInstance.getLoadedBalance();
+            const balance = parseFloat(ethers.utils.formatEther(bal.toString()));
+            console.log('💰 Refreshed balance:', balance, 'MATIC');
+            
+            updateBalance(balance);
+            updateBalanceSufficiency(balance >= 0.005, balance);
+            
+            showSuccess('Balance refreshed successfully!');
+        } else {
+            throw new Error('Bundlr instance not found');
         }
-        
-        if (sufficientDisplay) {
-            if (balance >= 0.005) {
-                sufficientDisplay.innerHTML = '✅ Yes';
-                sufficientDisplay.className = 'text-green-400';
-            } else {
-                sufficientDisplay.innerHTML = '❌ No (Need funding)';
-                sufficientDisplay.className = 'text-red-400';
-            }
-        }
-        
-        showSuccess('Balance refreshed successfully!');
         
     } catch (error) {
         console.error('❌ Failed to refresh balance:', error);

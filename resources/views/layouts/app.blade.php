@@ -57,6 +57,11 @@
             window.aiUsePublicStatus = true;
         </script>
         
+        <!-- Bundlr Dependencies for Real Arweave Integration -->
+        <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+        <script src="https://unpkg.com/@bundlr-network/client@0.7.3/build/web/bundle.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bignumber.js@9.1.2/bignumber.min.js"></script>
+        
         <!-- N8N Chat Widget -->
         <script type="module">
             import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';

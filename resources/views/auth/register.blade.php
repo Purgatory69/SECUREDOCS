@@ -112,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <x-validation-errors class="mb-4" />
 
+
         <form method="POST" action="{{ route('register') }}" class="bg-[#3c3f58] flex flex-col items-center justify-center w-full max-w-4xl mx-auto rounded-4xl px-8 py-2 pb-6 space-y-8">
             @csrf
             <div>
@@ -182,43 +183,161 @@ document.addEventListener('DOMContentLoaded', function() {
         <!-- PASSWORD FIELD -->
         <div class="relative w-4/6 min-w-[420px] mb-6">
             <label for="password" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">{{ __('auth.password') }}</label>
-            <input id="password" name="password" type="password" required autocomplete="new-password" style="padding-right: 60px;" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
-            <button type="button" class="absolute right-3 flex items-center top-1/2 toggle-both">
-                <img src="{{ asset('eye-close.png') }}" alt="Toggle Password Visibility" class="w-8 h-8 toggle-icon">
-            </button>
+            <div class="relative">
+                <input id="password" name="password" type="password" required autocomplete="new-password" style="padding-right: 60px;" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
+                <button type="button" id="toggle-password" class="absolute right-4 top-1/2 transform -translate-y-1/2 flex items-center justify-center">
+                    <img id="password-toggle-icon" src="{{ asset('eye-close.png') }}" alt="Toggle Password Visibility" class="w-6 h-6">
+                </button>
+            </div>
+
+            <!-- Password Strength Indicator -->
+            <div id="password-strength-container" class="mt-2 hidden">
+                <div class="flex space-x-1 mb-2">
+                    <div id="strength-bar-1" class="h-1 flex-1 rounded-full transition-colors duration-300"></div>
+                    <div id="strength-bar-2" class="h-1 flex-1 rounded-full transition-colors duration-300"></div>
+                    <div id="strength-bar-3" class="h-1 flex-1 rounded-full transition-colors duration-300"></div>
+                    <div id="strength-bar-4" class="h-1 flex-1 rounded-full transition-colors duration-300"></div>
+                </div>
+                <p id="strength-text" class="text-xs text-gray-300"></p>
+            </div>
+
+            <!-- Password Requirements Checklist -->
+            <div id="password-requirements" class="mt-3 space-y-1 hidden">
+                <div id="req-length" class="flex items-center text-xs">
+                    <span id="req-length-icon" class="w-3 h-3 rounded-full mr-2"></span>
+                    <span>At least 8 characters</span>
+                </div>
+                <div id="req-uppercase" class="flex items-center text-xs">
+                    <span id="req-uppercase-icon" class="w-3 h-3 rounded-full mr-2"></span>
+                    <span>One uppercase letter (A-Z)</span>
+                </div>
+                <div id="req-number" class="flex items-center text-xs">
+                    <span id="req-number-icon" class="w-3 h-3 rounded-full mr-2"></span>
+                    <span>One number (0-9)</span>
+                </div>
+                <div id="req-special" class="flex items-center text-xs">
+                    <span id="req-special-icon" class="w-3 h-3 rounded-full mr-2"></span>
+                    <span>One special character (!@#$%^&*)</span>
+                </div>
+            </div>
         </div>
 
         <!-- CONFIRM PASSWORD FIELD -->
         <div class="relative w-4/6 min-w-[420px]">
             <label for="password_confirmation" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">{{ __('auth.confirm_password') }}</label>
-            <input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password" style="padding-right: 60px;" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
-            <button type="button" class="absolute right-3 flex items-center top-1/2 toggle-both">
-                <img src="{{ asset('eye-close.png') }}" alt="Toggle Confirm Password Visibility" class="w-8 h-8 toggle-icon">
-            </button>
+            <input id="password_confirmation" name="password_confirmation" type="password" required autocomplete="new-password" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
         </div>
 
         <script>
-            const toggleButtons = document.querySelectorAll('.toggle-both');
-            const icons = document.querySelectorAll('.toggle-icon');
-            const fields = [
-                document.getElementById('password'),
-                document.getElementById('password_confirmation')
-            ];
+            // Password visibility toggle for main password field only
+            document.addEventListener('DOMContentLoaded', function() {
+                const toggleButton = document.getElementById('toggle-password');
+                const passwordField = document.getElementById('password');
+                const toggleIcon = document.getElementById('password-toggle-icon');
 
-            toggleButtons.forEach(button => {
-                button.addEventListener('click', () => {
-                    const anyHidden = fields.some(f => f.type === 'password');
-                    const newType = anyHidden ? 'text' : 'password';
-
-                    fields.forEach(f => f.type = newType);
-                    icons.forEach(icon => {
-                        icon.src = newType === 'text'
-                            ? "{{ asset('eye-open.png') }}"
+                if (toggleButton && passwordField && toggleIcon) {
+                    toggleButton.addEventListener('click', function() {
+                        const isPassword = passwordField.type === 'password';
+                        passwordField.type = isPassword ? 'text' : 'password';
+                        toggleIcon.src = isPassword 
+                            ? "{{ asset('eye-open.png') }}" 
                             : "{{ asset('eye-close.png') }}";
                     });
+                }
+            });
+        </script>
+
+        <!-- Password Strength Validation Script -->
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const passwordInput = document.getElementById('password');
+                const strengthContainer = document.getElementById('password-strength-container');
+                const requirementsContainer = document.getElementById('password-requirements');
+                const strengthBars = [
+                    document.getElementById('strength-bar-1'),
+                    document.getElementById('strength-bar-2'),
+                    document.getElementById('strength-bar-3'),
+                    document.getElementById('strength-bar-4')
+                ];
+                const strengthText = document.getElementById('strength-text');
+
+                // Requirement elements
+                const reqElements = {
+                    length: { icon: document.getElementById('req-length-icon'), text: document.getElementById('req-length') },
+                    uppercase: { icon: document.getElementById('req-uppercase-icon'), text: document.getElementById('req-uppercase') },
+                    number: { icon: document.getElementById('req-number-icon'), text: document.getElementById('req-number') },
+                    special: { icon: document.getElementById('req-special-icon'), text: document.getElementById('req-special') }
+                };
+
+                function checkPasswordRequirements(password) {
+                    return {
+                        length: password.length >= 8,
+                        uppercase: /[A-Z]/.test(password),
+                        number: /[0-9]/.test(password),
+                        special: /[!@#$%^&*()_+\-=\[\]{};\':"\\|,.<>\/?]/.test(password)
+                    };
+                }
+
+                function updateRequirementDisplay(requirements) {
+                    Object.keys(requirements).forEach(req => {
+                        const isValid = requirements[req];
+                        const element = reqElements[req];
+
+                        element.icon.className = `w-3 h-3 rounded-full mr-2 ${isValid ? 'bg-green-500' : 'bg-red-500'}`;
+                        element.text.className = `flex items-center text-xs ${isValid ? 'text-green-400' : 'text-red-400'}`;
+                    });
+                }
+
+                function calculateStrength(requirements) {
+                    const validCount = Object.values(requirements).filter(Boolean).length;
+
+                    if (validCount === 0) return { level: 0, text: '', color: '' };
+                    if (validCount === 1) return { level: 1, text: 'Weak', color: 'bg-red-500' };
+                    if (validCount === 2) return { level: 2, text: 'Fair', color: 'bg-yellow-500' };
+                    if (validCount === 3) return { level: 3, text: 'Good', color: 'bg-blue-500' };
+                    return { level: 4, text: 'Strong', color: 'bg-green-500' };
+                }
+
+                function updateStrengthIndicator(password) {
+                    if (password.length === 0) {
+                        strengthContainer.classList.add('hidden');
+                        requirementsContainer.classList.add('hidden');
+                        return;
+                    }
+
+                    strengthContainer.classList.remove('hidden');
+                    requirementsContainer.classList.remove('hidden');
+
+                    const requirements = checkPasswordRequirements(password);
+                    updateRequirementDisplay(requirements);
+
+                    const strength = calculateStrength(requirements);
+                    strengthText.textContent = strength.text;
+                    strengthText.className = `text-xs ${strength.level >= 3 ? 'text-green-400' : strength.level >= 2 ? 'text-yellow-400' : 'text-red-400'}`;
+
+                    // Update strength bars
+                    strengthBars.forEach((bar, index) => {
+                        if (index < strength.level) {
+                            bar.className = `h-1 flex-1 rounded-full transition-colors duration-300 ${strength.color}`;
+                        } else {
+                            bar.className = 'h-1 flex-1 rounded-full transition-colors duration-300 bg-gray-600';
+                        }
+                    });
+                }
+
+                passwordInput.addEventListener('input', function() {
+                    updateStrengthIndicator(this.value);
+                });
+
+                // Show requirements on focus
+                passwordInput.addEventListener('focus', function() {
+                    if (this.value.length > 0) {
+                        requirementsContainer.classList.remove('hidden');
+                    }
                 });
             });
         </script>
+
 
             </div>
 

@@ -19,3 +19,4 @@ pkill -f "php artisan serve"
 
 
 \cloudflared.exe tunnel run securedocs
+

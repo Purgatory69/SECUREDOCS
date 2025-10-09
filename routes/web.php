@@ -191,6 +191,7 @@ Route::middleware([
 
     // File OTP Security routes
     Route::prefix('file-otp')->group(function () {
+        Route::get('/check-access', [App\Http\Controllers\FileOtpController::class, 'checkOtpAccess'])->name('file-otp.check-access');
         Route::post('/enable', [App\Http\Controllers\FileOtpController::class, 'enableOtp'])->name('file-otp.enable');
         Route::post('/disable', [App\Http\Controllers\FileOtpController::class, 'disableOtp'])->name('file-otp.disable');
         Route::post('/send', [App\Http\Controllers\FileOtpController::class, 'sendOtp'])->name('file-otp.send');
@@ -752,10 +753,11 @@ Route::middleware([
         }
     })->name('debug.session');
 
-    // Database Schema Documentation (admin only)
+    // Database Schema Documentation (admin only) - Excludes system tables like migrations, cache, jobs, and n8n tables
     Route::get('/db-schema', function () {
         return view('db-schema');
-    })->middleware(['auth:sanctum', 'verified', \App\Http\Middleware\RoleMiddleware::class.':admin'])->name('db-schema');
+    })->middleware(['auth:sanctum', 'verified', \App\Http\Middleware\RoleMiddleware::class.':admin'])
+      ->name('db-schema');
 
     // Simple Database Schema View (admin only)
     Route::get('/simple-db-schema', function () {

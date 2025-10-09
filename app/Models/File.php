@@ -160,7 +160,10 @@ class File extends Model
     public function scopeBlockchainStored($query)
     {
         return $query->whereRaw('is_blockchain_stored IS TRUE')
-                    ->whereNotNull('ipfs_hash');
+                    ->where(function($q) {
+                        $q->whereNotNull('ipfs_hash')
+                          ->orWhereNotNull('arweave_tx_id');
+                    });
     }
 
     /**

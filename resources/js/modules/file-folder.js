@@ -1071,11 +1071,38 @@ function showActionsMenu(button, itemId) {
     // Direct listener for OTP security action
     const otpSecurityBtn = menu.querySelector('.actions-menu-item[data-action="otp-security"]');
     if (otpSecurityBtn) {
-        const directOtpSecurity = (ev) => {
+        const directOtpSecurity = async (ev) => {
             console.debug('[actions-menu-item][direct] event', ev.type, { action: 'otp-security', itemId: otpSecurityBtn.dataset.itemId });
             ev.preventDefault();
             ev.stopPropagation();
             ev.stopImmediatePropagation?.();
+            
+            // Check email verification first
+            try {
+                const response = await fetch('/file-otp/check-access', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': getCsrfToken()
+                    },
+                    credentials: 'same-origin'
+                });
+                
+                const result = await response.json();
+                
+                if (!result.success || !result.can_use_otp) {
+                    showNotification('Please verify your email address to use OTP security features', 'warning');
+                    cleanup();
+                    return;
+                }
+            } catch (error) {
+                console.error('Failed to check OTP access:', error);
+                showNotification('Failed to check access permissions', 'error');
+                cleanup();
+                return;
+            }
+            
             const id = otpSecurityBtn.dataset.itemId;
             console.debug('[diagnostic] invoking showOtpSecurityModal from direct button handler', { itemId: id });
             showOtpSecurityModal(id);
@@ -2435,6 +2462,48 @@ function showOtpSecurityModal(fileId) {
 
 async function loadOtpStatus(fileId) {
     try {
+        // First check if user can access OTP features (email verification)
+        const accessResponse = await fetch('/file-otp/check-access', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+
+        const accessResult = await accessResponse.json();
+        
+        if (!accessResult.success || !accessResult.can_use_otp) {
+            // Show email verification required message
+            const content = document.getElementById('otpSecurityContent');
+            if (content) {
+                content.innerHTML = `
+                    <div class="text-center py-6">
+                        <div class="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <svg class="w-8 h-8 text-yellow-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.502 0L3.349 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+                            </svg>
+                        </div>
+                        <h3 class="text-lg font-semibold text-white mb-2">Email Verification Required</h3>
+                        <p class="text-gray-400 text-sm mb-4">${accessResult.message}</p>
+                        <div class="space-y-3">
+                            <a href="/profile" 
+                               class="inline-block px-4 py-2 bg-[#f89c00] text-white rounded-lg hover:bg-[#e6890d] transition-colors">
+                                Verify Email Address
+                            </a>
+                            <div class="text-xs text-gray-500">
+                                You must verify your email address before you can use OTP security features
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        // User is verified, proceed with normal OTP status loading
         const response = await fetch(`/file-otp/status?file_type=regular&file_id=${fileId}`, {
             method: 'GET',
             headers: {

@@ -2,21 +2,23 @@
 // Main Dashboard Initializer
 // ====================================================================
 // This script is the entry point for all frontend functionality
-// feature modules.
 //
 
 // --- Module Imports ---
 import { initializeN8nChat } from './modules/n8n.js';
 import { initializeUploadModal } from './modules/upload.js';
 import { initializeUi, updateBreadcrumbsDisplay, initializeTooltips } from './modules/ui.js';
-import { initializeFileFolderManagement, loadUserFiles, loadTrashItems } from './modules/file-folder.js';
+import { loadUserFiles, loadTrashItems, initializeFileFolderManagement } from './modules/file-folder.js';
+import './modules/upload.js';
+import './modules/blockchain-upload.js';
+import './modules/client-arweave-modal.js';
 import { loadBlockchainItems } from './modules/blockchain-page.js';
+import { initializeBundlrWalletWidget } from './modules/bundlr-wallet-widget.js';
 import { initializeSearch } from './modules/search.js';
 // OLD: import { initializePermanentStorageModal } from './modules/permanent-storage.js'; // REMOVED - using client-side now
 import { initializeClientArweaveModal } from './modules/client-arweave-modal.js';
 import { NotificationManager } from './modules/notifications.js';
 import StorageUsageManager from './modules/storage-usage.js';
-
 
 // --- Supabase Client Check ---
 if (!window.supabase || !window.SUPABASE_URL || !window.SUPABASE_KEY) {
@@ -33,6 +35,7 @@ function getMyDocumentsText() {
 // Centralized state management for the dashboard application.
 const state = {
     lastMainSearch: '',
+    currentPage: 1,
     currentParentId: localStorage.getItem('currentParentId') || null,
     // Use function to get translated text - will be evaluated when needed
     get breadcrumbs() {
@@ -111,6 +114,11 @@ function initializeApp() {
     } else {
         console.log('Skipping client Arweave initialization - modal not found');
     }
+    
+    // --- Initialize Bundlr Wallet Widget ---
+    // Initialize the navigation wallet widget (real Bundlr integration)
+    console.log('Initializing Bundlr wallet widget...');
+    initializeBundlrWalletWidget();
     
     // --- Delayed Initialization (10 seconds) ---
     // Delay heavy API calls to improve initial page load performance

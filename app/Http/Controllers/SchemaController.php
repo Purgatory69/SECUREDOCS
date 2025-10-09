@@ -9,7 +9,9 @@ use Illuminate\Support\Facades\Log;
 class SchemaController extends Controller
 {
     /**
-     * Return the current database schema (simplified: table names and column datatypes only) as JSON.
+     * Return the current database schema with tables, columns, primary keys, and foreign key relationships as JSON.
+     * Excludes system tables: migrations, cache, jobs, and n8n chat_histories.
+     * Includes accurate foreign key relations that connect to the correct source columns.
      */
     public function get(): JsonResponse
     {
@@ -17,14 +19,16 @@ class SchemaController extends Controller
             $sql = <<<'SQL'
 SELECT json_build_object('tables', json_agg(json_build_object(
   'name', t.table_name,
-  'columns', cols.columns
+  'columns', cols.columns,
+  'primary_keys', COALESCE(pk_cols.pk_columns, '[]'::json),
+  'foreign_keys', COALESCE(fk_relations.fk_relations, '[]'::json)
 ) ORDER BY t.table_name))::text AS schema_data
 FROM information_schema.tables t
 LEFT JOIN (
   SELECT c.table_name,
          json_agg(json_build_object(
            'name', c.column_name,
-           'type', CASE 
+           'type', CASE
              WHEN c.data_type = 'character varying' THEN 'VARCHAR'
              WHEN c.data_type = 'bigint' THEN 'BIGINT'
              WHEN c.data_type = 'integer' THEN 'INTEGER'
@@ -48,21 +52,88 @@ LEFT JOIN (
   WHERE c.table_schema = 'public'
   GROUP BY c.table_name
 ) cols ON cols.table_name = t.table_name
-WHERE t.table_schema = 'public' AND t.table_type = 'BASE TABLE';
+LEFT JOIN (
+  SELECT tc.table_name,
+         json_agg(kcu.column_name) AS pk_columns
+  FROM information_schema.table_constraints tc
+  JOIN information_schema.key_column_usage kcu
+    ON tc.constraint_name = kcu.constraint_name
+    AND tc.table_schema = kcu.table_schema
+  WHERE tc.constraint_type = 'PRIMARY KEY'
+    AND tc.table_schema = 'public'
+  GROUP BY tc.table_name
+) pk_cols ON pk_cols.table_name = t.table_name
+LEFT JOIN (
+  SELECT kcu1.table_name,
+         json_agg(json_build_object(
+           'source_column', kcu1.column_name,
+           'target_table', kcu2.table_name,
+           'target_column', kcu2.column_name
+         )) AS fk_relations
+  FROM information_schema.referential_constraints rc
+  JOIN information_schema.key_column_usage kcu1
+    ON rc.constraint_name = kcu1.constraint_name
+    AND rc.constraint_schema = kcu1.table_schema
+  JOIN information_schema.key_column_usage kcu2
+    ON rc.unique_constraint_name = kcu2.constraint_name
+    AND rc.unique_constraint_schema = kcu2.table_schema
+  WHERE rc.constraint_schema = 'public'
+  GROUP BY kcu1.table_name
+) fk_relations ON fk_relations.table_name = t.table_name
+WHERE t.table_schema = 'public'
+  AND t.table_type = 'BASE TABLE'
+  AND t.table_name NOT IN (
+    'migrations',
+    'cache',
+    'cache_locks',
+    'jobs',
+    'job_batches',
+    'failed_jobs',
+    'chat_histories'
+  );
 SQL;
 
             $rows = DB::select($sql);
             if (!$rows || !isset($rows[0]->schema_data)) {
                 return response()->json(['tables' => []]);
             }
-            
+
             $json = json_decode($rows[0]->schema_data, true);
             if ($json === null) {
                 Log::warning('SchemaController: JSON decode returned null, returning empty tables.');
                 return response()->json(['tables' => []]);
             }
-            
-            return response()->json($json);
+
+            // Transform to shape expected by resources/views/db-schema.blade.php:
+            // tables: [{ t: table_name, c: [{ n: col_name, t: col_type }], pk: [], fk: [{ sc: source_col, tt: target_table }] }]
+            $tables = [];
+            foreach (($json['tables'] ?? []) as $t) {
+                $cols = [];
+                foreach (($t['columns'] ?? []) as $col) {
+                    $cols[] = [
+                        'n' => $col['name'] ?? '',
+                        't' => $col['type'] ?? '',
+                    ];
+                }
+
+                // Transform FK relations to expected format
+                $fks = [];
+                foreach (($t['foreign_keys'] ?? []) as $fk) {
+                    $fks[] = [
+                        'sc' => $fk['source_column'] ?? '',
+                        'tt' => $fk['target_table'] ?? '',
+                    ];
+                }
+
+                $tables[] = [
+                    't' => $t['name'] ?? 'unknown',
+                    'c' => $cols,
+                    'pk' => $t['primary_keys'] ?? [],
+                    'fk' => $fks,
+                ];
+            }
+
+            return response()->json(['tables' => $tables]);
         } catch (\Throwable $e) {
             Log::error('SchemaController error: ' . $e->getMessage(), [
                 'exception' => $e,

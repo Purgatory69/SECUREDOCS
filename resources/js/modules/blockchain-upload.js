@@ -25,30 +25,34 @@ class BlockchainUpload {
         // Bind bulk upload button
         const bulkUploadBtn = document.getElementById('bulkBlockchainUpload');
         if (bulkUploadBtn) {
-            bulkUploadBtn.addEventListener('click', () => this.showBulkUploadModal());
         }
     }
 
     async loadStorageInfo() {
         try {
-            const response = await fetch('/blockchain/storage-info', {
-                credentials: 'include',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                }
-            });
-            if (!response.ok) {
-                console.error('Storage info request failed:', response.status, response.statusText);
-                return;
-            }
-            const data = await response.json();
+            // Skip old blockchain storage info - using new Bundlr approach
+            console.log('📱 Using new Bundlr approach - skipping old storage info');
             
-            if (data.success) {
-                this.updateStorageDisplay(data);
-            }
+            // Set dummy storage info for compatibility
+            this.storageInfo = {
+                success: true,
+                requirements: {
+                    max_file_size: 100 * 1024 * 1024, // 100MB
+                    supported_types: ['pdf', 'doc', 'docx', 'txt', 'jpg', 'png'],
+                    max_files_per_user: 1000
+                },
+                current_stats: {
+                    total_files: 0,
+                    total_size: 0
+                },
+                eligible_files_count: 0,
+                user_premium: true
+            };
+            
+            this.renderStorageInfo();
+            
         } catch (error) {
-            console.error('Failed to load storage info:', error);
+            console.log('📱 Blockchain storage info skipped (using new Bundlr approach)');
         }
     }
 

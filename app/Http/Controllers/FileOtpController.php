@@ -36,6 +36,15 @@ class FileOtpController extends Controller
 
             $user = Auth::user();
             
+            // Additional email verification check with better error message
+            if (!$user->hasVerifiedEmail()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please verify your email address before using OTP security features',
+                    'requires_verification' => true
+                ], 403);
+            }
+            
             Log::info('OTP Enable Request', [
                 'user_id' => $user->id,
                 'file_type' => $request->file_type,
@@ -227,6 +236,15 @@ class FileOtpController extends Controller
 
             $user = Auth::user();
             
+            // Additional email verification check
+            if (!$user->hasVerifiedEmail()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please verify your email address before using OTP security features',
+                    'requires_verification' => true
+                ], 403);
+            }
+            
             // Find OTP security record
             if ($request->file_type === 'regular') {
                 $otpSecurity = FileOtpSecurity::where('user_id', $user->id)
@@ -348,6 +366,23 @@ class FileOtpController extends Controller
                 'message' => 'Failed to verify OTP'
             ], 500);
         }
+    }
+
+    /**
+     * Check if user can access OTP features (email verified)
+     */
+    public function checkOtpAccess(): JsonResponse
+    {
+        $user = Auth::user();
+        
+        return response()->json([
+            'success' => true,
+            'can_use_otp' => $user->hasVerifiedEmail(),
+            'email_verified' => $user->hasVerifiedEmail(),
+            'message' => $user->hasVerifiedEmail() 
+                ? 'OTP features are available' 
+                : 'Please verify your email address to use OTP security features'
+        ]);
     }
 
     /**

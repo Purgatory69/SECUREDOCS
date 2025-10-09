@@ -352,8 +352,8 @@
 
             // Calculate stats
             const totalTables = data.tables.length;
-            const totalColumns = data.tables.reduce((sum, table) => 
-                sum + (table.columns ? table.columns.length : 0), 0);
+            const totalColumns = data.tables.reduce((sum, table) =>
+                sum + (table.c ? table.c.length : 0), 0);
 
             tableCount.textContent = `${totalTables} table${totalTables !== 1 ? 's' : ''}`;
             columnCount.textContent = `${totalColumns} column${totalColumns !== 1 ? 's' : ''}`;
@@ -366,26 +366,26 @@
             data.tables.forEach(table => {
                 const tableCard = document.createElement('div');
                 tableCard.className = 'table-card';
-                tableCard.dataset.tableName = table.name.toLowerCase();
+                tableCard.dataset.tableName = table.t.toLowerCase();
 
                 const header = document.createElement('div');
                 header.className = 'table-header';
-                header.innerHTML = `<h3 class="table-name">${table.name}</h3>`;
+                header.innerHTML = `<h3 class="table-name">${table.t}</h3>`;
 
                 const columns = document.createElement('div');
                 columns.className = 'table-columns';
 
-                if (table.columns && table.columns.length > 0) {
-                    table.columns.forEach(column => {
+                if (table.c && table.c.length > 0) {
+                    table.c.forEach(column => {
                         const row = document.createElement('div');
                         row.className = 'column-row';
-                        row.dataset.columnName = column.name.toLowerCase();
-                        
+                        row.dataset.columnName = column.n.toLowerCase();
+
                         row.innerHTML = `
-                            <span class="column-name">${column.name}</span>
-                            <span class="column-type">${column.type}</span>
+                            <span class="column-name">${column.n}</span>
+                            <span class="column-type">${column.t}</span>
                         `;
-                        
+
                         columns.appendChild(row);
                     });
                 } else {
