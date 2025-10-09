@@ -82,10 +82,9 @@ function initializeApp() {
         currentFolderIdInput.value = state.currentParentId;
     }
     // --- Initialize All Imported Modules ---
-    // initializeN8nChat();
+    initializeN8nChat();
     initializeUploadModal();
-    // Disabled for now: do not auto-open the Blockchain modal on sidebar click.
-    // setupBlockchainLazyInit();
+
     
     // Modules requiring dependencies are initialized here.
     initializeSearch(loadUserFiles);

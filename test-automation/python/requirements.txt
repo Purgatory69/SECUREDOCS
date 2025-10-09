@@ -1,0 +1,105 @@
+# Core Selenium and WebDriver dependencies
+selenium==4.15.2
+webdriver-manager==4.0.1
+
+# Testing framework
+pytest==7.4.3
+pytest-html==4.1.1
+pytest-xdist==3.5.0
+pytest-rerunfailures==12.0
+pytest-timeout==2.2.0
+pytest-mock==3.12.0
+
+# Test reporting and documentation
+allure-pytest==2.13.2
+pytest-bdd==7.0.1
+
+# Data handling and utilities
+requests==2.31.0
+jsonschema==4.20.0
+openpyxl==3.1.2
+pandas==2.1.4
+faker==20.1.0
+
+# Configuration and environment
+python-dotenv==1.0.0
+configparser==6.0.0
+
+# Image and file processing
+Pillow==10.1.0
+pypdf==3.17.4
+
+# Database connectivity (for test data setup)
+psycopg2-binary==2.9.9
+sqlalchemy==2.0.23
+
+# Email testing
+imaplib2==3.6
+
+# API testing support
+jsonpath-ng==1.6.1
+
+# Performance testing
+psutil==5.9.6
+
+# Parallel execution
+pytest-parallel==0.1.1
+
+# Code quality and linting (optional)
+flake8==6.1.0
+black==23.11.0
+isort==5.12.0
+
+# Security testing utilities
+bandit==1.7.5
+
+# Browser automation enhancements
+selenium-wire==5.1.0  # For network monitoring
+undetected-chromedriver==3.5.4  # For anti-bot detection
+
+# Logging and monitoring
+colorlog==6.8.0
+structlog==23.2.0
+
+# Utilities for file handling
+pathlib2==2.3.7
+watchdog==3.0.0
+
+# Screenshot comparison (for visual testing)
+opencv-python==4.8.1.78
+scikit-image==0.22.0
+
+# Mobile testing support
+Appium-Python-Client==3.1.0
+
+# Cross-platform support
+plyer==2.1.0
+
+# Memory and performance profiling
+memory-profiler==0.61.0
+pympler==0.9
+
+# Retry mechanisms
+tenacity==8.2.3
+
+# Date and time utilities
+python-dateutil==2.8.2
+pytz==2023.3
+
+# Encryption for sensitive test data
+cryptography==41.0.8
+
+# YAML support for configuration
+PyYAML==6.0.1
+
+# CSV handling
+csv-reader==1.2.0
+
+# Random data generation
+mimesis==11.1.0
+
+# Network utilities
+netifaces==0.11.0
+
+# System information
+platform==1.0.8

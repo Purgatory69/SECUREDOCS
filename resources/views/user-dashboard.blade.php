@@ -798,9 +798,6 @@
                     <button type="button" id="clearSearchFilters" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm">
                         Clear Filters
                     </button>
-                    <button type="button" id="saveSearchBtn" class="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded text-sm">
-                        Save Search
-                    </button>
                 </div>
                 <div class="flex space-x-2">
                     <button type="button" id="cancelAdvancedSearch" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm">
@@ -812,14 +809,6 @@
                 </div>
             </div>
         </form>
-        
-        <!-- Saved Searches Section -->
-        <div class="mt-8 pt-6 border-t border-border-color">
-            <h4 class="text-lg font-semibold mb-4">Saved Searches</h4>
-            <div id="savedSearchesList" class="space-y-2">
-                <!-- Saved searches will be populated by JavaScript -->
-            </div>
-        </div>
     </div>
 </div>
 

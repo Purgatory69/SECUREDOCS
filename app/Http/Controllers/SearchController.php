@@ -31,10 +31,6 @@ class SearchController extends Controller
         // Add search suggestions if query is provided
         $suggestions = $query ? $this->getSearchSuggestions($user, $query) : [];
 
-        // Track search for analytics/suggestions
-        if ($query) {
-            $this->trackSearch($user, $query, $files->total());
-        }
 
         return response()->json([
             'files' => $files->items(),
@@ -181,23 +177,6 @@ class SearchController extends Controller
         return $suggestions;
     }
 
-    /**
-     * Track search queries for analytics and improving suggestions
-     */
-    private function trackSearch($user, $query, $resultCount)
-    {
-        // Simple search tracking - you could expand this
-        try {
-            DB::table('search_logs')->insert([
-                'user_id' => $user->id,
-                'query' => $query,
-                'result_count' => $resultCount,
-                'created_at' => now(),
-            ]);
-        } catch (\Throwable $e) {
-            \Log::warning('Failed to insert search_logs: ' . $e->getMessage());
-        }
-    }
 
     /**
      * Get search filters and their counts
@@ -228,66 +207,6 @@ class SearchController extends Controller
         return response()->json($stats);
     }
 
-    /**
-     * Save search for later use
-     */
-    public function saveSearch(Request $request)
-    {
-        $request->validate([
-            'name' => 'required|string|max:255',
-            'query' => 'required|string',
-            'filters' => 'nullable|array'
-        ]);
 
-        $savedSearch = DB::table('saved_searches')->insertGetId([
-            'user_id' => Auth::id(),
-            'name' => $request->name,
-            'query' => $request->query,
-            'filters' => json_encode($request->filters ?? []),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Search saved successfully',
-            'saved_search_id' => $savedSearch
-        ]);
-    }
-
-    /**
-     * Get user's saved searches
-     */
-    public function getSavedSearches()
-    {
-        $savedSearches = DB::table('saved_searches')
-            ->where('user_id', Auth::id())
-            ->orderBy('created_at', 'desc')
-            ->get();
-
-        return response()->json($savedSearches);
-    }
-
-    /**
-     * Delete a saved search
-     */
-    public function deleteSavedSearch($id)
-    {
-        $deleted = DB::table('saved_searches')
-            ->where('id', $id)
-            ->where('user_id', Auth::id())
-            ->delete();
-
-        if ($deleted) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Saved search deleted successfully'
-            ]);
-        } else {
-            return response()->json([
-                'success' => false,
-                'message' => 'Saved search not found or unauthorized'
-            ], 404);
-        }
-    }
 }

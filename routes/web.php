@@ -138,9 +138,6 @@ Route::middleware([
     // Search routes
     Route::get('/search', [SearchController::class, 'search'])->name('search');
     Route::get('/search/filters', [SearchController::class, 'getSearchFilters'])->name('search.filters');
-    Route::post('/search/save', [SearchController::class, 'saveSearch'])->name('search.save');
-    Route::get('/search/saved', [SearchController::class, 'getSavedSearches'])->name('search.saved');
-    Route::delete('/search/saved/{id}', [SearchController::class, 'deleteSavedSearch'])->name('search.delete');
 
     // Blockchain routes (authenticated)
     Route::prefix('blockchain')->group(function () {

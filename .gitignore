@@ -24,3 +24,21 @@ yarn-error.log
 /.vscode
 /.zed
 storage/logs/laravel.log
+
+# Python Virtual Environments
+test-automation/python/venv/
+test-automation/python/__pycache__/
+test-automation/python/*.pyc
+test-automation/python/*.pyo
+test-automation/python/.pytest_cache/
+
+# Test Reports and Artifacts
+test-automation/reports/
+test-automation/screenshots/
+test-automation/allure-results/
+test-automation/test-output/
+
+# IDE files for test automation
+test-automation/.idea/
+test-automation/.vscode/
+test-automation/*.iml

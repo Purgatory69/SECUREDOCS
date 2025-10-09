@@ -1,0 +1,215 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+
+<suite name="SecureDocs_Automation_Suite" verbose="1" parallel="methods" thread-count="3">
+    
+    <!-- Global Test Parameters -->
+    <parameter name="baseUrl" value="http://localhost:8000"/>
+    <parameter name="browser" value="chrome"/>
+    <parameter name="headless" value="false"/>
+    <parameter name="timeout" value="30"/>
+    
+    <!-- Smoke Test Suite - Critical functionality -->
+    <test name="Smoke_Tests" preserve-order="true">
+        <parameter name="testType" value="smoke"/>
+        <groups>
+            <run>
+                <include name="smoke"/>
+                <include name="critical"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.LoginTest">
+                <methods>
+                    <include name="testValidLogin"/>
+                    <include name="testLogout"/>
+                </methods>
+            </class>
+            <class name="com.securedocs.tests.DashboardTest">
+                <methods>
+                    <include name="testDashboardLoad"/>
+                    <include name="testNavigation"/>
+                </methods>
+            </class>
+            <class name="com.securedocs.tests.FileManagementTest">
+                <methods>
+                    <include name="testFileUpload"/>
+                    <include name="testFileDownload"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <!-- Regression Test Suite - Complete functionality -->
+    <test name="Regression_Tests" preserve-order="false">
+        <parameter name="testType" value="regression"/>
+        <groups>
+            <run>
+                <include name="regression"/>
+                <include name="negative"/>
+                <include name="validation"/>
+            </run>
+        </groups>
+        <packages>
+            <package name="com.securedocs.tests.*"/>
+        </packages>
+    </test>
+    
+    <!-- Authentication Module Tests -->
+    <test name="Authentication_Module">
+        <parameter name="module" value="authentication"/>
+        <classes>
+            <class name="com.securedocs.tests.LoginTest"/>
+            <class name="com.securedocs.tests.RegistrationTest"/>
+            <class name="com.securedocs.tests.PasswordResetTest"/>
+            <class name="com.securedocs.tests.EmailVerificationTest"/>
+        </classes>
+    </test>
+    
+    <!-- File Management Module Tests -->
+    <test name="File_Management_Module">
+        <parameter name="module" value="file_management"/>
+        <classes>
+            <class name="com.securedocs.tests.FileUploadTest"/>
+            <class name="com.securedocs.tests.FileDownloadTest"/>
+            <class name="com.securedocs.tests.FolderManagementTest"/>
+            <class name="com.securedocs.tests.FileSearchTest"/>
+            <class name="com.securedocs.tests.FileVersioningTest"/>
+        </classes>
+    </test>
+    
+    <!-- Security Features Tests -->
+    <test name="Security_Features">
+        <parameter name="module" value="security"/>
+        <groups>
+            <run>
+                <include name="security"/>
+                <include name="otp"/>
+                <include name="webauthn"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.OtpSecurityTest"/>
+            <class name="com.securedocs.tests.WebAuthnTest"/>
+            <class name="com.securedocs.tests.ActivityTrackingTest"/>
+        </classes>
+    </test>
+    
+    <!-- Premium Features Tests -->
+    <test name="Premium_Features">
+        <parameter name="module" value="premium"/>
+        <groups>
+            <run>
+                <include name="premium"/>
+                <include name="blockchain"/>
+                <include name="ai"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.BlockchainStorageTest"/>
+            <class name="com.securedocs.tests.AiVectorizationTest"/>
+            <class name="com.securedocs.tests.PaymentIntegrationTest"/>
+        </classes>
+    </test>
+    
+    <!-- Admin Panel Tests -->
+    <test name="Admin_Panel">
+        <parameter name="module" value="admin"/>
+        <groups>
+            <run>
+                <include name="admin"/>
+                <include name="user_management"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.AdminLoginTest"/>
+            <class name="com.securedocs.tests.UserManagementTest"/>
+            <class name="com.securedocs.tests.AdminAnalyticsTest"/>
+        </classes>
+    </test>
+    
+    <!-- Cross-Browser Tests -->
+    <test name="Chrome_Tests">
+        <parameter name="browser" value="chrome"/>
+        <groups>
+            <run>
+                <include name="compatibility"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.LoginTest">
+                <methods>
+                    <include name="testCrossBrowserLogin"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <test name="Firefox_Tests">
+        <parameter name="browser" value="firefox"/>
+        <groups>
+            <run>
+                <include name="compatibility"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.LoginTest">
+                <methods>
+                    <include name="testCrossBrowserLogin"/>
+                </methods>
+            </class>
+        </classes>
+    </test>
+    
+    <!-- Mobile Responsive Tests -->
+    <test name="Mobile_Responsive">
+        <parameter name="deviceType" value="mobile"/>
+        <parameter name="viewport" value="375x667"/>
+        <groups>
+            <run>
+                <include name="responsive"/>
+                <include name="mobile"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.ResponsiveDesignTest"/>
+        </classes>
+    </test>
+    
+    <!-- Performance Tests -->
+    <test name="Performance_Tests">
+        <parameter name="testType" value="performance"/>
+        <groups>
+            <run>
+                <include name="performance"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.PageLoadPerformanceTest"/>
+            <class name="com.securedocs.tests.FileUploadPerformanceTest"/>
+        </classes>
+    </test>
+    
+    <!-- API Integration Tests -->
+    <test name="API_Integration">
+        <parameter name="testType" value="api"/>
+        <groups>
+            <run>
+                <include name="api"/>
+                <include name="integration"/>
+            </run>
+        </groups>
+        <classes>
+            <class name="com.securedocs.tests.ApiIntegrationTest"/>
+            <class name="com.securedocs.tests.DatabaseIntegrationTest"/>
+        </classes>
+    </test>
+    
+    <!-- Test Listeners for reporting and screenshots -->
+    <listeners>
+        <listener class-name="com.securedocs.listeners.ScreenshotListener"/>
+        <listener class-name="com.securedocs.listeners.ExtentReportListener"/>
+        <listener class-name="com.securedocs.listeners.EmailReportListener"/>
+    </listeners>
+    
+</suite>
