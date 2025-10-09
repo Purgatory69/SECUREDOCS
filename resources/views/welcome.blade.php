@@ -96,7 +96,7 @@
       </h2>
       <p class="text-[#ff9c00] text-lg sm:text-xl font-medium mb-12 max-w-md leading-snug">{!! __('auth.hero_mid_2')!!}
       </p>
-      <div class="flex justify-center">
+      <div class="flex justify-left">
         <!-- Replace with your actual register route when converting to Blade -->
         <a href="/register">
           <button class="bg-[#ff9c00] text-black font-semibold text-base rounded-full px-8 py-3 hover:brightness-110 transition" type="button">

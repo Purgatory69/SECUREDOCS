@@ -268,7 +268,7 @@
             #chartGroupToggle, #chartGroupDropdown {width: 120px !important; min-width: 120px !important; max-width: 120px !important;}
 
             .user-table-row {transition: background-color 0.2s ease, color 0.2s ease;}
-            .user-table-row:hover {background-color: #676C98 !important;}
+            .user-table-row:hover {background-color: #55597C !important;}
             .user-table-row:hover td {color: #FFFFFF !important;}
             
             /* Table Header */

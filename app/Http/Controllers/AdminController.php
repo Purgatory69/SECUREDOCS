@@ -7,6 +7,7 @@ use App\Models\Subscription;
 use App\Models\Payment;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Carbon\Carbon;
 
 class AdminController extends Controller
@@ -99,7 +100,7 @@ class AdminController extends Controller
         }
 
         $users = $query->orderBy('created_at', 'desc')
-            ->paginate(15)
+            ->paginate(6) //For arrow testing
             ->withQueryString();
 
         return view('admin-users', compact('users'));
@@ -110,23 +111,33 @@ class AdminController extends Controller
      */
     public function approve($id)
     {
+        $user = User::findOrFail($id);
+        
         DB::table('users')
             ->where('id', $id)
             ->update(['is_approved' => DB::raw('true')]);
 
-        return redirect()->route('admin.users')->with('success', 'User approved successfully.');
+        return redirect()->route('admin.users')->with('success', [
+            'key' => 'auth.success_user_approved',
+            'params' => ['name' => Str::limit($user->name, 28)]
+        ]);
     }
 
     /**
      * Revoke a user's approval.
      */
-    public function revoke($id)
+        public function revoke($id)
     {
+        $user = User::findOrFail($id);
+        
         DB::table('users')
             ->where('id', $id)
             ->update(['is_approved' => DB::raw('false')]);
 
-        return redirect()->route('admin.users')->with('success', 'User approval revoked successfully.');
+        return redirect()->route('admin.users')->with('success', [
+            'key' => 'auth.success_user_revoked',
+            'params' => ['name' => Str::limit($user->name, 28)]
+        ]);
     }
 
     /**
@@ -141,7 +152,10 @@ class AdminController extends Controller
             ->where('id', $user->id)
             ->update(['is_premium' => DB::raw($isPremium ? 'true' : 'false')]);
 
-        return redirect()->route('admin.users')->with('success', 'User premium settings updated successfully.');
+        return redirect()->route('admin.users')->with('success', [
+            'key' => 'auth.success_premium_updated',
+            'params' => ['name' => Str::limit($user->name, 28)]
+        ]);
     }
 
     /**
@@ -295,6 +309,7 @@ class AdminController extends Controller
         ]);
     }
 
+
     /**
      * Toggle user premium status
      */
@@ -315,7 +330,10 @@ class AdminController extends Controller
                         'auto_renew' => false
                     ]);
                 
-                $message = "User {$user->name} premium status removed successfully.";
+                $message = [
+                    'key' => 'auth.success_premium_removed',
+                    'params' => ['name' => Str::limit($user->name, 28)]
+                ];
             } else {
                 // Grant premium status
                 DB::statement('UPDATE users SET is_premium = true WHERE id = ?', [$user->id]);
@@ -333,7 +351,10 @@ class AdminController extends Controller
                     'auto_renew' => false
                 ]);
                 
-                $message = "User {$user->name} granted premium status successfully.";
+                $message = [
+                    'key' => 'auth.success_premium_granted',
+                    'params' => ['name' => Str::limit($user->name, 28)]
+                ];
             }
             
             // Refresh user model to get updated is_premium value
@@ -342,7 +363,7 @@ class AdminController extends Controller
             if ($request->expectsJson()) {
                 return response()->json([
                     'success' => true,
-                    'message' => $message,
+                    'message' => __($message['key'], $message['params']),
                     'is_premium' => $user->is_premium
                 ]);
             }
@@ -382,12 +403,15 @@ class AdminController extends Controller
         $user->payments()->delete();
         $user->subscriptions()->delete();
         
-        $message = "User {$user->name} premium data completely reset.";
-        
+        $message = [
+            'key' => 'auth.success_premium_reset',
+            'params' => ['name' => Str::limit($user->name, 28)]
+        ];
+            
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => $message
+                'message' => __($message['key'], $message['params'])
             ]);
         }
         
