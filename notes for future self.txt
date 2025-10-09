@@ -20,3 +20,4 @@ pkill -f "php artisan serve"
 
 \cloudflared.exe tunnel run securedocs
 
+php artisan ai:complete-categorization 18 --progress=100

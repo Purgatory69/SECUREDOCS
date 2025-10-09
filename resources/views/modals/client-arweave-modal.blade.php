@@ -140,7 +140,7 @@
                             <p class="text-sm text-gray-400">Available for uploads</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-2xl font-bold text-green-400" id="currentBundlrBalance">0.100000</p>
+                            <p class="text-2xl font-bold text-green-400" id="currentBundlrBalance">0.000000</p>
                             <p class="text-xs text-gray-400">MATIC</p>
                         </div>
                     </div>
@@ -251,7 +251,7 @@
                     <div class="space-y-3">
                         <div class="flex items-center justify-between text-sm">
                             <span>File:</span>
-                            <span class="text-gray-300" id="uploadFileName">document.pdf</span>
+                            <span class="text-gray-300" id="uploadFileName">No file selected</span>
                         </div>
                         <div class="flex items-center justify-between text-sm">
                             <span>Upload Cost:</span>
@@ -259,7 +259,7 @@
                         </div>
                         <div class="flex items-center justify-between text-sm">
                             <span>Your Balance:</span>
-                            <span class="text-green-400" id="uploadBalanceFinal">0.1 MATIC</span>
+                            <span class="text-green-400" id="uploadBalanceFinal">0.000000 MATIC</span>
                         </div>
                     </div>
                     
@@ -295,14 +295,14 @@
                         <label class="block text-sm font-medium mb-2">Permanent URL:</label>
                         <div class="flex items-center gap-2">
                             <input type="text" 
-                                   id="arweaveSuccessUrl"
+                                   id="arweaveSuccessUrlInput"
                                    readonly 
                                    class="flex-1 px-3 py-2 bg-[#3C3F58] border border-gray-600 rounded-lg text-white text-sm font-mono">
-                            <button onclick="copyToClipboard(document.getElementById('arweaveSuccessUrl').href)" 
+                            <button onclick="copyToClipboard(document.getElementById('arweaveSuccessUrlInput').value)" 
                                     class="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm">
                                 Copy
                             </button>
-                            <a id="arweaveSuccessUrl" 
+                            <a id="arweaveSuccessUrlLink" 
                                href="#" 
                                target="_blank"
                                class="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">

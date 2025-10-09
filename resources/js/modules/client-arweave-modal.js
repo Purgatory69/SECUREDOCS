@@ -164,6 +164,9 @@ export function openClientArweaveModal() {
         showStep('fileSelection');
         resetModalState();
         
+        // Load live balance if Bundlr is ready
+        loadLiveBalance();
+        
         console.log('✅ Modal opened successfully!');
     } else {
         console.error('❌ Modal element not found!');
@@ -195,10 +198,37 @@ function resetModalState() {
     
     // Reset displays
     updateFileInfo('');
-    updateBalance('0');
     updateUploadCost('0');
     
+    // Clear file name in upload step
+    const uploadFileNameEl = document.getElementById('uploadFileName');
+    if (uploadFileNameEl) {
+        uploadFileNameEl.textContent = 'No file selected';
+    }
+    
     showStep('fileSelection');
+}
+
+/**
+ * Load live balance from Bundlr widget
+ */
+function loadLiveBalance() {
+    try {
+        if (window.isWalletReady && window.isWalletReady()) {
+            const balance = window.getCurrentBalance();
+            console.log('🔄 Loading live Bundlr balance:', balance, 'MATIC');
+            updateBalance(balance);
+            updateBalanceSufficiency(balance >= 0.005, balance);
+        } else {
+            console.log('⚠️ Bundlr widget not ready, showing default balance');
+            updateBalance(0);
+            updateBalanceSufficiency(false, 0);
+        }
+    } catch (error) {
+        console.warn('⚠️ Failed to load live balance:', error);
+        updateBalance(0);
+        updateBalanceSufficiency(false, 0);
+    }
 }
 
 /**
@@ -216,15 +246,25 @@ async function handleFileSelection(event) {
     currentFile = file;
     updateFileInfo(`${file.name} (${formatFileSize(file.size)})`);
     
-    // Calculate upload cost if Bundlr widget is initialized
-    if (window.isWalletReady && window.isWalletReady()) {
-        // Use estimated cost since we don't have the old calculateUploadCost function
-        const estimatedCost = Math.max(0.001, file.size / 1000000 * 0.001); // Rough estimate
-        uploadCost = estimatedCost;
-        updateUploadCost(estimatedCost.toFixed(6));
-    } else {
-        updateUploadCost('~0.005');
+    // Update file name in upload step
+    const uploadFileNameEl = document.getElementById('uploadFileName');
+    if (uploadFileNameEl) {
+        uploadFileNameEl.textContent = file.name;
     }
+    
+    // Calculate real upload cost
+    const estimatedCostMatic = Math.max(0.005, file.size / 1000000 * 0.005); // ~0.005 MATIC per MB
+    uploadCost = estimatedCostMatic;
+    updateUploadCost(estimatedCostMatic.toFixed(6));
+    
+    // Update upload cost in final step
+    const uploadCostFinalEl = document.getElementById('uploadCostFinal');
+    if (uploadCostFinalEl) {
+        uploadCostFinalEl.textContent = `~${estimatedCostMatic.toFixed(6)} MATIC`;
+    }
+    
+    console.log('📄 File selected:', file.name, 'Size:', formatFileSize(file.size), 'Estimated cost:', estimatedCostMatic.toFixed(6), 'MATIC');
+    
     showStep('walletConnection');
 }
 
@@ -314,22 +354,18 @@ async function handleUploadToArweave() {
     }
 
     try {
-        showStep('uploadProgress');
         console.log('🚀 Starting Arweave upload using wallet widget...', currentFile.name);
 
-        updateProgress(0, 'Preparing upload...');
+        // Show loading on upload button
+        showLoading('uploadToArweaveBtn', 'Uploading...');
         
         // Check balance
         const balance = window.getCurrentBalance();
         const uploadCost = 0.005; // Estimated cost in MATIC
         
-        updateProgress(25, 'Checking balance...');
-        
         if (balance < uploadCost) {
             throw new Error(`Insufficient Bundlr balance (${balance.toFixed(6)} MATIC). Please fund your account using the wallet widget.`);
         }
-        
-        updateProgress(50, 'Uploading file to Arweave...');
         
         // Upload using wallet widget
         const result = await window.uploadFileWithBundlr(currentFile);
@@ -337,8 +373,6 @@ async function handleUploadToArweave() {
         if (!result.success) {
             throw new Error(result.error || 'Upload failed');
         }
-        
-        updateProgress(90, 'Saving upload record...');
         
         // Create simple upload data for saving
         const uploadData = {
@@ -349,10 +383,8 @@ async function handleUploadToArweave() {
         // Save to database (optional)
         await saveUploadRecord(uploadData);
         
-        updateProgress(100, 'Upload completed!');
-        
-        // Show success with Arweave URL
-        showSuccess(result.url);
+        // Show success step with URL
+        showUploadSuccess(result.url, result.remainingBalance);
         
         console.log('✅ Upload completed successfully via wallet widget');
         console.log('🔗 Arweave URL:', result.url);
@@ -361,6 +393,9 @@ async function handleUploadToArweave() {
     } catch (error) {
         console.error('❌ Upload failed:', error);
         showError(error.message);
+    } finally {
+        // Reset button
+        hideLoading('uploadToArweaveBtn', '🚀 Upload to Arweave');
     }
 }
 
@@ -484,19 +519,27 @@ function updateFileInfo(text) {
     if (element) element.textContent = text;
 }
 function updateBalance(balance) {
+    // Ensure balance is a valid number
+    const numericBalance = parseFloat(balance) || 0;
+    
     // Update all balance displays in the modal
     const bundlrBalanceDisplay = document.getElementById('bundlrBalanceDisplay');
     const currentBundlrBalance = document.getElementById('currentBundlrBalance');
+    const uploadBalanceFinal = document.getElementById('uploadBalanceFinal');
     
     if (bundlrBalanceDisplay) {
-        bundlrBalanceDisplay.textContent = balance.toFixed(6);
+        bundlrBalanceDisplay.textContent = numericBalance.toFixed(6);
     }
     
     if (currentBundlrBalance) {
-        currentBundlrBalance.textContent = balance.toFixed(6);
+        currentBundlrBalance.textContent = numericBalance.toFixed(6);
     }
     
-    console.log('💰 Updated modal balance displays to:', balance.toFixed(6), 'MATIC');
+    if (uploadBalanceFinal) {
+        uploadBalanceFinal.textContent = numericBalance.toFixed(6) + ' MATIC';
+    }
+    
+    console.log('💰 Updated modal balance displays to:', numericBalance.toFixed(6), 'MATIC');
 }
 
 function updateUploadCost(cost) {
@@ -565,6 +608,31 @@ function showSuccess(message) {
             successDiv.classList.add('hidden');
         }, 5000);
     }
+}
+
+/**
+ * Show upload success step
+ */
+function showUploadSuccess(arweaveUrl, remainingBalance) {
+    // Update success step elements
+    const urlInput = document.getElementById('arweaveSuccessUrlInput');
+    const urlLink = document.getElementById('arweaveSuccessUrlLink');
+    const balanceSpan = document.getElementById('arweaveSuccessBalance');
+    
+    if (urlInput) {
+        urlInput.value = arweaveUrl;
+    }
+    
+    if (urlLink) {
+        urlLink.href = arweaveUrl;
+    }
+    
+    if (balanceSpan && remainingBalance !== undefined) {
+        balanceSpan.textContent = `${remainingBalance.toFixed(6)} MATIC`;
+    }
+    
+    // Show success step
+    showStep('success');
 }
 
 /**

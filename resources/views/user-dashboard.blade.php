@@ -414,8 +414,7 @@
                 onmouseout="this.style.cssText = '';">
                 <span class="mr-4 text-lg">🚀</span>
                 <div class="flex-1">
-                    <div class="font-medium">Arweave Storage (Direct)</div>
-                    <div class="text-xs text-gray-300">Pay with your wallet - No fees</div>
+                    <div class="font-medium">Arweave Storage </div>
                 </div>
                 <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-green-500 text-white">NEW</span>
             </div>
