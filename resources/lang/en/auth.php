@@ -38,6 +38,7 @@ return [
     'db_profile_settings' => 'Profile Settings',
     'db_privacy_security' => 'Privacy & Security',
     'db_biometrics' => 'Biometrics',
+    'db_account_security' => 'Account Security',
     'db_language' => 'Language',
     'db_help_support' => 'Help & Support',
     'db_send_feedback' => 'Send Feedback',

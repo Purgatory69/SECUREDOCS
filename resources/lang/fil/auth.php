@@ -29,7 +29,6 @@ return [
 
     'forgot_password_header' => 'Baguhin ang iyong Password!',
     'forgot_password_title' => 'NAKALIMUTAN ANG PASSWORD?',
-    'type_email_here' => '\'Wag mangamba! Ibigay mo lamang ang iyong email address upang mabigyan ka ng password reset link upang mapalitan ng bagong password.',
     'type_email_here' => 'Huwag mangamba! Ibigay mo lamang ang iyong email address upang mabigyan ka ng link para sa pag-reset ng password.',
     'password_reset_btn' => 'I-EMAIL ANG PASSWORD RESET LINK',
 
@@ -39,6 +38,7 @@ return [
     'db_profile_settings' => 'Settings ng Profile',
     'db_privacy_security' => 'Pribasiya at Seguridad',
     'db_biometrics' => 'Biometriks',
+    'db_account_security' => 'Seguridad ng Account',
     'db_language' => 'Wika',
     'db_help_support' => 'Tulong at Suporta',
     'db_send_feedback' => 'Magbigay ng Feedback',

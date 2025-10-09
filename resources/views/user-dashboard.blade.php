@@ -108,7 +108,7 @@
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/shield.png" class="mr-4 w-4 h-4 ml-1" alt="Account Security">
-                        <span class="text-sm">Account Security</span>
+                        <span class="text-sm">{{ __('auth.db_account_security') }}</span>
                         </a>
                     </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
@@ -469,10 +469,10 @@
                 onmouseout="this.style.cssText = '';">
                 <span class="mr-4 text-lg">⛓️</span>
                 <div class="flex-1">
-                    <div class="font-medium">Permanent Storage</div>
-                    <div class="text-xs text-gray-300">Store on Arweave blockchain</div>
+                    <div class="font-medium">Blockchain Upload</div>
+                    <div class="text-xs text-gray-300">Store directly to Arweave. No Fees.</div>
                 </div>
-                <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span>
+                <!-- <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 text-white">PREMIUM</span> -->
             </div>
             @endif
             
