@@ -52,6 +52,8 @@ return [
     'db_security' => 'Seguridad',
     'db_blockchain_storage' => 'Blockchain',
 
+    'db_share_to_ai' => 'Share File to A.I.',
+
     'fp_details' => 'Mga Detalye',
     'fp_activity' => 'Kamakailang Aktibidad',
     'fp_unknown' => '\'Di makilala',

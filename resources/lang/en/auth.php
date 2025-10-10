@@ -52,6 +52,8 @@ return [
     'db_security' => 'Security',
     'db_blockchain_storage' => 'Blockchain',
 
+    'db_share_to_ai' => 'Share File to A.I.',
+
     'fp_details' => 'File Details',
     'fp_activity' => 'Recent Activtiy',
     'fp_unknown' => 'Unknown',
