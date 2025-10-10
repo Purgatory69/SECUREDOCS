@@ -169,7 +169,6 @@
             <button type="button" id="biometric-login-button" class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">
                 {{ __('auth.login_biometrics') }}
             </button>
-            <p id="biometric-login-status" class="text-sm text-red-600 mt-2 text-center"></p>
 
         </form>
 
@@ -206,24 +205,14 @@
             }
         });
 
-        // Biometric Login
+        // Biometric Login - Redirect to WebAuthn login page
         document.addEventListener('DOMContentLoaded', function() {
-            const emailInput = document.getElementById('email');
             const biometricButton = document.getElementById('biometric-login-button');
-            const statusDisplay = document.getElementById('biometric-login-status');
 
             if (biometricButton) {
-                biometricButton.addEventListener('click', async function() {
-                    if (!emailInput.value.trim()) {
-                        statusDisplay.textContent = 'Please enter your email address first.';
-                        return;
-                    }
-
-                    if (window.handleBiometricLogin) {
-                        window.handleBiometricLogin(emailInput.value, biometricButton, statusDisplay);
-                    } else {
-                        statusDisplay.textContent = 'Biometric login script not loaded correctly.';
-                    }
+                biometricButton.addEventListener('click', function() {
+                    // Redirect to the WebAuthen login page
+                    window.location.href = '{{ route("webauthn.login") }}';
                 });
             }
         });

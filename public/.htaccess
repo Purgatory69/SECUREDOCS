@@ -5,6 +5,18 @@
 
     RewriteEngine On
 
+    # Force HTTPS and www subdomain for consistency
+    RewriteCond %{HTTPS} off [OR]
+    RewriteCond %{HTTP_HOST} !^www\. [NC]
+    RewriteRule ^(.*)$ https://www.securedocs.live/$1 [R=301,L]
+
+    # CORS headers for assets - allow cross-origin requests for JS/CSS files
+    <FilesMatch "\.(js|css|woff|woff2|ttf|eot|png|jpg|jpeg|gif|svg|ico)$">
+        Header always set Access-Control-Allow-Origin "*"
+        Header always set Access-Control-Allow-Methods "GET, OPTIONS"
+        Header always set Access-Control-Allow-Headers "Content-Type"
+    </FilesMatch>
+
     # Handle Authorization Header
     RewriteCond %{HTTP:Authorization} .
     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]

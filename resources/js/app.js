@@ -2,11 +2,8 @@ import './bootstrap';
 import './modules/notifications.js';
 import './modules/ai-categorization.js';
 
-// Import WebAuthn scripts in the correct order
-// First import the vendor WebAuthn library to ensure it's available globally
-// import './vendor/webauthn';
-// Then import our custom handler that depends on window.WebAuthn
-import './webauthn-handler';
+// WebAuthn scripts are now only loaded on pages that specifically need them
+// Removed global import to prevent conflicts on regular login page
 
 // -------------------------------------------------------------
 // Supabase client bootstrap and upload helper

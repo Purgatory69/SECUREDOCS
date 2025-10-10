@@ -281,6 +281,7 @@ async function handleConnectWallet() {
             const balance = window.getCurrentBalance();
             console.log('🔍 Real widget balance:', balance, 'MATIC');
             updateBalance(balance);
+            updateBalanceSufficiency(balance >= uploadCost, balance);
             
             // Show wallet connected status and proceed to balance check
             showWalletConnected(window.ethereum.selectedAddress, balance);
@@ -617,7 +618,10 @@ function showUploadSuccess(arweaveUrl, remainingBalance) {
     // Update success step elements
     const urlInput = document.getElementById('arweaveSuccessUrlInput');
     const urlLink = document.getElementById('arweaveSuccessUrlLink');
+    const altUrlLink = document.getElementById('arweaveAltUrlLink');
     const balanceSpan = document.getElementById('arweaveSuccessBalance');
+    const fileTypeSpan = document.getElementById('uploadedFileType');
+    const fileSizeSpan = document.getElementById('uploadedFileSize');
     
     if (urlInput) {
         urlInput.value = arweaveUrl;
@@ -627,9 +631,33 @@ function showUploadSuccess(arweaveUrl, remainingBalance) {
         urlLink.href = arweaveUrl;
     }
     
+    // Set alternative gateway URL
+    if (altUrlLink && arweaveUrl) {
+        const txId = arweaveUrl.split('/').pop();
+        const altUrl = `https://gateway.arweave.dev/${txId}`;
+        altUrlLink.href = altUrl;
+    }
+    
     if (balanceSpan && remainingBalance !== undefined) {
         balanceSpan.textContent = `${remainingBalance.toFixed(6)} MATIC`;
     }
+    
+    // Show file information
+    if (currentFile) {
+        if (fileTypeSpan) {
+            const fileType = currentFile.type || 'application/octet-stream';
+            const isViewable = fileType.startsWith('image/') || fileType.startsWith('video/') || fileType === 'application/pdf' || fileType.startsWith('text/');
+            fileTypeSpan.textContent = `${fileType} ${isViewable ? '(Viewable)' : '(Downloads)'}`;
+        }
+        
+        if (fileSizeSpan) {
+            fileSizeSpan.textContent = formatFileSize(currentFile.size);
+        }
+    }
+    
+    console.log('🎉 Success step displayed with URL:', arweaveUrl);
+    console.log('📄 File type:', currentFile?.type, 'Size:', currentFile?.size);
+    console.log('💰 Remaining balance:', remainingBalance?.toFixed(6), 'MATIC');
     
     // Show success step
     showStep('success');

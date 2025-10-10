@@ -293,28 +293,49 @@
                 <div class="bg-[#1F2235] rounded-lg p-6 space-y-4">
                     <div>
                         <label class="block text-sm font-medium mb-2">Permanent URL:</label>
+                        <div class="mb-2 text-xs text-gray-400">
+                            <span>File Type: </span><span id="uploadedFileType">Unknown</span> |
+                            <span>Size: </span><span id="uploadedFileSize">Unknown</span>
+                        </div>
                         <div class="flex items-center gap-2">
                             <input type="text" 
                                    id="arweaveSuccessUrlInput"
                                    readonly 
                                    class="flex-1 px-3 py-2 bg-[#3C3F58] border border-gray-600 rounded-lg text-white text-sm font-mono">
-                            <button onclick="copyToClipboard(document.getElementById('arweaveSuccessUrlInput').value)" 
+                            <button id="copyUrlBtn" onclick="copyToClipboard(document.getElementById('arweaveSuccessUrlInput').value)" 
                                     class="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm">
                                 Copy
                             </button>
                             <a id="arweaveSuccessUrlLink" 
                                href="#" 
                                target="_blank"
-                               class="px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">
+                               class="px-2 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">
                                 View
                             </a>
+                            <a id="arweaveAltUrlLink" 
+                               href="#" 
+                               target="_blank"
+                               title="Alternative gateway if main doesn't work"
+                               class="px-2 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm">
+                                Alt
+                            </a>
+                            <button id="checkStatusBtn" onclick="checkArweaveStatus()" 
+                                    title="Check if file is ready on Arweave"
+                                    class="px-2 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-sm">
+                                Status
+                            </button>
+                            <button id="autoCheckBtn" onclick="toggleAutoCheck()" 
+                                    title="Auto-check every 30 seconds"
+                                    class="px-2 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm">
+                                Auto
+                            </button>
                         </div>
                     </div>
                     
                     <div class="border-t border-[#3C3F58] pt-4">
                         <div class="flex items-center justify-between text-sm mb-4">
                             <span>Remaining Balance:</span>
-                            <span class="text-green-400" id="arweaveSuccessBalance">0.095 MATIC</span>
+                            <span class="text-green-400" id="arweaveSuccessBalance">0.000000 MATIC</span>
                         </div>
                         
                         <!-- Save Options -->
@@ -335,6 +356,18 @@
                             <p class="text-xs text-gray-500 mt-2">
                                 URL reference saves the Arweave link to your files list without downloading content locally.
                             </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Arweave Info Panel -->
+                    <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                        <h5 class="text-sm font-medium text-blue-400 mb-2">📋 Arweave File Access Guide</h5>
+                        <div class="text-xs text-gray-300 space-y-1">
+                            <div><strong>Images/Videos:</strong> Display directly in browser</div>
+                            <div><strong>PDFs:</strong> Usually display in browser</div>
+                            <div><strong>Documents (DOC, TXT):</strong> May download instead of display</div>
+                            <div><strong>Binary files:</strong> Typically trigger download</div>
+                            <div class="mt-2 text-yellow-300"><strong>⏳ New uploads take 5-30 minutes to propagate globally</strong></div>
                         </div>
                     </div>
                 </div>
@@ -358,8 +391,249 @@
 // Copy to clipboard function
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(() => {
-        // You could add a toast notification here
-        console.log('Copied to clipboard!');
+        const btn = document.getElementById('copyUrlBtn');
+        const originalText = btn.textContent;
+        
+        // Show feedback
+        btn.textContent = 'Copied!';
+        btn.classList.add('bg-green-600');
+        btn.classList.remove('bg-gray-600');
+        
+        // Reset after 2 seconds
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.classList.remove('bg-green-600');
+            btn.classList.add('bg-gray-600');
+        }, 2000);
+        
+        console.log('✅ Copied to clipboard!');
+    }).catch(err => {
+        console.error('❌ Failed to copy:', err);
+        alert('Failed to copy. Please select and copy manually.');
     });
+}
+
+// Check Arweave transaction status using official APIs
+async function checkArweaveStatus() {
+    const btn = document.getElementById('checkStatusBtn');
+    const urlInput = document.getElementById('arweaveSuccessUrlInput');
+    const url = urlInput?.value;
+    
+    if (!url) {
+        alert('No URL to check');
+        return;
+    }
+    
+    const txId = url.split('/').pop();
+    btn.textContent = 'Checking...';
+    btn.disabled = true;
+    
+    try {
+        let statusMsg = '';
+        let found = false;
+        
+        // 1. Check transaction status via Arweave API
+        console.log('🔍 Checking transaction:', txId);
+        
+        try {
+            const txResponse = await fetch(`https://arweave.net/tx/${txId}/status`);
+            const txStatus = await txResponse.json();
+            
+            if (txResponse.ok && txStatus.confirmed) {
+                statusMsg += `✅ Transaction confirmed in block ${txStatus.confirmed.block_height}\n`;
+                statusMsg += `📦 Block indep hash: ${txStatus.confirmed.block_indep_hash.substring(0, 16)}...\n`;
+                found = true;
+                
+                // Check how many confirmations
+                try {
+                    const networkResponse = await fetch('https://arweave.net/info');
+                    const networkInfo = await networkResponse.json();
+                    const confirmations = networkInfo.height - txStatus.confirmed.block_height;
+                    statusMsg += `🔗 Confirmations: ${confirmations}\n`;
+                    
+                    if (confirmations >= 50) {
+                        statusMsg += `✅ File should be available on all gateways\n`;
+                    } else if (confirmations >= 25) {
+                        statusMsg += `🟡 File should be available on most gateways\n`;
+                    } else {
+                        statusMsg += `🟠 File might not be available on all gateways yet\n`;
+                    }
+                } catch (e) {
+                    console.warn('Could not get confirmations:', e);
+                }
+                
+            } else if (txResponse.ok && txStatus.accepted) {
+                statusMsg += `🟡 Transaction accepted but not yet confirmed\n`;
+                statusMsg += `⏳ Usually takes 1-2 minutes to confirm\n`;
+            } else {
+                statusMsg += `❌ Transaction not found in mempool\n`;
+            }
+        } catch (txError) {
+            console.warn('Transaction API failed:', txError);
+            statusMsg += `⚠️ Could not check transaction status\n`;
+        }
+        
+        // 2. Test actual file availability on gateways
+        statusMsg += `\n🌐 Gateway Availability:\n`;
+        const gateways = [
+            { name: 'Arweave.net', url: `https://arweave.net/${txId}` },
+            { name: 'Gateway.dev', url: `https://gateway.arweave.dev/${txId}` },
+            { name: 'AR.io', url: `https://ar.io/${txId}` }
+        ];
+        
+        let availableCount = 0;
+        for (const gateway of gateways) {
+            try {
+                const response = await fetch(gateway.url, { 
+                    method: 'HEAD',
+                    signal: AbortSignal.timeout(5000) // 5 second timeout
+                });
+                
+                if (response.ok) {
+                    statusMsg += `✅ ${gateway.name}: Available\n`;
+                    availableCount++;
+                    found = true;
+                } else {
+                    statusMsg += `❌ ${gateway.name}: ${response.status}\n`;
+                }
+            } catch (err) {
+                statusMsg += `⏳ ${gateway.name}: Not ready\n`;
+            }
+        }
+        
+        // 3. Overall status
+        if (found && availableCount >= 2) {
+            btn.textContent = '✅ Ready';
+            btn.classList.remove('bg-orange-600');
+            btn.classList.add('bg-green-600');
+            statusMsg += `\n🎉 File is ready! Available on ${availableCount}/3 gateways`;
+        } else if (found && availableCount >= 1) {
+            btn.textContent = '🟡 Partial';
+            btn.classList.remove('bg-orange-600');
+            btn.classList.add('bg-yellow-600');
+            statusMsg += `\n⏳ File is partially ready (${availableCount}/3 gateways)`;
+        } else {
+            btn.textContent = '⏳ Wait';
+            statusMsg += `\n⏳ File not ready yet. Try again in 2-5 minutes.`;
+        }
+        
+        // Show detailed status
+        const statusWindow = window.open('', '_blank', 'width=600,height=400,scrollbars=yes');
+        statusWindow.document.write(`
+            <html>
+                <head><title>Arweave Status - ${txId}</title></head>
+                <body style="font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff;">
+                    <h2>📊 Arweave Transaction Status</h2>
+                    <p><strong>Transaction ID:</strong> ${txId}</p>
+                    <pre style="background: #2a2a2a; padding: 15px; border-radius: 5px; white-space: pre-wrap;">${statusMsg}</pre>
+                    <br>
+                    <button onclick="window.close()" style="padding: 10px 20px; background: #4a5568; color: white; border: none; border-radius: 5px;">Close</button>
+                </body>
+            </html>
+        `);
+        
+    } catch (error) {
+        btn.textContent = '❌ Error';
+        alert('Status check failed: ' + error.message);
+        console.error('Status check error:', error);
+    } finally {
+        btn.disabled = false;
+        setTimeout(() => {
+            btn.textContent = 'Status';
+            btn.classList.remove('bg-green-600', 'bg-yellow-600');
+            btn.classList.add('bg-orange-600');
+        }, 10000); // Reset after 10 seconds
+    }
+}
+
+// Auto-check functionality
+let autoCheckInterval = null;
+let autoCheckCount = 0;
+
+function toggleAutoCheck() {
+    const btn = document.getElementById('autoCheckBtn');
+    
+    if (autoCheckInterval) {
+        // Stop auto-check
+        clearInterval(autoCheckInterval);
+        autoCheckInterval = null;
+        autoCheckCount = 0;
+        btn.textContent = 'Auto';
+        btn.classList.remove('bg-green-600');
+        btn.classList.add('bg-gray-600');
+        console.log('🔄 Auto-check stopped');
+    } else {
+        // Start auto-check
+        autoCheckInterval = setInterval(async () => {
+            autoCheckCount++;
+            console.log(`🔄 Auto-check #${autoCheckCount}`);
+            
+            // Quick status check (just transaction confirmation)
+            const urlInput = document.getElementById('arweaveSuccessUrlInput');
+            const url = urlInput?.value;
+            
+            if (url) {
+                const txId = url.split('/').pop();
+                
+                try {
+                    const txResponse = await fetch(`https://arweave.net/tx/${txId}/status`);
+                    const txStatus = await txResponse.json();
+                    
+                    if (txResponse.ok && txStatus.confirmed) {
+                        // Check network height for confirmations
+                        const networkResponse = await fetch('https://arweave.net/info');
+                        const networkInfo = await networkResponse.json();
+                        const confirmations = networkInfo.height - txStatus.confirmed.block_height;
+                        
+                        btn.textContent = `${confirmations}✓`;
+                        
+                        if (confirmations >= 50) {
+                            // File should be ready, stop auto-check
+                            clearInterval(autoCheckInterval);
+                            autoCheckInterval = null;
+                            btn.textContent = '✅ Done';
+                            btn.classList.remove('bg-green-600');
+                            btn.classList.add('bg-blue-600');
+                            
+                            // Show notification
+                            if (window.Notification && Notification.permission === 'granted') {
+                                new Notification('Arweave File Ready!', {
+                                    body: `Your file has ${confirmations} confirmations and should be available on all gateways.`,
+                                    icon: '/favicon.ico'
+                                });
+                            }
+                            
+                            console.log('✅ File ready! Auto-check completed.');
+                        }
+                    } else {
+                        btn.textContent = `${autoCheckCount}⏳`;
+                    }
+                } catch (e) {
+                    btn.textContent = `${autoCheckCount}❌`;
+                }
+                
+                // Stop after 20 checks (10 minutes)
+                if (autoCheckCount >= 20) {
+                    clearInterval(autoCheckInterval);
+                    autoCheckInterval = null;
+                    btn.textContent = 'Auto';
+                    btn.classList.remove('bg-green-600');
+                    btn.classList.add('bg-gray-600');
+                    console.log('⏰ Auto-check timeout after 10 minutes');
+                }
+            }
+        }, 30000); // Check every 30 seconds
+        
+        btn.textContent = '1⏳';
+        btn.classList.remove('bg-gray-600');
+        btn.classList.add('bg-green-600');
+        
+        // Request notification permission
+        if (window.Notification && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        
+        console.log('🔄 Auto-check started (every 30 seconds)');
+    }
 }
 </script>

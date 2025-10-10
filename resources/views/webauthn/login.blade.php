@@ -57,12 +57,22 @@
                 </button>
             </form>
 
+            <!-- Error Display -->
+            <div id="errorDisplay" class="hidden mt-4 p-4 bg-red-900/30 border border-red-500 rounded-lg">
+                <div class="flex items-center">
+                    <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span id="errorMessage" class="text-red-300 text-sm"></span>
+                </div>
+            </div>
+
             <!-- Divider -->
             <div class="mt-6 pt-6 border-t border-[#4A4D6A]">
                 <div class="text-center">
-                    <a href="{{ route('login') }}" class="text-sm text-blue-400 hover:text-blue-300 transition-colors">
-                        Back to password login
-                    </a>
+                    <button onclick="window.location.href='{{ route('login') }}'" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors">
+                        ← Back to Normal Login
+                    </button>
                 </div>
             </div>
         </div>
@@ -159,6 +169,8 @@
 @endpush
 
 @push('scripts')
+<script src="{{ asset('vendor/webauthn/webauthn.js') }}" defer></script>
+@vite(['resources/js/webauthn-handler.js'])
 <script>
 // Helper functions
 function base64urlToArrayBuffer(base64url) {
@@ -188,6 +200,32 @@ function showAuthModal(message = 'Please use your security key or biometric auth
 
 function hideAuthModal() {
     document.getElementById('authModal').classList.add('hidden');
+}
+
+function showError(message) {
+    const errorDisplay = document.getElementById('errorDisplay');
+    const errorMessage = document.getElementById('errorMessage');
+    errorMessage.textContent = message;
+    errorDisplay.classList.remove('hidden');
+    
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+        errorDisplay.classList.add('hidden');
+    }, 10000);
+}
+
+function resetButton() {
+    const button = document.getElementById('loginButton');
+    const buttonText = document.getElementById('buttonText');
+    
+    // Reset button to original state
+    button.disabled = false;
+    button.className = 'w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg font-medium text-white transition-all duration-200 transform hover:scale-105 shadow-lg';
+    buttonText.textContent = 'Sign In with Security Key';
+    
+    // Hide error display
+    const errorDisplay = document.getElementById('errorDisplay');
+    errorDisplay.classList.add('hidden');
 }
 
 // Main login function
@@ -288,14 +326,12 @@ async function performWebAuthnLogin(email) {
             errorMessage = error.message;
         }
         
-        alert(errorMessage);
+        // Show error in UI instead of alert
+        showError(errorMessage);
         console.error('WebAuthn login error:', error);
         
-        // Reset button
-        const button = document.getElementById('loginButton');
-        const buttonText = document.getElementById('buttonText');
-        button.disabled = false;
-        buttonText.textContent = 'Sign In with Security Key';
+        // Reset button with original styling
+        resetButton();
     }
 }
 
@@ -305,7 +341,7 @@ document.getElementById('webauthnLoginForm').addEventListener('submit', async fu
     
     const email = document.getElementById('email').value.trim();
     if (!email) {
-        alert('Please enter your email address');
+        showError('Please enter your email address');
         return;
     }
     
@@ -319,11 +355,19 @@ document.getElementById('webauthnLoginForm').addEventListener('submit', async fu
     await performWebAuthnLogin(email);
 });
 
+// Reset button and errors when user starts typing email
+document.getElementById('email').addEventListener('input', function() {
+    const errorDisplay = document.getElementById('errorDisplay');
+    if (!errorDisplay.classList.contains('hidden')) {
+        resetButton();
+    }
+});
+
 // Check WebAuthn support
 if (!window.PublicKeyCredential) {
     document.getElementById('loginButton').disabled = true;
     document.getElementById('buttonText').textContent = 'WebAuthn Not Supported';
-    alert('Your browser does not support WebAuthn. Please use a modern browser or try password login.');
+    showError('Your browser does not support WebAuthn. Please use a modern browser or try password login.');
 }
 </script>
 @endpush

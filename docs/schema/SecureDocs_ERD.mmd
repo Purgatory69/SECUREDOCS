@@ -1,0 +1,396 @@
+erDiagram
+    %% Core User Management
+    users {
+        bigint id PK
+        string name
+        string email
+        timestamp email_verified_at
+        string password
+        string remember_token
+        text two_factor_secret
+        text two_factor_recovery_codes
+        timestamp two_factor_confirmed_at
+        boolean is_approved
+        string role
+        boolean is_premium
+        bigint current_team_id
+        string profile_photo_path
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% Authentication & Security
+    password_reset_tokens {
+        string email PK
+        string token
+        timestamp created_at
+    }
+
+    sessions {
+        string id PK
+        bigint user_id FK
+        string ip_address
+        text user_agent
+        text payload
+        integer last_activity
+    }
+
+    personal_access_tokens {
+        bigint id PK
+        string tokenable_type
+        bigint tokenable_id
+        string name
+        string token
+        text abilities
+        timestamp last_used_at
+        timestamp expires_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    user_sessions {
+        bigint id PK
+        bigint user_id FK
+        string session_id
+        string ip_address
+        text user_agent
+        text device_fingerprint
+        string location_country
+        string location_city
+        string location_timezone
+        boolean is_active
+        timestamp last_activity_at
+        string login_method
+        boolean is_suspicious
+        boolean trusted_device
+        timestamp created_at
+        timestamp expires_at
+        timestamp logged_out_at
+    }
+
+    webauthn_credentials {
+        text id PK
+        text raw_id
+        jsonb response
+        string type
+        array transports
+        string attestation_type
+        jsonb trust_path
+        uuid aaguid
+        text public_key
+        bigint counter
+        text user_handle
+        text user_id
+        string authenticatable_type
+        bigint authenticatable_id FK
+        timestamp disabled_at
+        timestamp created_at
+        timestamp updated_at
+        text rp_id
+        text origin
+        string alias
+        string attestation_format
+    }
+
+    %% File Management System
+    files {
+        bigint id PK
+        bigint user_id FK
+        bigint parent_id FK
+        string file_name
+        string file_path
+        string file_size
+        string file_type
+        string mime_type
+        boolean is_folder
+        timestamp deleted_at
+        boolean is_permanent_stored
+        boolean is_vectorized
+        timestamp vectorized_at
+        boolean is_permanent_storage
+        timestamp permanent_storage_enabled_at
+        bigint permanent_storage_enabled_by FK
+        boolean is_confidential
+        timestamp confidential_enabled_at
+        boolean is_blockchain_stored
+        string blockchain_provider
+        text blockchain_url
+        string arweave_tx_id
+        text arweave_url
+        numeric arweave_cost_ar
+        numeric arweave_cost_usd
+        boolean is_permanent_arweave
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% Document Processing & AI
+    documents {
+        bigint id PK
+        text content
+        jsonb metadata
+        vector embedding
+        bigint user_id FK
+        bigint file_id FK
+    }
+
+    document_metadata {
+        text id PK
+        text title
+        text url
+        timestamp created_at
+        text schema
+        bigint user_id FK
+        bigint file_id FK
+    }
+
+    document_rows {
+        integer id PK
+        text dataset_id FK
+        jsonb row_data
+        bigint file_id FK
+    }
+
+    %% Security Features
+    file_otp_security {
+        bigint id PK
+        bigint user_id FK
+        bigint file_id FK
+        bigint permanent_storage_id
+        boolean is_otp_enabled
+        string otp_code
+        timestamp otp_expires_at
+        integer otp_attempts
+        integer max_otp_attempts
+        timestamp last_otp_sent_at
+        timestamp last_successful_access_at
+        integer total_access_count
+        boolean require_otp_for_download
+        boolean require_otp_for_preview
+        integer otp_valid_duration_minutes
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% Subscription & Payment System
+    subscriptions {
+        bigint id PK
+        bigint user_id FK
+        string plan_name
+        string status
+        numeric amount
+        string currency
+        string billing_cycle
+        timestamp starts_at
+        timestamp ends_at
+        boolean auto_renew
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    payments {
+        bigint id PK
+        bigint user_id FK
+        bigint subscription_id FK
+        string payment_intent_id
+        string payment_method
+        numeric amount
+        string currency
+        string status
+        string payment_gateway
+        string gateway_payment_id
+        json gateway_response
+        timestamp paid_at
+        timestamp failed_at
+        text failure_reason
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    user_payment_methods {
+        bigint id PK
+        bigint user_id FK
+        string payment_method_type
+        string gateway_method_id
+        boolean is_default
+        string last_four
+        string brand
+        date expires_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    %% Blockchain & Arweave Integration
+    arweave_wallets {
+        bigint id PK
+        bigint user_id FK
+        string wallet_address
+        text encrypted_jwk
+        numeric balance_ar
+        numeric balance_usd
+        timestamp last_balance_check
+        boolean is_active
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    arweave_urls {
+        bigint id PK
+        bigint user_id FK
+        text url
+        string file_name
+        timestamp created_at
+    }
+
+    %% System & Activity Logging
+    system_activities {
+        bigint id PK
+        bigint user_id FK
+        bigint target_user_id FK
+        bigint file_id FK
+        string activity_type
+        string action
+        string entity_type
+        bigint entity_id
+        text description
+        jsonb metadata
+        string ip_address
+        text user_agent
+        string session_id
+        string location_country
+        string location_city
+        string device_type
+        string browser
+        string risk_level
+        boolean requires_audit
+        boolean is_suspicious
+        timestamp created_at
+    }
+
+    daily_activity_stats {
+        bigint id PK
+        bigint user_id FK
+        date date
+        integer files_created
+        integer files_updated
+        integer files_deleted
+        integer files_accessed
+        integer login_count
+        bigint storage_used_bytes
+        bigint bandwidth_used_bytes
+        integer session_count
+        integer active_time_minutes
+        integer unique_files_accessed
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    file_access_logs {
+        bigint id PK
+        bigint file_id FK
+        bigint user_id FK
+        string session_id FK
+        string access_type
+        string access_method
+        bigint file_size_at_access
+        string file_version_at_access
+        string ip_address
+        text user_agent
+        text referrer
+        integer response_time_ms
+        bigint bytes_transferred
+        timestamp started_at
+        timestamp completed_at
+        integer duration_seconds
+    }
+
+    notifications {
+        bigint id PK
+        bigint user_id FK
+        string type
+        string title
+        text message
+        jsonb data
+        timestamp read_at
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    saved_searches {
+        bigint id PK
+        bigint user_id FK
+        string name
+        text query
+        jsonb filters
+        string sort_by
+        string sort_order
+        boolean is_default
+        boolean is_shared
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    search_logs {
+        bigint id PK
+        bigint user_id FK
+        string session_id
+        text query
+        jsonb filters_used
+        integer result_count
+        integer search_time_ms
+        string ip_address
+        text user_agent
+        text referrer
+        timestamp created_at
+    }
+
+    n8n_chat_histories {
+        integer id PK
+        string session_id
+        jsonb message
+    }
+
+    %% RELATIONSHIPS
+
+    %% User Core Relationships
+    users ||--o{ files : owns
+    users ||--o{ documents : creates
+    users ||--o{ subscriptions : has
+    users ||--o{ payments : makes
+    users ||--o{ user_payment_methods : owns
+    users ||--o{ arweave_wallets : owns
+    users ||--o{ arweave_urls : creates
+    users ||--o{ system_activities : performs
+    users ||--o{ file_otp_security : configures
+    users ||--o{ document_metadata : creates
+    users ||--o{ sessions : has_sessions
+    users ||--o{ user_sessions : has_detailed_sessions
+    users ||--o{ daily_activity_stats : has_stats
+    users ||--o{ file_access_logs : accesses_files
+    users ||--o{ notifications : receives
+    users ||--o{ saved_searches : saves
+    users ||--o{ search_logs : searches
+    users ||--o{ webauthn_credentials : authenticates_with
+
+    %% File System Relationships
+    files ||--o{ files : contains
+    files ||--o{ documents : has_documents
+    files ||--o{ document_metadata : has_metadata
+    files ||--o{ document_rows : has_rows
+    files ||--o{ system_activities : tracked_in
+    files ||--o{ file_otp_security : secured_by
+    files ||--o{ file_access_logs : logged_access
+    users ||--o{ files : enabled_permanent_storage
+
+    %% Document Processing Relationships
+    document_metadata ||--o{ document_rows : contains
+    
+    %% Payment System Relationships
+    subscriptions ||--o{ payments : paid_by
+    
+    %% Security & Activity Relationships
+    user_sessions ||--o{ file_access_logs : tracks_access
+    users ||--o{ system_activities : targets
+    
+    %% Authentication Relationships
+    users ||--o{ personal_access_tokens : owns_tokens

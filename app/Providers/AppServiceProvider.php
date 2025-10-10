@@ -31,6 +31,11 @@ class AppServiceProvider extends ServiceProvider
             URL::forceScheme('https');
         }
 
+        // Ensure consistent domain usage (www.securedocs.live)
+        if (app()->environment('production')) {
+            URL::forceRootUrl('https://www.securedocs.live');
+        }
+
 
         Blade::component('layouts.profile-dashboard', 'profile-dashboard');
         

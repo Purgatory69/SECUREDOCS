@@ -439,7 +439,7 @@ export async function uploadFileWithBundlr(file) {
         console.log('tx: ', tx);
         
         // Generate Arweave URL (exact React app code)
-        const arweaveUrl = `http://arweave.net/${tx.data.id}`;
+        const arweaveUrl = `https://arweave.net/${tx.data.id}`;
         
         // Update balance after upload
         const bal = await window.bundlrInstance.getLoadedBalance();
