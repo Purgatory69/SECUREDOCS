@@ -20,4 +20,7 @@ pkill -f "php artisan serve"
 
 \cloudflared.exe tunnel run securedocs
 
-php artisan ai:complete-categorization 18 --progress=100
+php artisan ai:complete-categorization 18 --progress=
+
+
+after the first time verify otp it should be set instead of starting all over again

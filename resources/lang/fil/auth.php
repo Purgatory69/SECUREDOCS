@@ -111,4 +111,5 @@ return [
     'success_premium_granted' => "Nabigyan ng premium status si :name.",
     'success_premium_reset' => "Na-reset ang premium data ni :name.",
     'success_generic' => 'Tagumpay!',
+    'db_share_to_ai' => 'I-share sa A.I.',
 ];

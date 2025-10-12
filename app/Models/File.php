@@ -14,18 +14,15 @@ use Illuminate\Support\Facades\DB;
  * @property int $id
  * @property int $user_id
  * @property string $file_name
+ * @property string|null $file_type
  * @property string|null $mime_type
  * @property string|null $file_path
  * @property int|null $file_size
  * @property int|null $parent_id
  * @property bool $is_folder
- * @property string|null $blockchain_provider
- * @property string|null $ipfs_hash
- * @property string|null $blockchain_url
- * @property bool $is_blockchain_stored
- * @property array|null $blockchain_metadata
- * @property bool $is_vectorized
- * @property \Carbon\Carbon|null $vectorized_at
+ * @property bool $is_arweave
+ * @property string|null $arweave_url
+ * @property bool $uploading
  * @property \Carbon\Carbon|null $created_at
  * @property \Carbon\Carbon|null $updated_at
  * @property \Carbon\Carbon|null $deleted_at
@@ -43,18 +40,19 @@ class File extends Model
         'user_id',
         'file_name',
         'file_type',
-        'mime_type',
+        'mime_type', 
         'file_path',
         'file_size',
         'parent_id',
         'is_folder',
-        'is_blockchain_stored',
+        'is_arweave',
+        'arweave_url',
+        'uploading',
+        // Legacy fields that may still be used
         'is_permanent_stored',
         'is_vectorized',
         'vectorized_at',
         'is_permanent_storage',
-        'permanent_storage_enabled_at',
-        'permanent_storage_enabled_by',
         'is_confidential',
         'confidential_enabled_at',
     ];
@@ -66,16 +64,45 @@ class File extends Model
      */
     protected $casts = [
         'is_folder' => 'boolean',
-        'is_blockchain_stored' => 'boolean',
+        'is_arweave' => 'boolean',
+        'uploading' => 'boolean',
+        // Legacy casts that may still be needed
         'is_permanent_stored' => 'boolean',
         'is_vectorized' => 'boolean',
         'vectorized_at' => 'datetime',
         'is_permanent_storage' => 'boolean',
-        'permanent_storage_enabled_at' => 'datetime',
         'is_confidential' => 'boolean',
         'confidential_enabled_at' => 'datetime',
     ];
     
+    /**
+     * Mark file as uploading to Arweave
+     */
+    public function markAsUploading(): void
+    {
+        $this->update(['uploading' => true]);
+    }
+
+    /**
+     * Mark file as successfully uploaded to Arweave
+     */
+    public function markAsArweaveStored(string $arweaveUrl): void
+    {
+        $this->update([
+            'is_arweave' => true,
+            'arweave_url' => $arweaveUrl,
+            'uploading' => false
+        ]);
+    }
+
+    /**
+     * Mark file upload as failed
+     */
+    public function markUploadFailed(): void
+    {
+        $this->update(['uploading' => false]);
+    }
+
     /**
      * Get the user that owns the file.
      *
@@ -105,73 +132,20 @@ class File extends Model
     }
 
     /**
-     * Get the blockchain upload records for this file.
+     * Check if this file is stored on Arweave.
      */
-    public function blockchainUploads()
+    public function isStoredOnArweave(): bool
     {
-        return $this->hasMany(BlockchainUpload::class);
+        return $this->is_arweave && !empty($this->arweave_url);
     }
 
     /**
-     * Get the latest successful blockchain upload.
+     * Scope to get only Arweave-stored files.
      */
-    public function latestBlockchainUpload()
+    public function scopeArweaveStored($query)
     {
-        return $this->hasOne(BlockchainUpload::class)->latest();
-    }
-
-    /**
-     * Check if this file is stored on blockchain.
-     */
-    public function isStoredOnBlockchain(): bool
-    {
-        return $this->is_blockchain_stored && !empty($this->ipfs_hash);
-    }
-
-    /**
-     * Get the IPFS gateway URL for this file.
-     */
-    public function getIpfsGatewayUrl(): ?string
-    {
-        if (!$this->ipfs_hash) {
-            return null;
-        }
-
-        // Use Pinata's gateway by default, fallback to public gateway
-        $gateway = config('blockchain.pinata.gateway_url', 'https://gateway.pinata.cloud');
-        return "{$gateway}/ipfs/{$this->ipfs_hash}";
-    }
-
-    /**
-     * Get blockchain verification URL.
-     */
-    public function getBlockchainVerificationUrl(): ?string
-    {
-        if (!$this->ipfs_hash) {
-            return null;
-        }
-
-        return "https://ipfs.io/ipfs/{$this->ipfs_hash}";
-    }
-
-    /**
-     * Scope to get only blockchain-stored files.
-     */
-    public function scopeBlockchainStored($query)
-    {
-        return $query->whereRaw('is_blockchain_stored IS TRUE')
-                    ->where(function($q) {
-                        $q->whereNotNull('ipfs_hash')
-                          ->orWhereNotNull('arweave_tx_id');
-                    });
-    }
-
-    /**
-     * Scope to get files by blockchain provider.
-     */
-    public function scopeBlockchainProvider($query, string $provider)
-    {
-        return $query->where('blockchain_provider', $provider);
+        return $query->where('is_arweave', true)
+                    ->whereNotNull('arweave_url');
     }
 
     /**
@@ -201,12 +175,12 @@ class File extends Model
     }
 
     /**
-     * Scope to get files that can be uploaded to blockchain (not folders, not already on blockchain).
+     * Scope to get files that can be uploaded to Arweave (not folders, not already on Arweave).
      */
-    public function scopeCanBeBlockchainStored($query)
+    public function scopeCanBeArweaveStored($query)
     {
-        return $query->whereRaw('is_folder IS FALSE')
-                    ->whereRaw('is_blockchain_stored IS FALSE');
+        return $query->where('is_folder', false)
+                    ->where('is_arweave', false);
     }
 
     /**
@@ -241,43 +215,11 @@ class File extends Model
     }
 
     /**
-     * Get crypto payments for this file
-     */
-    public function cryptoPayments(): HasMany
-    {
-        return $this->hasMany(CryptoPayment::class);
-    }
-
-    /**
-     * Get Arweave transactions for this file
-     */
-    public function arweaveTransactions(): HasMany
-    {
-        return $this->hasMany(ArweaveTransaction::class);
-    }
-
-    /**
-     * Get the latest completed crypto payment
-     */
-    public function latestCryptoPayment()
-    {
-        return $this->cryptoPayments()->where('status', 'completed')->latest()->first();
-    }
-
-    /**
-     * Get the latest Arweave transaction
-     */
-    public function latestArweaveTransaction()
-    {
-        return $this->arweaveTransactions()->latest()->first();
-    }
-
-    /**
      * Check if file is permanently stored on Arweave
      */
     public function isPermanentlyStored(): bool
     {
-        return $this->is_permanent_arweave && !empty($this->arweave_tx_id);
+        return $this->is_arweave && !empty($this->arweave_url);
     }
 
     /**
@@ -286,15 +228,11 @@ class File extends Model
     public function getProcessingStatus(): array
     {
         return [
-            'permanent_stored' => $this->is_permanent_stored,
-            'permanent_arweave' => $this->is_permanent_arweave,
-            'vectorized' => $this->isVectorized(),
-            'storage_provider' => $this->storage_provider,
-            'arweave_tx_id' => $this->arweave_tx_id,
+            'is_arweave' => $this->is_arweave,
             'arweave_url' => $this->arweave_url,
-            'arweave_cost_usd' => $this->arweave_cost_usd,
+            'uploading' => $this->uploading,
+            'vectorized' => $this->isVectorized(),
             'vectorized_at' => $this->vectorized_at?->format('Y-m-d H:i:s'),
-            'permanent_storage_enabled_at' => $this->permanent_storage_enabled_at?->format('Y-m-d H:i:s'),
         ];
     }
 }

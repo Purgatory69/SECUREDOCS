@@ -1,0 +1,295 @@
+# SecureDocs Database Schema for Lucidchart
+# Use this to create tables manually in Lucidchart or import as CSV
+
+# Method 1: Copy this data and create tables manually in Lucidchart
+# Method 2: Save sections as CSV files and import into Lucidchart
+
+=== TABLE STRUCTURE ===
+
+TABLE: users
+- id (BIGINT) [PK]
+- name (VARCHAR)
+- email (VARCHAR)
+- email_verified_at (TIMESTAMP)
+- password (VARCHAR)
+- remember_token (VARCHAR)
+- two_factor_secret (TEXT)
+- two_factor_recovery_codes (TEXT)
+- two_factor_confirmed_at (TIMESTAMP)
+- is_approved (BOOLEAN)
+- role (VARCHAR)
+- is_premium (BOOLEAN)
+- current_team_id (BIGINT)
+- profile_photo_path (VARCHAR)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+TABLE: files
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- parent_id (BIGINT) [FK -> files.id]
+- file_name (VARCHAR)
+- file_path (VARCHAR)
+- file_size (VARCHAR)
+- file_type (VARCHAR)
+- mime_type (VARCHAR)
+- is_folder (BOOLEAN)
+- deleted_at (TIMESTAMP)
+- is_permanent_stored (BOOLEAN)
+- is_vectorized (BOOLEAN)
+- vectorized_at (TIMESTAMP)
+- is_permanent_storage (BOOLEAN)
+- is_confidential (BOOLEAN)
+- confidential_enabled_at (TIMESTAMP)
+- arweave_url (TEXT)
+- uploading (BOOLEAN)
+- is_arweave (BOOLEAN)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+TABLE: documents
+- id (BIGINT) [PK]
+- content (TEXT)
+- metadata (JSONB)
+- embedding (VECTOR)
+- user_id (BIGINT) [FK -> users.id]
+- file_id (BIGINT) [FK -> files.id]
+
+TABLE: document_metadata
+- id (TEXT) [PK]
+- title (TEXT)
+- url (TEXT)
+- created_at (TIMESTAMP)
+- schema (TEXT)
+- user_id (BIGINT) [FK -> users.id]
+- file_id (BIGINT) [FK -> files.id]
+
+TABLE: document_rows
+- id (INTEGER) [PK]
+- dataset_id (TEXT) [FK -> document_metadata.id]
+- row_data (JSONB)
+- file_id (BIGINT) [FK -> files.id]
+
+TABLE: file_otp_security
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- file_id (BIGINT) [FK -> files.id]
+- permanent_storage_id (BIGINT)
+- is_otp_enabled (BOOLEAN)
+- otp_code (VARCHAR)
+- otp_expires_at (TIMESTAMP)
+- otp_attempts (INTEGER)
+- max_otp_attempts (INTEGER)
+- last_otp_sent_at (TIMESTAMP)
+- last_successful_access_at (TIMESTAMP)
+- total_access_count (INTEGER)
+- require_otp_for_download (BOOLEAN)
+- require_otp_for_preview (BOOLEAN)
+- otp_valid_duration_minutes (INTEGER)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+TABLE: subscriptions
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- plan_name (VARCHAR)
+- status (VARCHAR)
+- amount (NUMERIC)
+- currency (VARCHAR)
+- billing_cycle (VARCHAR)
+- starts_at (TIMESTAMP)
+- ends_at (TIMESTAMP)
+- auto_renew (BOOLEAN)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+TABLE: payments
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- subscription_id (BIGINT) [FK -> subscriptions.id]
+- payment_intent_id (VARCHAR)
+- payment_method (VARCHAR)
+- amount (NUMERIC)
+- currency (VARCHAR)
+- status (VARCHAR)
+- payment_gateway (VARCHAR)
+- gateway_payment_id (VARCHAR)
+- gateway_response (JSON)
+- paid_at (TIMESTAMP)
+- failed_at (TIMESTAMP)
+- failure_reason (TEXT)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+TABLE: user_payment_methods
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- payment_method_type (VARCHAR)
+- gateway_method_id (VARCHAR)
+- is_default (BOOLEAN)
+- last_four (VARCHAR)
+- brand (VARCHAR)
+- expires_at (DATE)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+TABLE: arweave_urls
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- url (TEXT)
+- file_name (VARCHAR)
+- created_at (TIMESTAMP)
+
+TABLE: system_activities
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- target_user_id (BIGINT) [FK -> users.id]
+- file_id (BIGINT) [FK -> files.id]
+- activity_type (VARCHAR)
+- action (VARCHAR)
+- entity_type (VARCHAR)
+- entity_id (BIGINT)
+- description (TEXT)
+- metadata (JSONB)
+- ip_address (VARCHAR)
+- user_agent (TEXT)
+- session_id (VARCHAR)
+- location_country (VARCHAR)
+- location_city (VARCHAR)
+- device_type (VARCHAR)
+- browser (VARCHAR)
+- risk_level (VARCHAR)
+- requires_audit (BOOLEAN)
+- is_suspicious (BOOLEAN)
+- created_at (TIMESTAMP)
+
+TABLE: file_access_logs
+- id (BIGINT) [PK]
+- file_id (BIGINT) [FK -> files.id]
+- user_id (BIGINT) [FK -> users.id]
+- session_id (VARCHAR)
+- access_type (VARCHAR)
+- access_method (VARCHAR)
+- file_size_at_access (BIGINT)
+- file_version_at_access (VARCHAR)
+- ip_address (VARCHAR)
+- user_agent (TEXT)
+- referrer (TEXT)
+- response_time_ms (INTEGER)
+- bytes_transferred (BIGINT)
+- started_at (TIMESTAMP)
+- completed_at (TIMESTAMP)
+- duration_seconds (INTEGER)
+
+TABLE: notifications
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- type (VARCHAR)
+- title (VARCHAR)
+- message (TEXT)
+- data (JSONB)
+- read_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+TABLE: chat_histories
+- id (INTEGER) [PK]
+- session_id (VARCHAR)
+- message (JSONB)
+
+TABLE: password_reset_tokens
+- email (VARCHAR) [PK]
+- token (VARCHAR)
+- created_at (TIMESTAMP)
+
+TABLE: sessions
+- id (VARCHAR) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- ip_address (VARCHAR)
+- user_agent (TEXT)
+- payload (TEXT)
+- last_activity (INTEGER)
+
+TABLE: personal_access_tokens
+- id (BIGINT) [PK]
+- tokenable_type (VARCHAR)
+- tokenable_id (BIGINT)
+- name (VARCHAR)
+- token (VARCHAR)
+- abilities (TEXT)
+- last_used_at (TIMESTAMP)
+- expires_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+
+TABLE: user_sessions
+- id (BIGINT) [PK]
+- user_id (BIGINT) [FK -> users.id]
+- session_id (VARCHAR)
+- ip_address (VARCHAR)
+- user_agent (TEXT)
+- device_fingerprint (TEXT)
+- location_country (VARCHAR)
+- location_city (VARCHAR)
+- location_timezone (VARCHAR)
+- is_active (BOOLEAN)
+- last_activity_at (TIMESTAMP)
+- login_method (VARCHAR)
+- is_suspicious (BOOLEAN)
+- trusted_device (BOOLEAN)
+- created_at (TIMESTAMP)
+- expires_at (TIMESTAMP)
+- logged_out_at (TIMESTAMP)
+
+TABLE: webauthn_credentials
+- id (TEXT) [PK]
+- raw_id (TEXT)
+- response (JSONB)
+- type (VARCHAR)
+- transports (ARRAY)
+- attestation_type (VARCHAR)
+- trust_path (JSONB)
+- aaguid (UUID)
+- public_key (TEXT)
+- counter (BIGINT)
+- user_handle (TEXT)
+- user_id (TEXT)
+- authenticatable_type (VARCHAR)
+- authenticatable_id (BIGINT) [FK -> users.id]
+- disabled_at (TIMESTAMP)
+- created_at (TIMESTAMP)
+- updated_at (TIMESTAMP)
+- rp_id (TEXT)
+- origin (TEXT)
+- alias (VARCHAR)
+- attestation_format (VARCHAR)
+
+=== KEY RELATIONSHIPS ===
+
+users -> files (one-to-many)
+users -> documents (one-to-many)
+users -> subscriptions (one-to-many)
+users -> payments (one-to-many)
+users -> user_payment_methods (one-to-many)
+users -> arweave_urls (one-to-many)
+users -> system_activities (one-to-many)
+users -> file_otp_security (one-to-many)
+users -> document_metadata (one-to-many)
+users -> sessions (one-to-many)
+users -> user_sessions (one-to-many)
+users -> file_access_logs (one-to-many)
+users -> notifications (one-to-many)
+users -> webauthn_credentials (one-to-many)
+users -> personal_access_tokens (one-to-many)
+
+files -> files (one-to-many) [self-referencing for folders]
+files -> documents (one-to-many)
+files -> document_metadata (one-to-many)
+files -> document_rows (one-to-many)
+files -> system_activities (one-to-many)
+files -> file_otp_security (one-to-many)
+files -> file_access_logs (one-to-many)
+
+document_metadata -> document_rows (one-to-many)
+subscriptions -> payments (one-to-many)
+user_sessions -> file_access_logs (one-to-many)

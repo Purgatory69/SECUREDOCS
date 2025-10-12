@@ -26,6 +26,20 @@ Route::middleware(['auth', 'verified'])->prefix('permanent-storage')->group(func
 // Legacy Arweave routes (for advanced users who want direct wallet management)
 Route::middleware(['auth', 'verified'])->prefix('arweave')->group(function () {
     
+    // Get Arweave URLs (for blockchain tab display)
+    Route::get('/urls', function () {
+        $user = Auth::user();
+        $urls = DB::table('arweave_urls')
+            ->where('user_id', $user->id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+        
+        return response()->json([
+            'success' => true,
+            'urls' => $urls
+        ]);
+    })->name('arweave.urls');
+    
     // Wallet Management (Advanced)
     Route::post('/wallet/create', [ArweaveController::class, 'createWallet'])->name('arweave.wallet.create');
     Route::get('/wallet/info', [ArweaveController::class, 'getWalletInfo'])->name('arweave.wallet.info');

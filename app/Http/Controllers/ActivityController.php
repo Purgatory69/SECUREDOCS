@@ -159,7 +159,7 @@ class ActivityController extends Controller
 
             // Active sessions
             $activeSessions = UserSession::where('user_id', $userId)
-                ->active()
+                ->whereRaw('is_active = ?', [true])
                 ->count();
 
             return response()->json([

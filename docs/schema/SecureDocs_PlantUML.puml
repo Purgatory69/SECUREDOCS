@@ -1,0 +1,332 @@
+@startuml SecureDocs_ERD
+!define ENTITY entity
+!define PK <u>
+!define FK <i>
+
+ENTITY users {
+  PK id : BIGINT
+  --
+  name : VARCHAR
+  email : VARCHAR
+  email_verified_at : TIMESTAMP
+  password : VARCHAR
+  remember_token : VARCHAR
+  two_factor_secret : TEXT
+  two_factor_recovery_codes : TEXT
+  two_factor_confirmed_at : TIMESTAMP
+  is_approved : BOOLEAN
+  role : VARCHAR
+  is_premium : BOOLEAN
+  current_team_id : BIGINT
+  profile_photo_path : VARCHAR
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+ENTITY files {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  FK parent_id : BIGINT
+  file_name : VARCHAR
+  file_path : VARCHAR
+  file_size : VARCHAR
+  file_type : VARCHAR
+  mime_type : VARCHAR
+  is_folder : BOOLEAN
+  deleted_at : TIMESTAMP
+  is_permanent_stored : BOOLEAN
+  is_vectorized : BOOLEAN
+  vectorized_at : TIMESTAMP
+  is_permanent_storage : BOOLEAN
+  is_confidential : BOOLEAN
+  confidential_enabled_at : TIMESTAMP
+  arweave_url : TEXT
+  uploading : BOOLEAN
+  is_arweave : BOOLEAN
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+ENTITY documents {
+  PK id : BIGINT
+  --
+  content : TEXT
+  metadata : JSONB
+  embedding : VECTOR
+  FK user_id : BIGINT
+  FK file_id : BIGINT
+}
+
+ENTITY document_metadata {
+  PK id : TEXT
+  --
+  title : TEXT
+  url : TEXT
+  created_at : TIMESTAMP
+  schema : TEXT
+  FK user_id : BIGINT
+  FK file_id : BIGINT
+}
+
+ENTITY document_rows {
+  PK id : INTEGER
+  --
+  FK dataset_id : TEXT
+  row_data : JSONB
+  FK file_id : BIGINT
+}
+
+ENTITY file_otp_security {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  FK file_id : BIGINT
+  permanent_storage_id : BIGINT
+  is_otp_enabled : BOOLEAN
+  otp_code : VARCHAR
+  otp_expires_at : TIMESTAMP
+  otp_attempts : INTEGER
+  max_otp_attempts : INTEGER
+  last_otp_sent_at : TIMESTAMP
+  last_successful_access_at : TIMESTAMP
+  total_access_count : INTEGER
+  require_otp_for_download : BOOLEAN
+  require_otp_for_preview : BOOLEAN
+  otp_valid_duration_minutes : INTEGER
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+ENTITY subscriptions {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  plan_name : VARCHAR
+  status : VARCHAR
+  amount : NUMERIC
+  currency : VARCHAR
+  billing_cycle : VARCHAR
+  starts_at : TIMESTAMP
+  ends_at : TIMESTAMP
+  auto_renew : BOOLEAN
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+ENTITY payments {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  FK subscription_id : BIGINT
+  payment_intent_id : VARCHAR
+  payment_method : VARCHAR
+  amount : NUMERIC
+  currency : VARCHAR
+  status : VARCHAR
+  payment_gateway : VARCHAR
+  gateway_payment_id : VARCHAR
+  gateway_response : JSON
+  paid_at : TIMESTAMP
+  failed_at : TIMESTAMP
+  failure_reason : TEXT
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+ENTITY user_payment_methods {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  payment_method_type : VARCHAR
+  gateway_method_id : VARCHAR
+  is_default : BOOLEAN
+  last_four : VARCHAR
+  brand : VARCHAR
+  expires_at : DATE
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+ENTITY arweave_urls {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  url : TEXT
+  file_name : VARCHAR
+  created_at : TIMESTAMP
+}
+
+ENTITY system_activities {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  FK target_user_id : BIGINT
+  FK file_id : BIGINT
+  activity_type : VARCHAR
+  action : VARCHAR
+  entity_type : VARCHAR
+  entity_id : BIGINT
+  description : TEXT
+  metadata : JSONB
+  ip_address : VARCHAR
+  user_agent : TEXT
+  session_id : VARCHAR
+  location_country : VARCHAR
+  location_city : VARCHAR
+  device_type : VARCHAR
+  browser : VARCHAR
+  risk_level : VARCHAR
+  requires_audit : BOOLEAN
+  is_suspicious : BOOLEAN
+  created_at : TIMESTAMP
+}
+
+ENTITY file_access_logs {
+  PK id : BIGINT
+  --
+  FK file_id : BIGINT
+  FK user_id : BIGINT
+  session_id : VARCHAR
+  access_type : VARCHAR
+  access_method : VARCHAR
+  file_size_at_access : BIGINT
+  file_version_at_access : VARCHAR
+  ip_address : VARCHAR
+  user_agent : TEXT
+  referrer : TEXT
+  response_time_ms : INTEGER
+  bytes_transferred : BIGINT
+  started_at : TIMESTAMP
+  completed_at : TIMESTAMP
+  duration_seconds : INTEGER
+}
+
+ENTITY notifications {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  type : VARCHAR
+  title : VARCHAR
+  message : TEXT
+  data : JSONB
+  read_at : TIMESTAMP
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+ENTITY chat_histories {
+  PK id : INTEGER
+  --
+  session_id : VARCHAR
+  message : JSONB
+}
+
+ENTITY password_reset_tokens {
+  PK email : VARCHAR
+  --
+  token : VARCHAR
+  created_at : TIMESTAMP
+}
+
+ENTITY sessions {
+  PK id : VARCHAR
+  --
+  FK user_id : BIGINT
+  ip_address : VARCHAR
+  user_agent : TEXT
+  payload : TEXT
+  last_activity : INTEGER
+}
+
+ENTITY personal_access_tokens {
+  PK id : BIGINT
+  --
+  tokenable_type : VARCHAR
+  tokenable_id : BIGINT
+  name : VARCHAR
+  token : VARCHAR
+  abilities : TEXT
+  last_used_at : TIMESTAMP
+  expires_at : TIMESTAMP
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+}
+
+ENTITY user_sessions {
+  PK id : BIGINT
+  --
+  FK user_id : BIGINT
+  session_id : VARCHAR
+  ip_address : VARCHAR
+  user_agent : TEXT
+  device_fingerprint : TEXT
+  location_country : VARCHAR
+  location_city : VARCHAR
+  location_timezone : VARCHAR
+  is_active : BOOLEAN
+  last_activity_at : TIMESTAMP
+  login_method : VARCHAR
+  is_suspicious : BOOLEAN
+  trusted_device : BOOLEAN
+  created_at : TIMESTAMP
+  expires_at : TIMESTAMP
+  logged_out_at : TIMESTAMP
+}
+
+ENTITY webauthn_credentials {
+  PK id : TEXT
+  --
+  raw_id : TEXT
+  response : JSONB
+  type : VARCHAR
+  transports : ARRAY
+  attestation_type : VARCHAR
+  trust_path : JSONB
+  aaguid : UUID
+  public_key : TEXT
+  counter : BIGINT
+  user_handle : TEXT
+  user_id : TEXT
+  authenticatable_type : VARCHAR
+  FK authenticatable_id : BIGINT
+  disabled_at : TIMESTAMP
+  created_at : TIMESTAMP
+  updated_at : TIMESTAMP
+  rp_id : TEXT
+  origin : TEXT
+  alias : VARCHAR
+  attestation_format : VARCHAR
+}
+
+' Relationships
+users ||--o{ files : owns
+users ||--o{ documents : creates
+users ||--o{ subscriptions : has
+users ||--o{ payments : makes
+users ||--o{ user_payment_methods : owns
+users ||--o{ arweave_urls : creates
+users ||--o{ system_activities : performs
+users ||--o{ file_otp_security : configures
+users ||--o{ document_metadata : creates
+users ||--o{ sessions : has_sessions
+users ||--o{ user_sessions : has_detailed_sessions
+users ||--o{ file_access_logs : accesses_files
+users ||--o{ notifications : receives
+users ||--o{ webauthn_credentials : authenticates_with
+
+files ||--o{ files : contains
+files ||--o{ documents : has_documents
+files ||--o{ document_metadata : has_metadata
+files ||--o{ document_rows : has_rows
+files ||--o{ system_activities : tracked_in
+files ||--o{ file_otp_security : secured_by
+files ||--o{ file_access_logs : logged_access
+
+document_metadata ||--o{ document_rows : contains
+subscriptions ||--o{ payments : paid_by
+user_sessions ||--o{ file_access_logs : tracks_access
+users ||--o{ system_activities : targets
+users ||--o{ personal_access_tokens : owns_tokens
+
+@enduml

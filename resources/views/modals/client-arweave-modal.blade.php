@@ -4,7 +4,7 @@
         
         <!-- Header -->
         <div class="flex items-center justify-between p-6 border-b border-[#3C3F58]">
-            <h3 class="text-xl font-semibold">🚀 Upload to Arweave (Client-Side)</h3>
+            <h3 class="text-xl font-semibold">Upload to Arweave</h3>
             <button id="clientArweaveCloseBtn" class="text-2xl leading-none hover:text-gray-300">&times;</button>
         </div>
 
@@ -18,27 +18,21 @@
             <!-- Step 1: File Selection -->
             <div id="stepFileSelection" class="space-y-6">
                 <div class="text-center">
-                    <h4 class="text-lg font-medium text-white mb-2">📄 Select File</h4>
+                    <h4 class="text-lg font-medium text-white mb-2">Select File</h4>
                     <p class="text-gray-400 mb-2">Choose a file to upload permanently to Arweave</p>
-                    <div class="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
-                        <div class="flex items-center text-blue-700 text-sm">
-                            <svg class="w-4 h-4 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-                            </svg>
-                            <span><strong>New Approach:</strong> You pay directly with your MetaMask wallet - no middleman!</span>
-                        </div>
-                    </div>
+                    
                 </div>
                 
-                <div class="border-2 border-dashed border-[#3C3F58] bg-[#1F2235] rounded-lg p-8 text-center">
-                    <div class="text-4xl mb-4">📄</div>
-                    <p class="text-lg font-medium text-white mb-2">Drop your file here or click to browse</p>
-                    <p class="text-sm text-gray-400">Maximum file size: 100MB</p>
+                <div id="arweaveDropZone" style="border-width: 3px;" 
+                     class="border-dashed border-[#3C3F58] bg-[#1F2235] rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+                    <div id="arweaveDropZoneContent" class="flex flex-col items-center">
+                        <div class="text-4xl mb-4">
+                            <img src="/file.png" alt="File" class="opacity-50 w-12 h-12 mx-auto">
+                        </div>
+                        <p class="text-lg font-medium text-white mb-2">Drag and drop files here or click to browse</p>
+                        <p class="text-sm text-gray-400">Maximum file size: 100MB</p>
+                    </div>
                     <input type="file" id="clientArweaveFile" class="hidden" accept="*/*">
-                    <button onclick="document.getElementById('clientArweaveFile').click()" 
-                            class="mt-4 px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white">
-                        Select File
-                    </button>
                 </div>
                 
                 <div id="selectedFileInfo" class="text-center text-gray-400"></div>
@@ -47,7 +41,7 @@
             <!-- Step 2: Wallet Connection -->
             <div id="stepWalletConnection" class="hidden space-y-6">
                 <div class="text-center">
-                    <h4 class="text-lg font-medium text-white mb-2">🔗 Connect Your Wallet</h4>
+                    <h4 class="text-lg font-medium text-white mb-2"> Connect Your Wallet</h4>
                     <p class="text-gray-400 mb-4">Use the Bundlr wallet widget (B button) in the navigation bar first</p>
                 </div>
                 

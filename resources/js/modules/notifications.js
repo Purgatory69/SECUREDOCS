@@ -3,6 +3,9 @@
  * Handles database-stored notifications with bell icon dropdown
  */
 
+// Import closeAllActionsMenus from file-folder module
+import { closeAllActionsMenus } from './file-folder.js';
+
 // CSRF helpers
 function getMetaCsrf() {
     const meta = document.querySelector('meta[name="csrf-token"]');
@@ -70,6 +73,8 @@ class NotificationManager {
             if (window.closeAllDropdowns) {
                 window.closeAllDropdowns('notification');
             }
+            // Close all actions menus
+            if (typeof closeAllActionsMenus === 'function') closeAllActionsMenus();
             
             // Open immediately, then load content
             this.openDropdown();

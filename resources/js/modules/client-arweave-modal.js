@@ -43,6 +43,36 @@ function setupEventListeners() {
         fileInput.addEventListener('change', handleFileSelection);
     }
 
+    // Drop zone click handler - make entire area clickable
+    const dropZone = document.getElementById('arweaveDropZone');
+    if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => {
+            fileInput.click();
+        });
+        
+        // Drag and drop handlers
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-blue-500');
+        });
+        
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500');
+        });
+        
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-blue-500');
+            
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                handleFileSelection({ target: fileInput });
+            }
+        });
+    }
+
     // Connect wallet button
     const connectBtn = document.getElementById('connectWalletBtn');
     if (connectBtn) {
@@ -419,62 +449,19 @@ function showStep(stepName) {
 }
 
 /**
- * Save wallet info to backend
+ * Save wallet info to backend (REMOVED - no longer needed with Bundlr)
  */
 async function saveWalletInfo() {
-    try {
-        const walletAddress = window.ethereum.selectedAddress;
-        
-        const response = await fetch('/arweave-client/wallet-info', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                wallet_address: walletAddress
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-            console.warn('Failed to save wallet info:', data.message);
-        }
-        
-    } catch (error) {
-        console.warn('Failed to save wallet info:', error);
-    }
+    // No-op: Wallet management is now fully client-side with Bundlr
+    console.log('Wallet info saved client-side only');
 }
 
 /**
- * Update backend balance
+ * Update backend balance (REMOVED - no longer needed with Bundlr)
  */
 async function updateBackendBalance(balance) {
-    try {
-        const walletAddress = window.ethereum.selectedAddress;
-        
-        const response = await fetch('/arweave-client/update-balance', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-            },
-            body: JSON.stringify({
-                wallet_address: walletAddress,
-                balance_ar: balance
-            })
-        });
-        
-        const data = await response.json();
-        
-        if (!data.success) {
-            console.warn('Failed to update balance:', data.message);
-        }
-        
-    } catch (error) {
-        console.warn('Failed to update balance:', error);
-    }
+    // No-op: Balance tracking is now fully client-side with Bundlr
+    console.log('Balance updated client-side only:', balance);
 }
 
 /**

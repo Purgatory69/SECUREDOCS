@@ -686,10 +686,15 @@ export function renderFiles(items) {
     }
 }
 
-function showActionsMenu(button, itemId) {
-    // Close any existing menus first
+// Function to close all actions menus (exported for use by other modules)
+export function closeAllActionsMenus() {
     document.querySelectorAll('.actions-menu').forEach(m => m.remove());
     document.querySelectorAll('.actions-menu-btn[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+
+function showActionsMenu(button, itemId) {
+    // Close any existing menus first
+    closeAllActionsMenus();
 
     // Get the container to check current view
     const container = document.getElementById('filesContainer');
@@ -823,14 +828,14 @@ function showActionsMenu(button, itemId) {
                     </button>
                 `;
             } else if (!inBlockchainView && !isBlockchainStored) {
-                // In main view and file is not on blockchain - add upload to blockchain option
+                // In main view and file is not on blockchain - add upload to Arweave option
                 menuItems += `
                     <div class="border-t border-[#4A4D6A] my-1"></div>
-                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-[#2A2D47] hover:text-blue-300 flex items-center" data-action="upload-to-blockchain" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Upload to blockchain storage" data-tooltip="Upload to blockchain storage">
+                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-purple-400 hover:bg-[#2A2D47] hover:text-purple-300 flex items-center" data-action="upload-to-arweave" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Upload to Arweave permanently" data-tooltip="Upload to Arweave permanently">
                         <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
                         </svg>
-                        Upload to Blockchain
+                        🚀 Upload to Arweave
                     </button>
                 `;
             }
@@ -857,7 +862,7 @@ function showActionsMenu(button, itemId) {
                         <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                         </svg>
-                        Add to AI Vector DB
+                        Share File to A.I.
                     </button>
                 `;
             }
@@ -870,7 +875,7 @@ function showActionsMenu(button, itemId) {
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                     </svg>
-                    Add to AI Vector DB 
+                    Share File to A.I.
                 </button>
             `;
         } else {
@@ -1197,6 +1202,22 @@ function showActionsMenu(button, itemId) {
             cleanup();
         };
         uploadToBlockchainBtn.addEventListener('click', directUpload);
+    }
+
+    // Direct listener for upload to Arweave action
+    const uploadToArweaveBtn = menu.querySelector('.actions-menu-item[data-action="upload-to-arweave"]');
+    if (uploadToArweaveBtn) {
+        const directUploadArweave = (ev) => {
+            ev.preventDefault();
+            ev.stopPropagation();
+            const id = uploadToArweaveBtn.dataset.itemId;
+            console.log('🚀 Upload to Arweave clicked for file:', id);
+            
+            // Call function to load file and open Arweave modal
+            loadFileForArweaveUpload(id);
+            cleanup();
+        };
+        uploadToArweaveBtn.addEventListener('click', directUploadArweave);
     }
 
     // Blockchain-specific action handlers
@@ -2956,5 +2977,94 @@ async function verifyOtpForAccess(fileId, accessType, modal) {
     } catch (error) {
         console.error('Failed to verify OTP:', error);
         showNotification('Failed to verify OTP: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Load file content and open Arweave modal with pre-populated file
+ */
+async function loadFileForArweaveUpload(fileId) {
+    try {
+        console.log('📁 Loading file for Arweave upload:', fileId);
+        
+        // Show loading notification
+        showNotification('Loading file for Arweave upload...', 'info');
+        
+        // Fetch file details and content
+        const response = await fetch(`/files/${fileId}/download`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/octet-stream',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to load file: ${response.status} ${response.statusText}`);
+        }
+
+        // Get file info from response headers
+        const contentDisposition = response.headers.get('Content-Disposition');
+        const fileName = contentDisposition 
+            ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') 
+            : `file_${fileId}`;
+        
+        const contentType = response.headers.get('Content-Type') || 'application/octet-stream';
+        const fileBlob = await response.blob();
+        
+        console.log('✅ File loaded:', fileName, 'Type:', contentType, 'Size:', fileBlob.size);
+
+        // Create a File object from the blob
+        const file = new File([fileBlob], fileName, { type: contentType });
+        
+        // Open Arweave modal
+        if (typeof window.openClientArweaveModal === 'function') {
+            window.openClientArweaveModal();
+            
+            // Wait a bit for modal to initialize, then pre-populate the file
+            setTimeout(() => {
+                prePopulateArweaveModal(file);
+            }, 500);
+        } else {
+            throw new Error('Arweave modal is not available');
+        }
+        
+        showNotification(`File "${fileName}" loaded for Arweave upload`, 'success');
+        
+    } catch (error) {
+        console.error('❌ Failed to load file for Arweave upload:', error);
+        showNotification('Failed to load file: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Pre-populate the Arweave modal with a file
+ */
+function prePopulateArweaveModal(file) {
+    try {
+        console.log('🔄 Pre-populating Arweave modal with file:', file.name);
+        
+        // Set the file in the modal's file input
+        const fileInput = document.getElementById('clientArweaveFile');
+        if (fileInput) {
+            // Create a DataTransfer object to simulate file selection
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            fileInput.files = dataTransfer.files;
+            
+            // Trigger change event to update modal
+            const changeEvent = new Event('change', { bubbles: true });
+            fileInput.dispatchEvent(changeEvent);
+            
+            console.log('✅ File pre-populated in Arweave modal');
+        } else {
+            console.error('❌ Arweave file input not found');
+        }
+        
+    } catch (error) {
+        console.error('❌ Failed to pre-populate Arweave modal:', error);
+        showNotification('File loaded but failed to auto-select. Please choose the file manually.', 'warning');
     }
 }

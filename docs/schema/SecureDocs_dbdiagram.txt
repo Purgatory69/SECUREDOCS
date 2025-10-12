@@ -1,0 +1,278 @@
+// Use this at dbdiagram.io - just copy/paste and it creates your ERD automatically
+
+Table users {
+  id bigint [pk]
+  name varchar
+  email varchar
+  email_verified_at timestamp
+  password varchar
+  remember_token varchar
+  two_factor_secret text
+  two_factor_recovery_codes text
+  two_factor_confirmed_at timestamp
+  is_approved boolean
+  role varchar
+  is_premium boolean
+  current_team_id bigint
+  profile_photo_path varchar
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table files {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  parent_id bigint [ref: > files.id]
+  file_name varchar
+  file_path varchar
+  file_size varchar
+  file_type varchar
+  mime_type varchar
+  is_folder boolean
+  deleted_at timestamp
+  is_permanent_stored boolean
+  is_vectorized boolean
+  vectorized_at timestamp
+  is_permanent_storage boolean
+  is_confidential boolean
+  confidential_enabled_at timestamp
+  arweave_url text
+  uploading boolean
+  is_arweave boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table documents {
+  id bigint [pk]
+  content text
+  metadata jsonb
+  embedding vector
+  user_id bigint [ref: > users.id]
+  file_id bigint [ref: > files.id]
+}
+
+Table document_metadata {
+  id text [pk]
+  title text
+  url text
+  created_at timestamp
+  schema text
+  user_id bigint [ref: > users.id]
+  file_id bigint [ref: > files.id]
+}
+
+Table document_rows {
+  id integer [pk]
+  dataset_id text [ref: > document_metadata.id]
+  row_data jsonb
+  file_id bigint [ref: > files.id]
+}
+
+Table file_otp_security {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  file_id bigint [ref: > files.id]
+  permanent_storage_id bigint
+  is_otp_enabled boolean
+  otp_code varchar
+  otp_expires_at timestamp
+  otp_attempts integer
+  max_otp_attempts integer
+  last_otp_sent_at timestamp
+  last_successful_access_at timestamp
+  total_access_count integer
+  require_otp_for_download boolean
+  require_otp_for_preview boolean
+  otp_valid_duration_minutes integer
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table subscriptions {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  plan_name varchar
+  status varchar
+  amount numeric
+  currency varchar
+  billing_cycle varchar
+  starts_at timestamp
+  ends_at timestamp
+  auto_renew boolean
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table payments {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  subscription_id bigint [ref: > subscriptions.id]
+  payment_intent_id varchar
+  payment_method varchar
+  amount numeric
+  currency varchar
+  status varchar
+  payment_gateway varchar
+  gateway_payment_id varchar
+  gateway_response json
+  paid_at timestamp
+  failed_at timestamp
+  failure_reason text
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table user_payment_methods {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  payment_method_type varchar
+  gateway_method_id varchar
+  is_default boolean
+  last_four varchar
+  brand varchar
+  expires_at date
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table arweave_urls {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  url text
+  file_name varchar
+  created_at timestamp
+}
+
+Table system_activities {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  target_user_id bigint [ref: > users.id]
+  file_id bigint [ref: > files.id]
+  activity_type varchar
+  action varchar
+  entity_type varchar
+  entity_id bigint
+  description text
+  metadata jsonb
+  ip_address varchar
+  user_agent text
+  session_id varchar
+  location_country varchar
+  location_city varchar
+  device_type varchar
+  browser varchar
+  risk_level varchar
+  requires_audit boolean
+  is_suspicious boolean
+  created_at timestamp
+}
+
+Table file_access_logs {
+  id bigint [pk]
+  file_id bigint [ref: > files.id]
+  user_id bigint [ref: > users.id]
+  session_id varchar
+  access_type varchar
+  access_method varchar
+  file_size_at_access bigint
+  file_version_at_access varchar
+  ip_address varchar
+  user_agent text
+  referrer text
+  response_time_ms integer
+  bytes_transferred bigint
+  started_at timestamp
+  completed_at timestamp
+  duration_seconds integer
+}
+
+Table notifications {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  type varchar
+  title varchar
+  message text
+  data jsonb
+  read_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table chat_histories {
+  id integer [pk]
+  session_id varchar
+  message jsonb
+}
+
+Table password_reset_tokens {
+  email varchar [pk]
+  token varchar
+  created_at timestamp
+}
+
+Table sessions {
+  id varchar [pk]
+  user_id bigint [ref: > users.id]
+  ip_address varchar
+  user_agent text
+  payload text
+  last_activity integer
+}
+
+Table personal_access_tokens {
+  id bigint [pk]
+  tokenable_type varchar
+  tokenable_id bigint
+  name varchar
+  token varchar
+  abilities text
+  last_used_at timestamp
+  expires_at timestamp
+  created_at timestamp
+  updated_at timestamp
+}
+
+Table user_sessions {
+  id bigint [pk]
+  user_id bigint [ref: > users.id]
+  session_id varchar
+  ip_address varchar
+  user_agent text
+  device_fingerprint text
+  location_country varchar
+  location_city varchar
+  location_timezone varchar
+  is_active boolean
+  last_activity_at timestamp
+  login_method varchar
+  is_suspicious boolean
+  trusted_device boolean
+  created_at timestamp
+  expires_at timestamp
+  logged_out_at timestamp
+}
+
+Table webauthn_credentials {
+  id text [pk]
+  raw_id text
+  response jsonb
+  type varchar
+  transports array
+  attestation_type varchar
+  trust_path jsonb
+  aaguid uuid
+  public_key text
+  counter bigint
+  user_handle text
+  user_id text
+  authenticatable_type varchar
+  authenticatable_id bigint [ref: > users.id]
+  disabled_at timestamp
+  created_at timestamp
+  updated_at timestamp
+  rp_id text
+  origin text
+  alias varchar
+  attestation_format varchar
+}

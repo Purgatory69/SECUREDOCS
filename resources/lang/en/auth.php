@@ -112,4 +112,6 @@ return [
     'success_premium_granted' => 'User :name granted premium status successfully.',
     'success_premium_reset' => "User :name's premium data completely reset.",
     'success_generic' => 'Success!',
+    'db_share_to_ai' => 'Share File to A.I.',
+
 ];

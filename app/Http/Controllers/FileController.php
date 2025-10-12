@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\File;
 use App\Models\User;
+use App\Models\SystemActivity;
 use App\Services\BlockchainStorage\BlockchainStorageManager;
 use App\Services\BlockchainStorage\BlockchainPreflightValidator;
 use App\Services\VectorStoreManager;
@@ -163,6 +164,18 @@ class FileController extends Controller
                 ], 403);
             }
         }
+
+        // Log file access activity (only for non-trashed files to avoid spam)
+        if (!$file->trashed()) {
+            SystemActivity::logFileActivity(
+                SystemActivity::ACTION_ACCESSED,
+                $file,
+                null, // Let it auto-generate description
+                ['otp_protected' => $otpSecurity ? true : false],
+                SystemActivity::RISK_LOW,
+                $user
+            );
+        }
         
         return response()->json($file);
     }
@@ -267,29 +280,14 @@ class FileController extends Controller
             abort(404);
         }
 
-        // Handle blockchain/IPFS-stored files by redirecting to a public gateway
+        // Handle Arweave-stored files by redirecting to Arweave gateway
         try {
-            if (Str::startsWith($filePath, 'ipfs://') || !empty($file->ipfs_hash)) {
-                $hash = $file->ipfs_hash;
-                if (empty($hash) && preg_match('/^ipfs:\/\/(.+)$/', $filePath, $m)) {
-                    $hash = $m[1] ?? null;
-                }
-
-                if (empty($hash) || $hash === 'pending') {
-                    Log::warning('IPFS preview requested but hash not ready', [
-                        'file_id' => $id,
-                        'file_path' => $filePath,
-                        'ipfs_hash' => $file->ipfs_hash,
-                    ]);
-                    abort(409, 'File is not yet available on blockchain');
-                }
-
-                $gatewayUrl = 'https://arweave.net/' . $hash;
-                return redirect()->away($gatewayUrl, 302);
+            if (Str::startsWith($filePath, 'arweave://') && !empty($file->arweave_url)) {
+                return redirect()->away($file->arweave_url, 302);
             }
         } catch (\Throwable $t) {
             // Non-fatal; continue to Supabase proxy path
-            Log::debug('IPFS handling error, falling back to Supabase proxy', ['error' => $t->getMessage()]);
+            Log::debug('Arweave handling error, falling back to Supabase proxy', ['error' => $t->getMessage()]);
         }
 
         // Files are actually stored with user_id prefix, not in folder structure
@@ -340,6 +338,20 @@ class FileController extends Controller
                         $content = $response->getBody()->getContents();
                         $contentType = $response->getHeader('Content-Type')[0] ?? $file->mime_type ?? 'application/octet-stream';
                         
+                        // Log file download activity
+                        SystemActivity::logFileActivity(
+                            SystemActivity::ACTION_DOWNLOADED,
+                            $file,
+                            null, // Let it auto-generate description
+                            [
+                                'file_path' => $testPath,
+                                'otp_protected' => $otpSecurity ? true : false,
+                                'content_type' => $contentType
+                            ],
+                            SystemActivity::RISK_LOW,
+                            $user
+                        );
+
                         Log::info('File found and served successfully', [
                             'file_id' => $id,
                             'successful_path' => $testPath
@@ -588,10 +600,51 @@ class FileController extends Controller
      */
     public function getCategorizationStatusPublic(Request $request): JsonResponse
     {
-        // Get user_id from request metadata if available
+        // Log the request for monitoring
         $userId = $request->input('user_id') ?? $request->header('X-User-ID');
+        $logData = [
+            'timestamp' => now()->toISOString(),
+            'user_id' => $userId ?? 'anonymous',
+            'ip' => $request->ip(),
+            'user_agent' => $request->userAgent(),
+            'referrer' => $request->header('referer'),
+        ];
+
+        // Check if AI categorization is disabled globally
+        if (!config('services.ai_categorization.enabled', true)) {
+            $logData['response_status'] = 'disabled';
+            Log::channel('ai_categorization_pings')->info('AI Categorization Status Request', $logData);
+            
+            return response()->json([
+                'success' => true,
+                'status' => [
+                    'status' => 'disabled',
+                    'progress' => 0,
+                    'message' => 'AI categorization is currently disabled'
+                ]
+            ]);
+        }
+
+        // Get user_id from request metadata if available
         
         if ($userId) {
+            // Check if user is premium (AI categorization is premium-only)
+            $user = User::find($userId);
+            if (!$user || !$user->is_premium) {
+                $logData['response_status'] = 'premium_required';
+                $logData['user_premium'] = $user ? $user->is_premium : 'user_not_found';
+                Log::channel('ai_categorization_pings')->info('AI Categorization Status Request', $logData);
+                
+                return response()->json([
+                    'success' => true,
+                    'status' => [
+                        'status' => 'premium_required',
+                        'progress' => 0,
+                        'message' => 'AI categorization requires premium subscription'
+                    ]
+                ]);
+            }
+
             // Check cache for this specific user
             $status = Cache::get("ai_categorization_status_{$userId}", [
                 'status' => 'idle',
@@ -600,6 +653,10 @@ class FileController extends Controller
                 'updated_at' => now()->toISOString()
             ]);
             
+            $logData['response_status'] = $status['status'];
+            $logData['user_premium'] = true;
+            Log::channel('ai_categorization_pings')->info('AI Categorization Status Request', $logData);
+            
             return response()->json([
                 'success' => true,
                 'status' => $status
@@ -607,6 +664,9 @@ class FileController extends Controller
         }
         
         // Return idle status if no user context
+        $logData['response_status'] = 'idle_no_user';
+        Log::channel('ai_categorization_pings')->info('AI Categorization Status Request', $logData);
+        
         return response()->json([
             'success' => true,
             'status' => [
@@ -679,6 +739,28 @@ class FileController extends Controller
 
         // Handle post-upload processing based on processing_type
         $processingType = $validated['processing_type'] ?? 'standard';
+
+        // Log file/folder creation activity
+        try {
+            SystemActivity::logFileActivity(
+                SystemActivity::ACTION_CREATED,
+                $item,
+                null, // Let it auto-generate description
+                [
+                    'processing_type' => $processingType,
+                    'permanent_storage' => $validated['enable_permanent_storage'] ?? false
+                ],
+                SystemActivity::RISK_LOW,
+                $user
+            );
+            Log::info('File creation activity logged successfully', ['file_id' => $item->id]);
+        } catch (\Exception $e) {
+            Log::error('Failed to log file creation activity', [
+                'file_id' => $item->id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+        }
         if (!$isFolder && $processingType !== 'standard') {
             $this->handlePostUploadProcessing($item, $processingType, $user);
         }
@@ -724,8 +806,6 @@ class FileController extends Controller
                 'mime_type' => $validated['mime_type'],
                 'parent_id' => $validated['parent_id'],
                 'is_folder' => DB::raw('FALSE'),
-                'is_blockchain_stored' => DB::raw('FALSE'),
-                'is_vectorized' => DB::raw('FALSE'),
             ]);
 
             return response()->json([
@@ -777,7 +857,7 @@ class FileController extends Controller
             // Create temporary file for Arweave upload
             $tempFile = $this->createTempFileFromBase64($validated['file_content'], $validated['file_name']);
             
-            // Create file record first
+            // Create file record first and mark as uploading
             $file = File::create([
                 'user_id' => $user->id,
                 'file_name' => $validated['file_name'],
@@ -787,8 +867,8 @@ class FileController extends Controller
                 'mime_type' => $validated['mime_type'],
                 'parent_id' => $validated['parent_id'],
                 'is_folder' => false,
-                'is_blockchain_stored' => false, // Will be updated after successful upload
-                'is_vectorized' => false, // Blockchain uploads are NOT vectorized
+                'uploading' => true, // Mark as currently uploading
+                'is_arweave' => false, // Will be updated after successful upload
             ]);
 
             // Upload to Arweave using ArweaveService
@@ -796,30 +876,33 @@ class FileController extends Controller
             $arweaveResult = $arweaveService->uploadFile($file, $user->id);
             
             if (!$arweaveResult['success']) {
-                // Clean up file record on failure
-                $file->delete();
+                // Mark upload as failed and clean up
+                $file->markUploadFailed();
                 return response()->json([
                     'success' => false,
                     'message' => 'Arweave upload failed: ' . $arweaveResult['error']
                 ], 500);
             }
 
-            // Update file record with Arweave details
-            $file->update([
-                'file_path' => 'arweave://' . $arweaveResult['tx_id'],
-                'is_blockchain_stored' => true,
-                'blockchain_provider' => 'arweave',
-                'blockchain_url' => $arweaveResult['url'],
-                'blockchain_metadata' => json_encode([
+            // Update file path and mark as successfully uploaded to Arweave
+            $file->update(['file_path' => 'arweave://' . $arweaveResult['tx_id']]);
+            $file->markAsArweaveStored($arweaveResult['url']);
+
+            // Log Arweave upload activity  
+            SystemActivity::logFileActivity(
+                SystemActivity::ACTION_UPLOADED,
+                $file,
+                "{$user->name} uploaded '{$file->file_name}' to Arweave blockchain",
+                [
+                    'blockchain_provider' => 'arweave',
                     'transaction_id' => $arweaveResult['tx_id'],
-                    'upload_timestamp' => now(),
-                    'provider' => 'arweave',
-                    'cost' => $arweaveResult['cost'] ?? null
-                ]),
-                'is_permanent_storage' => true,
-                'permanent_storage_enabled_at' => now(),
-                'permanent_storage_enabled_by' => $user->id,
-            ]);
+                    'arweave_url' => $arweaveResult['url'],
+                    'cost' => $arweaveResult['cost'] ?? null,
+                    'permanent_storage' => true
+                ],
+                SystemActivity::RISK_LOW,
+                $user
+            );
 
             // Clean up temporary file
             if (file_exists($tempFile)) {
@@ -883,8 +966,6 @@ class FileController extends Controller
                 'mime_type' => $validated['mime_type'],
                 'parent_id' => $validated['parent_id'],
                 'is_folder' => false,
-                'is_blockchain_stored' => false,
-                'is_vectorized' => false, // Will be set to true after processing
             ]);
 
             // Process with AI vectorization
@@ -1170,43 +1251,21 @@ class FileController extends Controller
             $user = Auth::user();
             $file = File::where('id', $id)->where('user_id', $user->id)->firstOrFail();
 
-            if (!$file->isStoredOnBlockchain()) {
+            if (!$file->isStoredOnArweave()) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'File is not stored on blockchain'
+                    'message' => 'File is not stored on Arweave'
                 ], 400);
             }
 
-            // Check if file is marked as permanent storage
-            if ($file->is_permanent_storage) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Cannot remove file marked as permanent storage'
-                ], 403);
-            }
-
-            // Use blockchain manager to remove file
-            $result = $this->blockchainManager->removeFile($file);
-
-            if ($result) {
-                Log::info('File removed from blockchain storage', [
-                    'file_id' => $file->id,
-                    'user_id' => $user->id,
-                    'ipfs_hash' => $file->ipfs_hash
-                ]);
-
-                return response()->json([
-                    'success' => true,
-                    'message' => 'File removed from blockchain storage successfully'
-                ]);
-            }
-
+            // Arweave files are permanent and cannot be removed
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to remove file from blockchain storage'
-            ], 500);
+                'message' => 'Arweave files are permanently stored and cannot be removed'
+            ], 403);
+
         } catch (\Exception $e) {
-            Log::error('Failed to remove file from blockchain storage', [
+            Log::error('Failed to check Arweave file status', [
                 'file_id' => $id,
                 'user_id' => Auth::id(),
                 'error' => $e->getMessage()
@@ -1214,7 +1273,7 @@ class FileController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to remove file from blockchain storage'
+                'message' => 'Failed to process request'
             ], 500);
         }
     }
@@ -1249,7 +1308,7 @@ class FileController extends Controller
     }
 
     /**
-     * Download blockchain file to Supabase storage
+     * Download Arweave file to Supabase storage
      */
     public function downloadFromBlockchain(File $file): JsonResponse
     {
@@ -1258,33 +1317,21 @@ class FileController extends Controller
                 return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
             }
 
-            if (!$file->isStoredOnBlockchain()) {
-                return response()->json(['success' => false, 'message' => 'File is not on blockchain'], 400);
+            if (!$file->isStoredOnArweave()) {
+                return response()->json(['success' => false, 'message' => 'File is not on Arweave'], 400);
             }
 
-            // Download from IPFS and save to Supabase
-            $provider = $this->blockchainManager->provider($file->blockchain_provider);
-            $content = $provider->getFile($file->ipfs_hash);
-            
-            if (!$content) {
-                return response()->json(['success' => false, 'message' => 'Failed to download from blockchain'], 500);
-            }
-
-            // Save to Supabase storage
-            $path = 'files/' . Auth::id() . '/' . uniqid() . '_' . $file->file_name;
-            Storage::put($path, $content);
-
-            // Update file record
-            $file->update(['file_path' => $path]);
-
+            // Arweave files are already accessible via their URL
+            // No need to download to Supabase - just redirect to Arweave URL
             return response()->json([
                 'success' => true,
-                'message' => 'File downloaded to Supabase storage'
+                'message' => 'File is available on Arweave',
+                'arweave_url' => $file->arweave_url
             ]);
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Download failed: ' . $e->getMessage()
+                'message' => 'Failed to process request: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1386,8 +1433,22 @@ class FileController extends Controller
                     'ipfs_hash' => $result['ipfs_hash']
                 ]);
                 
-                // File should already be updated by uploadFileWithTracking, but ensure consistency
-                $file->refresh();
+                // Mark file as successfully uploaded to Arweave
+                $file->markAsArweaveStored($result['blockchain_url'] ?? $file->arweave_url);
+
+                // Log blockchain storage activity
+                SystemActivity::logFileActivity(
+                    SystemActivity::ACTION_UPLOADED,
+                    $file,
+                    "{$user->name} stored '{$file->file_name}' on blockchain",
+                    [
+                        'blockchain_provider' => 'arweave',
+                        'arweave_url' => $file->arweave_url,
+                        'processing_type' => 'post_upload_blockchain'
+                    ],
+                    SystemActivity::RISK_LOW,
+                    $user
+                );
             } else {
                 Log::error('Blockchain upload failed during post-processing', [
                     'file_id' => $file->id,
@@ -1579,6 +1640,24 @@ class FileController extends Controller
                     $this->trashFile($file);
                 }
             });
+
+            // Log deletion activity after successful trash operation
+            try {
+                SystemActivity::logFileActivity(
+                    SystemActivity::ACTION_DELETED,
+                    $file,
+                    null, // Let it auto-generate description
+                    ['moved_to_trash' => true],
+                    SystemActivity::RISK_LOW,
+                    Auth::user()
+                );
+            } catch (\Exception $e) {
+                Log::error('Failed to log deletion activity', [
+                    'file_id' => $file->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
 
             $message = $file->is_folder ? 'Folder moved to trash' : 'File moved to trash';
             return response()->json(['success' => true, 'message' => $message]);
@@ -1775,6 +1854,25 @@ class FileController extends Controller
 
             Log::info('Folder created successfully', ['folder_id' => $folder->id, 'path' => $path]);
 
+            // Log folder creation activity
+            try {
+                SystemActivity::logFileActivity(
+                    SystemActivity::ACTION_CREATED,
+                    $folder,
+                    null, // Let it auto-generate description
+                    ['folder_path' => $path],
+                    SystemActivity::RISK_LOW,
+                    $user
+                );
+                Log::info('Folder creation activity logged successfully', ['folder_id' => $folder->id]);
+            } catch (\Exception $e) {
+                Log::error('Failed to log folder creation activity', [
+                    'folder_id' => $folder->id,
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+            }
+
             return response()->json($folder, 201);
 
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -1821,6 +1919,16 @@ class FileController extends Controller
             DB::transaction(function () use ($file) {
                 $this->restoreItem($file);
             });
+
+            // Log restore activity
+            SystemActivity::logFileActivity(
+                SystemActivity::ACTION_RESTORED,
+                $file,
+                null, // Let it auto-generate description
+                ['restored_from_trash' => true],
+                SystemActivity::RISK_LOW,
+                Auth::user()
+            );
 
             $message = $file->is_folder ? 'Folder restored successfully' : 'File restored successfully';
             return response()->json(['success' => true, 'message' => $message]);

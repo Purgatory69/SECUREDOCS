@@ -74,4 +74,9 @@ return [
         'mode' => env('PAYPAL_MODE', 'sandbox'), // sandbox or live
     ],
 
+    'ai_categorization' => [
+        'enabled' => env('AI_CATEGORIZATION_ENABLED', false), // Set to false to disable AI categorization polling
+        'polling_interval' => env('AI_CATEGORIZATION_POLLING_INTERVAL', 3000), // milliseconds
+    ],
+
 ];

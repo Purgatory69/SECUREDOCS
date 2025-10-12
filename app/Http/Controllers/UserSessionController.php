@@ -8,6 +8,7 @@ use App\Models\SystemActivity;
 use App\Services\DeviceDetectionService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
@@ -79,29 +80,43 @@ class UserSessionController extends Controller
      */
     public function terminate(Request $request, string $sessionId): JsonResponse
     {
-        $user = Auth::user();
-        
-        // Don't allow terminating current session via this endpoint
-        if ($sessionId === session()->getId()) {
+        try {
+            $user = Auth::user();
+            
+            // Don't allow terminating current session via this endpoint
+            if ($sessionId === session()->getId()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot terminate current session. Please use logout instead.'
+                ], 400);
+            }
+
+            $terminated = $this->deviceDetectionService->terminateSession($user, $sessionId);
+
+            if ($terminated) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Session terminated successfully'
+                ]);
+            }
+
             return response()->json([
                 'success' => false,
-                'message' => 'Cannot terminate current session. Please use logout instead.'
-            ], 400);
-        }
-
-        $terminated = $this->deviceDetectionService->terminateSession($user, $sessionId);
-
-        if ($terminated) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Session terminated successfully'
+                'message' => 'Session not found or already terminated'
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Session termination failed', [
+                'session_id' => $sessionId,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
-        }
 
-        return response()->json([
-            'success' => false,
-            'message' => 'Session not found or already terminated'
-        ], 404);
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to terminate session'
+            ], 500);
+        }
     }
 
     /**
@@ -127,7 +142,7 @@ class UserSessionController extends Controller
         // Get all active sessions except current
         $sessions = UserSession::where('user_id', $user->id)
             ->where('session_id', '!=', $currentSessionId)
-            ->where('is_active', true)
+            ->whereRaw('is_active = ?', [true])
             ->get();
 
         $terminatedCount = 0;
@@ -241,14 +256,20 @@ class UserSessionController extends Controller
             'activity_notifications_enabled' => 'boolean',
         ]);
 
+        // Explicitly convert to proper boolean values for PostgreSQL
+        $booleanData = [];
+        foreach ($validated as $key => $value) {
+            $booleanData[$key] = (bool) $value;
+        }
+
         $user = Auth::user();
-        $user->update($validated);
+        $user->update($booleanData);
 
         // Log preference changes
         SystemActivity::logAuthActivity(
             'notification_preferences_updated',
             "Notification preferences updated by {$user->name}",
-            $validated,
+            $booleanData,
             SystemActivity::RISK_LOW,
             $user
         );

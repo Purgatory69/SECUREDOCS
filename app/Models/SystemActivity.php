@@ -61,6 +61,7 @@ class SystemActivity extends Model
     const ACTION_DOWNLOADED = 'downloaded';
     const ACTION_UPLOADED = 'uploaded';
     const ACTION_COMMENTED = 'commented';
+    const ACTION_RESTORED = 'restored';
     const ACTION_LOGIN = 'login';
     const ACTION_LOGOUT = 'logout';
 
@@ -339,6 +340,7 @@ class SystemActivity extends Model
             self::ACTION_ACCESSED => "{$user->name} accessed {$entityType} '{$file->file_name}'",
             self::ACTION_DOWNLOADED => "{$user->name} downloaded {$entityType} '{$file->file_name}'",
             self::ACTION_UPLOADED => "{$user->name} uploaded {$entityType} '{$file->file_name}'",
+            self::ACTION_RESTORED => "{$user->name} restored {$entityType} '{$file->file_name}' from trash",
             default => "{$user->name} performed '{$action}' on {$entityType} '{$file->file_name}'",
         };
     }

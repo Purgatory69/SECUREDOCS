@@ -63,22 +63,22 @@ class UserSession extends Model
     // Scopes
     public function scopeActive($query)
     {
-        return $query->where('is_active', true);
+        return $query->whereRaw('is_active = ?', [true]);
     }
 
     public function scopeInactive($query)
     {
-        return $query->where('is_active', false);
+        return $query->whereRaw('is_active = ?', [false]);
     }
 
     public function scopeSuspicious($query)
     {
-        return $query->where('is_suspicious', true);
+        return $query->whereRaw('is_suspicious = ?', [true]);
     }
 
     public function scopeTrusted($query)
     {
-        return $query->where('trusted_device', true);
+        return $query->whereRaw('trusted_device = ?', [true]);
     }
 
     public function scopeExpired($query)

@@ -14,8 +14,8 @@ export async function loadBlockchainItems() {
         itemsContainer.dataset.view = 'blockchain';
         itemsContainer.innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
 
-        // Fetch Arweave uploads instead of regular blockchain files
-        const response = await fetch('/arweave-client/uploads');
+        // Fetch Arweave URLs from arweave_urls table
+        const response = await fetch('/arweave/urls');
         if (!response.ok) throw new Error('Failed to fetch Arweave files');
         
         const data = await response.json();
@@ -24,7 +24,7 @@ export async function loadBlockchainItems() {
             throw new Error(data.message || 'Failed to load Arweave files');
         }
 
-        const items = data.uploads || [];
+        const items = data.urls || [];
         displayArweaveItems(items);
         
     } catch (error) {
@@ -50,7 +50,7 @@ function displayArweaveItems(items) {
         return;
     }
 
-    // Transform Arweave transaction data to display format
+    // Transform arweave_urls table data to display format
     let html = '';
     
     items.forEach(item => {

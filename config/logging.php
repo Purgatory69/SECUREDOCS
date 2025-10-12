@@ -127,6 +127,14 @@ return [
             'path' => storage_path('logs/laravel.log'),
         ],
 
+        'ai_categorization_pings' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/ai-categorization-pings.log'),
+            'level' => env('LOG_LEVEL', 'debug'),
+            'days' => env('LOG_AI_CATEGORIZATION_DAYS', 7), // Keep logs for 7 days
+            'replace_placeholders' => true,
+        ],
+
     ],
 
 ];

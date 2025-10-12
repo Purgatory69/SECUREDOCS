@@ -299,9 +299,9 @@ class SecurityController extends Controller
             // Apply filters
             if ($request->filled('status')) {
                 if ($request->status === 'active') {
-                    $query->active();
+                    $query->whereRaw('is_active = ?', [true]);
                 } elseif ($request->status === 'revoked') {
-                    $query->where('is_active', false);
+                    $query->whereRaw('is_active = ?', [false]);
                 } elseif ($request->status === 'expired') {
                     $query->expired();
                 }

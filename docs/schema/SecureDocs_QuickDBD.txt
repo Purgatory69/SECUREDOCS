@@ -1,0 +1,279 @@
+# SecureDocs Database Schema for QuickDBD
+# Use this at quickdatabasediagrams.com - copy/paste and generate your ERD
+
+users
+-
+id PK bigint
+name varchar
+email varchar
+email_verified_at timestamp
+password varchar
+remember_token varchar
+two_factor_secret text
+two_factor_recovery_codes text
+two_factor_confirmed_at timestamp
+is_approved boolean
+role varchar
+is_premium boolean
+current_team_id bigint
+profile_photo_path varchar
+created_at timestamp
+updated_at timestamp
+
+files
+-
+id PK bigint
+user_id FK >- users.id
+parent_id FK >- files.id
+file_name varchar
+file_path varchar
+file_size varchar
+file_type varchar
+mime_type varchar
+is_folder boolean
+deleted_at timestamp
+is_permanent_stored boolean
+is_vectorized boolean
+vectorized_at timestamp
+is_permanent_storage boolean
+is_confidential boolean
+confidential_enabled_at timestamp
+arweave_url text
+uploading boolean
+is_arweave boolean
+created_at timestamp
+updated_at timestamp
+
+documents
+-
+id PK bigint
+content text
+metadata jsonb
+embedding vector
+user_id FK >- users.id
+file_id FK >- files.id
+
+document_metadata
+-
+id PK text
+title text
+url text
+created_at timestamp
+schema text
+user_id FK >- users.id
+file_id FK >- files.id
+
+document_rows
+-
+id PK integer
+dataset_id FK >- document_metadata.id
+row_data jsonb
+file_id FK >- files.id
+
+file_otp_security
+-
+id PK bigint
+user_id FK >- users.id
+file_id FK >- files.id
+permanent_storage_id bigint
+is_otp_enabled boolean
+otp_code varchar
+otp_expires_at timestamp
+otp_attempts integer
+max_otp_attempts integer
+last_otp_sent_at timestamp
+last_successful_access_at timestamp
+total_access_count integer
+require_otp_for_download boolean
+require_otp_for_preview boolean
+otp_valid_duration_minutes integer
+created_at timestamp
+updated_at timestamp
+
+subscriptions
+-
+id PK bigint
+user_id FK >- users.id
+plan_name varchar
+status varchar
+amount numeric
+currency varchar
+billing_cycle varchar
+starts_at timestamp
+ends_at timestamp
+auto_renew boolean
+created_at timestamp
+updated_at timestamp
+
+payments
+-
+id PK bigint
+user_id FK >- users.id
+subscription_id FK >- subscriptions.id
+payment_intent_id varchar
+payment_method varchar
+amount numeric
+currency varchar
+status varchar
+payment_gateway varchar
+gateway_payment_id varchar
+gateway_response json
+paid_at timestamp
+failed_at timestamp
+failure_reason text
+created_at timestamp
+updated_at timestamp
+
+user_payment_methods
+-
+id PK bigint
+user_id FK >- users.id
+payment_method_type varchar
+gateway_method_id varchar
+is_default boolean
+last_four varchar
+brand varchar
+expires_at date
+created_at timestamp
+updated_at timestamp
+
+arweave_urls
+-
+id PK bigint
+user_id FK >- users.id
+url text
+file_name varchar
+created_at timestamp
+
+system_activities
+-
+id PK bigint
+user_id FK >- users.id
+target_user_id FK >- users.id
+file_id FK >- files.id
+activity_type varchar
+action varchar
+entity_type varchar
+entity_id bigint
+description text
+metadata jsonb
+ip_address varchar
+user_agent text
+session_id varchar
+location_country varchar
+location_city varchar
+device_type varchar
+browser varchar
+risk_level varchar
+requires_audit boolean
+is_suspicious boolean
+created_at timestamp
+
+file_access_logs
+-
+id PK bigint
+file_id FK >- files.id
+user_id FK >- users.id
+session_id varchar
+access_type varchar
+access_method varchar
+file_size_at_access bigint
+file_version_at_access varchar
+ip_address varchar
+user_agent text
+referrer text
+response_time_ms integer
+bytes_transferred bigint
+started_at timestamp
+completed_at timestamp
+duration_seconds integer
+
+notifications
+-
+id PK bigint
+user_id FK >- users.id
+type varchar
+title varchar
+message text
+data jsonb
+read_at timestamp
+created_at timestamp
+updated_at timestamp
+
+chat_histories
+-
+id PK integer
+session_id varchar
+message jsonb
+
+password_reset_tokens
+-
+email PK varchar
+token varchar
+created_at timestamp
+
+sessions
+-
+id PK varchar
+user_id FK >- users.id
+ip_address varchar
+user_agent text
+payload text
+last_activity integer
+
+personal_access_tokens
+-
+id PK bigint
+tokenable_type varchar
+tokenable_id bigint
+name varchar
+token varchar
+abilities text
+last_used_at timestamp
+expires_at timestamp
+created_at timestamp
+updated_at timestamp
+
+user_sessions
+-
+id PK bigint
+user_id FK >- users.id
+session_id varchar
+ip_address varchar
+user_agent text
+device_fingerprint text
+location_country varchar
+location_city varchar
+location_timezone varchar
+is_active boolean
+last_activity_at timestamp
+login_method varchar
+is_suspicious boolean
+trusted_device boolean
+created_at timestamp
+expires_at timestamp
+logged_out_at timestamp
+
+webauthn_credentials
+-
+id PK text
+raw_id text
+response jsonb
+type varchar
+transports array
+attestation_type varchar
+trust_path jsonb
+aaguid uuid
+public_key text
+counter bigint
+user_handle text
+user_id text
+authenticatable_type varchar
+authenticatable_id FK >- users.id
+disabled_at timestamp
+created_at timestamp
+updated_at timestamp
+rp_id text
+origin text
+alias varchar
+attestation_format varchar

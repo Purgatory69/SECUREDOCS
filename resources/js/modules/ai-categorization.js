@@ -1,6 +1,10 @@
 /**
  * AI File Categorization Management
  * Provides tamper-resistant loading screen and progress tracking
+ * 
+ * To disable AI categorization completely:
+ * 1. Set AI_CATEGORIZATION_ENABLED=false in your .env file, OR
+ * 2. Comment out the class initialization at the bottom of this file (lines 611-617)
  */
 
 class AICategorization {
@@ -37,7 +41,10 @@ class AICategorization {
                                    document.querySelector('.user-dashboard') ||
                                    document.querySelector('#file-manager');
         
-        return isDashboard || hasDashboardElements;
+        // Check if user is premium (required for AI categorization)
+        const userIsPremium = window.userIsPremium || false;
+        
+        return (isDashboard || hasDashboardElements) && userIsPremium;
     }
 
     init() {
@@ -226,6 +233,12 @@ class AICategorization {
                     console.debug('AI status (server check):', data?.status);
                 }
                 
+                // Handle disabled or premium required status
+                if (data.status.status === 'disabled' || data.status.status === 'premium_required') {
+                    this.stopAllPolling();
+                    return;
+                }
+                
                 // If server says no categorization is running but overlay is active
                 if (data.status.status === 'idle' && this.isActive) {
                     this.hideOverlay();
@@ -263,6 +276,13 @@ class AICategorization {
                 if (!resp.ok) return;
                 const data = await resp.json();
                 const status = data.status;
+                
+                // Handle disabled or premium required status
+                if (status?.status === 'disabled' || status?.status === 'premium_required') {
+                    this.stopAllPolling();
+                    return;
+                }
+                
                 if (status?.status === 'in_progress' && !this.isActive) {
                     this.showOverlay();
                     this.updateProgress(status);
@@ -281,6 +301,28 @@ class AICategorization {
                 console.error('❌ Ambient watcher error:', e);
             }
         }, 3000); // every 3s for faster detection
+    }
+
+    /**
+     * Stop all polling activities
+     */
+    stopAllPolling() {
+        console.log('🛑 Stopping all AI categorization polling (disabled or premium required)');
+        
+        // Stop status polling
+        this.stopStatusPolling();
+        
+        // Stop ambient watcher
+        if (this.ambientInterval) {
+            clearInterval(this.ambientInterval);
+            this.ambientInterval = null;
+        }
+        
+        // Hide overlay if active
+        if (this.isActive) {
+            this.hideOverlay();
+            this.removeTamperPrevention();
+        }
     }
 
     /**
@@ -425,6 +467,13 @@ class AICategorization {
             }
             if (response.ok) {
                 const data = await response.json();
+                
+                // Handle disabled or premium required status
+                if (data.status.status === 'disabled' || data.status.status === 'premium_required') {
+                    this.stopAllPolling();
+                    return;
+                }
+                
                 this.updateProgress(data.status);
                 
                 // Handle completion
@@ -492,6 +541,12 @@ class AICategorization {
             if (response.ok) {
                 const data = await response.json();
                 // console.log('📊 Initial status data:', data);
+                
+                // Handle disabled or premium required status
+                if (data.status.status === 'disabled' || data.status.status === 'premium_required') {
+                    this.stopAllPolling();
+                    return;
+                }
                 
                 // If categorization is in progress, show overlay
                 if (data.status.status === 'in_progress') {

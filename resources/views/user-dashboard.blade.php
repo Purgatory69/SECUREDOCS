@@ -51,8 +51,13 @@
             <!-- Bundlr Wallet Dropdown -->
             <div id="bundlrWalletDropdown" class="hidden absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50">
                 <div class="px-4 py-3 border-b border-[#4A4D6A]">
-                    <div class="text-sm font-medium mb-2">Bundlr Wallet</div>
-                    <div class="text-xs text-gray-400" id="walletStatus">Click Initialize to connect</div>
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-sm font-medium">Bundlr Wallet</div>
+                        <button id="initializeBundlrBtn" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 rounded text-sm transition-colors">
+                            Initialize
+                        </button>
+                    </div>
+                    <div class="text-xs text-gray-400" id="walletStatus">Click initialize to connect</div>
                 </div>
                 <div class="p-4 space-y-3">
                     <!-- Balance Display -->
@@ -63,11 +68,8 @@
                     
                     <!-- Actions -->
                     <div class="space-y-2">
-                        <button id="initializeBundlrBtn" class="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm transition-colors">
-                            🚀 Initialize Bundlr
-                        </button>
                         <div class="text-xs text-gray-400 mb-2">
-                            💡 Need MATIC in your wallet to fund Bundlr
+                            Need MATIC in your wallet to fund Bundlr
                         </div>
                         <div class="flex gap-2">
                             <select id="fundAmountSelect" class="flex-1 px-3 py-2 bg-[#3C3F58] rounded text-sm">
@@ -76,11 +78,11 @@
                                 <option value="0.1">0.1 MATIC</option>
                             </select>
                             <button id="fundBundlrBtn" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors" disabled>
-                                💳 Fund
+                                Fund
                             </button>
                         </div>
                         <button id="refreshBalanceBtn" class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition-colors" disabled>
-                            🔄 Refresh Balance
+                            Refresh Balance
                         </button>
                     </div>
                 </div>
@@ -321,18 +323,6 @@
                 </div>
                 <div id="processingValidation" class="hidden mt-2"></div>
             </div>
-
-            <!-- <div class="space-y-3">
-                        <div class="text-sm font-medium">Security Options:</div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="encryptFiles" class="mr-2">
-                        <label for="encryptFiles" class="text-sm">Encrypt files</label>
-                        </div>
-                        <div class="flex items-center">
-                            <input type="checkbox" id="blockchainVerify" class="mr-2">
-                         <label for="blockchainVerify" class="text-sm">Add blockchain verification</label>
-                        </div>
-                    </div> -->
             <div id="uploadProgress" class="hidden">
                 <div class="flex justify-between text-sm mb-1">
                     <span>Uploading...</span>
@@ -851,381 +841,7 @@
         is_premium: {{ auth()->user()->is_premium ? 'true' : 'false' }}
     };
 </script>
-    <!-- Activity Log Modal -->
 
-
-
-    <!-- Blockchain Storage Modal -->
-    <div id="blockchainStorageModal" class="fixed inset-0 z-50 overflow-y-auto hidden">
-        <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-            
-            <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-6xl sm:w-full">
-                <div class="bg-gradient-to-r from-purple-600 to-pink-600 px-6 py-4">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center">
-                            <span class="text-3xl mr-3">🔗</span>
-                            <div>
-                                <h3 class="text-2xl font-bold text-white">Blockchain Storage</h3>
-                                <p class="text-purple-100">Decentralized, immutable file storage</p>
-                            </div>
-                        </div>
-                        <div class="flex items-center space-x-3">
-                            <span class="px-3 py-1 text-xs bg-gradient-to-r from-yellow-400 to-orange-500 rounded-full text-white font-medium">
-                                PREMIUM
-                            </span>
-                            <button id="closeBlockchainModal" class="text-white hover:text-purple-200">
-                                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="bg-white px-6 pt-4 pb-4">
-                    <!-- Storage Analytics -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-                        <div class="bg-gradient-to-br from-blue-50 to-blue-100 p-4 rounded-lg border border-blue-200">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-blue-600">Files on IPFS</p>
-                                    <p class="text-2xl font-bold text-blue-900" id="ipfsFileCount">-</p>
-                                </div>
-                                <div class="text-blue-500">
-                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zm0 3a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <p class="text-xs text-blue-500 mt-1">Immutable storage</p>
-                        </div>
-                        
-                        <div class="bg-gradient-to-br from-green-50 to-green-100 p-4 rounded-lg border border-green-200">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-green-600">Storage Used</p>
-                                    <p class="text-2xl font-bold text-green-900" id="blockchainStorageUsed">-</p>
-                                </div>
-                                <div class="text-green-500">
-                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zm0 4a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1zm0 3a1 1 0 011-1h6a1 1 0 110 2H4a1 1 0 01-1-1z"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <p class="text-xs text-green-500 mt-1">of <span id="blockchainStorageLimit">1TB</span> limit</p>
-                        </div>
-                        
-                        <div class="bg-gradient-to-br from-purple-50 to-purple-100 p-4 rounded-lg border border-purple-200">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-purple-600">Monthly Cost</p>
-                                    <p class="text-2xl font-bold text-purple-900" id="blockchainMonthlyCost">-</p>
-                                </div>
-                                <div class="text-purple-500">
-                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                        <path d="M8.433 7.418c.155-.103.346-.196.567-.267v1.698a2.305 2.305 0 01-.567-.267C8.07 8.34 8 8.114 8 8c0-.114.07-.34.433-.582zM11 12.849v-1.698c.22.071.412.164.567.267.364.243.433.468.433.582 0 .114-.07.34-.433.582a2.305 2.305 0 01-.567.267z"></path>
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-13a1 1 0 10-2 0v.092a4.535 4.535 0 00-1.676.662C6.602 6.234 6 7.009 6 8c0 .99.602 1.765 1.324 2.246.48.32 1.054.545 1.676.662v1.941c-.391-.127-.68-.317-.843-.504a1 1 0 10-1.51 1.31c.562.649 1.413 1.076 2.353 1.253V15a1 1 0 102 0v-.092a4.535 4.535 0 001.676-.662C13.398 13.766 14 12.991 14 12c0-.99-.602-1.765-1.324-2.246A4.535 4.535 0 0011 9.092V7.151c.391.127.68.317.843.504a1 1 0 101.511-1.31c-.563-.649-1.413-1.076-2.354-1.253V5z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <p class="text-xs text-purple-500 mt-1">IPFS + CDN included</p>
-                        </div>
-                        
-                        <div class="bg-gradient-to-br from-orange-50 to-orange-100 p-4 rounded-lg border border-orange-200">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <p class="text-sm font-medium text-orange-600">Global Nodes</p>
-                                    <p class="text-2xl font-bold text-orange-900">22K+</p>
-                                </div>
-                                <div class="text-orange-500">
-                                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                            </div>
-                            <p class="text-xs text-orange-500 mt-1">Worldwide distribution</p>
-                        </div>
-                    </div>
-
-                    <!-- Blockchain Tabs -->
-                    <div class="border-b border-gray-200 mb-4">
-                        <nav class="-mb-px flex space-x-8">
-                            <button class="blockchain-tab-btn active border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" data-tab="files">
-                                My Blockchain Files
-                            </button>
-                            <button class="blockchain-tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" data-tab="upload">
-                                Upload to IPFS
-                            </button>
-                            <button class="blockchain-tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" data-tab="providers">
-                                Storage Providers
-                            </button>
-                            <button class="blockchain-tab-btn border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-2 px-1 border-b-2 font-medium text-sm" data-tab="analytics">
-                                Analytics
-                            </button>
-                        </nav>
-                    </div>
-
-                    <!-- Blockchain Files Tab -->
-                    <div id="filesTab" class="blockchain-tab-content">
-                        <div class="flex justify-between items-center mb-4">
-                            <h4 class="text-lg font-semibold text-gray-800">Files on Blockchain</h4>
-                            <div class="flex space-x-2">
-                                <select id="blockchainProviderFilter" class="px-3 py-1 border border-gray-300 rounded text-sm">
-                                    <option value="">All Providers</option>
-                                    <option value="pinata">Pinata (IPFS)</option>
-                                    <option value="filecoin">Filecoin</option>
-                                    <option value="storj">STORJ</option>
-                                    <option value="arweave">Arweave</option>
-                                </select>
-                                <button id="refreshBlockchainFiles" class="px-3 py-1 bg-blue-600 text-white rounded text-sm hover:bg-blue-700">
-                                    Refresh
-                                </button>
-                            </div>
-                        </div>
-                        <div id="blockchainFilesList" class="space-y-3 max-h-96 overflow-y-auto">
-                            <!-- Blockchain files will be loaded here -->
-                        </div>
-                    </div>
-
-                    <!-- Upload to IPFS Tab -->
-                    <div id="uploadTab" class="blockchain-tab-content hidden">
-                        <div class="max-w-2xl mx-auto">
-                            <div class="text-center mb-6">
-                                <div class="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <svg class="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                        <path fill-rule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zM6.293 6.707a1 1 0 010-1.414l3-3a1 1 0 011.414 0l3 3a1 1 0 01-1.414 1.414L11 5.414V13a1 1 0 11-2 0V5.414L7.707 6.707a1 1 0 01-1.414 0z" clip-rule="evenodd"></path>
-                                    </svg>
-                                </div>
-                                <h3 class="text-xl font-semibold text-gray-900 mb-2">Upload to Blockchain</h3>
-                                <p class="text-gray-600">Store your files immutably on the decentralized web</p>
-                            </div>
-
-                            <!-- Upload Form -->
-                            <form id="blockchainUploadForm" class="space-y-6">
-                                <!-- File Drop Zone -->
-                                <div id="blockchainDropZone" class="border-2 border-dashed border-purple-300 rounded-lg p-8 text-center hover:border-purple-400 transition-colors cursor-pointer">
-                                    <svg class="mx-auto h-12 w-12 text-purple-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
-                                        <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                    </svg>
-                                    <p class="mt-2 text-sm text-gray-600">
-                                        <span class="font-medium text-purple-600 hover:text-purple-500">Click to upload</span> or drag and drop
-                                    </p>
-                                    <p class="text-xs text-gray-500">PNG, JPG, PDF, DOC up to 100MB</p>
-                                </div>
-                                <input type="file" id="blockchainFileInput" class="hidden" multiple>
-
-                                <!-- Provider Selection -->
-                                <div class="space-y-4">
-                                    <label class="block text-sm font-medium text-gray-700">Storage Provider</label>
-                                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div class="relative">
-                                            <input type="radio" id="pinataProvider" name="provider" value="pinata" class="sr-only" checked>
-                                            <label for="pinataProvider" class="flex items-center p-4 border-2 border-purple-200 rounded-lg cursor-pointer hover:border-purple-300 transition-colors">
-                                                <div class="w-8 h-8 bg-purple-600 rounded-full flex items-center justify-center mr-3">
-                                                    <span class="text-white text-sm font-bold">P</span>
-                                                </div>
-                                                <div class="flex-1">
-                                                    <div class="font-medium text-gray-900">Pinata (IPFS)</div>
-                                                    <div class="text-sm text-gray-500">$20/month • Best for developers</div>
-                                                </div>
-                                                <div class="w-4 h-4 border-2 border-purple-600 rounded-full flex items-center justify-center">
-                                                    <div class="w-2 h-2 bg-purple-600 rounded-full"></div>
-                                                </div>
-                                            </label>
-                                        </div>
-                                        
-                                        <div class="relative">
-                                            <input type="radio" id="filecoinProvider" name="provider" value="filecoin" class="sr-only">
-                                            <label for="filecoinProvider" class="flex items-center p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-gray-300 transition-colors">
-                                                <div class="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center mr-3">
-                                                    <span class="text-white text-sm font-bold">F</span>
-                                                </div>
-                                                <div class="flex-1">
-                                                    <div class="font-medium text-gray-900">Filecoin</div>
-                                                    <div class="text-sm text-gray-500">$0.19/TB • Most cost-effective</div>
-                                                </div>
-                                                <div class="w-4 h-4 border-2 border-gray-300 rounded-full"></div>
-                                            </label>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <!-- Upload Options -->
-                                <div class="space-y-4">
-                                    <div class="flex items-center">
-                                        <input type="checkbox" id="encryptBeforeUpload" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                                        <label for="encryptBeforeUpload" class="ml-2 text-sm text-gray-700">Encrypt before uploading to blockchain</label>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <input type="checkbox" id="permanentStorage" class="rounded border-gray-300 text-purple-600 focus:ring-purple-500">
-                                        <label for="permanentStorage" class="ml-2 text-sm text-gray-700">Permanent storage (cannot be deleted)</label>
-                                    </div>
-                                </div>
-
-                                <!-- OLD SYSTEM DISABLED -->
-                                <button type="button" disabled class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-gray-400 bg-gray-300 cursor-not-allowed">
-                                    ⚠️ Server-Side Uploads (Deprecated)
-                                </button>
-                                <p class="text-xs text-gray-500 mt-1 text-center">Old system disabled - use direct Arweave instead!</p>
-                                
-                                <!-- NEW: Client-Side Arweave Upload -->
-                                <button type="button" onclick="openClientArweaveModal()" class="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mt-3">
-                                    🚀 Upload to Arweave (Direct)
-                                </button>
-                                <p class="text-xs text-gray-500 mt-1 text-center">New: Pay directly with your wallet - no service fees!</p>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Storage Providers Tab -->
-                    <div id="providersTab" class="blockchain-tab-content hidden">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <!-- Pinata Card -->
-                            <div class="border border-purple-200 rounded-lg p-6 bg-gradient-to-br from-purple-50 to-pink-50">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="flex items-center">
-                                        <div class="w-12 h-12 bg-purple-600 rounded-full flex items-center justify-center mr-3">
-                                            <span class="text-white text-lg font-bold">P</span>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">Pinata (IPFS)</h3>
-                                            <p class="text-sm text-gray-500">Professional IPFS service</p>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-1 text-xs bg-green-100 text-green-800 rounded-full">ACTIVE</span>
-                                </div>
-                                <div class="space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Storage:</span>
-                                        <span class="font-medium">1TB included</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Bandwidth:</span>
-                                        <span class="font-medium">Unlimited</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">CDN:</span>
-                                        <span class="font-medium">Global</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Price:</span>
-                                        <span class="font-medium">$20/month</span>
-                                    </div>
-                                </div>
-                                <button class="w-full mt-4 px-4 py-2 bg-purple-600 text-white rounded-lg text-sm hover:bg-purple-700">
-                                    Manage Settings
-                                </button>
-                            </div>
-
-                            <!-- Filecoin Card -->
-                            <div class="border border-gray-200 rounded-lg p-6 bg-gray-50">
-                                <div class="flex items-center justify-between mb-4">
-                                    <div class="flex items-center">
-                                        <div class="w-12 h-12 bg-blue-600 rounded-full flex items-center justify-center mr-3">
-                                            <span class="text-white text-lg font-bold">F</span>
-                                        </div>
-                                        <div>
-                                            <h3 class="text-lg font-semibold text-gray-900">Filecoin</h3>
-                                            <p class="text-sm text-gray-500">Decentralized storage network</p>
-                                        </div>
-                                    </div>
-                                    <span class="px-2 py-1 text-xs bg-gray-100 text-gray-800 rounded-full">AVAILABLE</span>
-                                </div>
-                                <div class="space-y-2 text-sm">
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Storage:</span>
-                                        <span class="font-medium">Pay per TB</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Redundancy:</span>
-                                        <span class="font-medium">Multi-node</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Duration:</span>
-                                        <span class="font-medium">Flexible</span>
-                                    </div>
-                                    <div class="flex justify-between">
-                                        <span class="text-gray-600">Price:</span>
-                                        <span class="font-medium">$0.19/TB/month</span>
-                                    </div>
-                                </div>
-                                <button class="w-full mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg text-sm hover:bg-blue-700">
-                                    Enable Provider
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Analytics Tab -->
-                    <div id="analyticsTab" class="blockchain-tab-content hidden">
-                        <div class="space-y-6">
-                            <!-- Storage Usage Chart -->
-                            <div class="bg-gray-50 rounded-lg p-6">
-                                <h4 class="text-lg font-semibold text-gray-800 mb-4">Storage Usage Over Time</h4>
-                                <div id="storageChart" class="h-64 flex items-center justify-center text-gray-500">
-                                    <div class="text-center">
-                                        <svg class="w-16 h-16 mx-auto mb-2 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                                            <path fill-rule="evenodd" d="M3 3a1 1 0 000 2v8a2 2 0 002 2h2.586l-1.293 1.293a1 1 0 101.414 1.414L10 15.414l2.293 2.293a1 1 0 001.414-1.414L12.414 15H15a2 2 0 002-2V5a1 1 0 100-2H3zm11.707 4.707a1 1 0 00-1.414-1.414L10 9.586 8.707 8.293a1 1 0 00-1.414 0l-2 2a1 1 0 101.414 1.414L8 10.414l1.293 1.293a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
-                                        </svg>
-                                        <p>Usage analytics will appear here</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Cost Analysis -->
-                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                <div class="bg-gradient-to-br from-green-50 to-emerald-50 rounded-lg p-6 border border-green-200">
-                                    <h4 class="text-lg font-semibold text-gray-800 mb-3">Monthly Costs</h4>
-                                    <div class="space-y-2">
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-gray-600">Pinata Storage:</span>
-                                            <span class="font-medium">$20.00</span>
-                                        </div>
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-gray-600">Bandwidth:</span>
-                                            <span class="font-medium">$0.00</span>
-                                        </div>
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-gray-600">Gateway Requests:</span>
-                                            <span class="font-medium">$2.50</span>
-                                        </div>
-                                        <hr class="my-2">
-                                        <div class="flex justify-between font-semibold">
-                                            <span>Total:</span>
-                                            <span>$22.50</span>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="bg-gradient-to-br from-purple-50 to-pink-50 rounded-lg p-6 border border-purple-200">
-                                    <h4 class="text-lg font-semibold text-gray-800 mb-3">Performance Stats</h4>
-                                    <div class="space-y-2">
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-gray-600">Avg. Upload Speed:</span>
-                                            <span class="font-medium">45 MB/s</span>
-                                        </div>
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-gray-600">Global Availability:</span>
-                                            <span class="font-medium">99.9%</span>
-                                        </div>
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-gray-600">Active Gateways:</span>
-                                            <span class="font-medium">12</span>
-                                        </div>
-                                        <div class="flex justify-between text-sm">
-                                            <span class="text-gray-600">Data Redundancy:</span>
-                                            <span class="font-medium">3x</span>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
 
 <!-- Include Client-Side Arweave Modal -->
 @include('modals.client-arweave-modal')

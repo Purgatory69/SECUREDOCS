@@ -122,7 +122,7 @@
                 Recent Activity
             </h2>
 
-            <div id="activityContainer" class="space-y-3">
+            <div id="activityContainer" class="space-y-3 max-h-80 overflow-y-auto scrollbar-thin scrollbar-thumb-[#f89c00] scrollbar-track-[#2A2D47] pr-2">
                 <!-- Activity will be loaded here -->
                 <div class="flex items-center justify-center py-8">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f89c00]"></div>
@@ -130,6 +130,7 @@
                 </div>
             </div>
         </div>
+
     </div>
 </div>
 
@@ -189,6 +190,113 @@
     border-color: #55597C !important;
     margin-left: 16px !important;
     margin-right: 16px !important;
+}
+
+/* Browser Sessions Livewire Component Styling */
+.browser-sessions-wrapper {
+    /* Override Livewire component backgrounds */
+}
+
+.browser-sessions-wrapper .bg-white {
+    background-color: #3C3F58 !important;
+}
+
+.browser-sessions-wrapper .text-sm.text-gray-600,
+.browser-sessions-wrapper .text-xs.text-gray-500 {
+    color: rgba(156, 163, 175, 1) !important;
+}
+
+.browser-sessions-wrapper .text-gray-600 {
+    color: rgba(209, 213, 219, 1) !important;
+}
+
+.browser-sessions-wrapper .text-gray-500 {
+    color: rgba(156, 163, 175, 1) !important;
+}
+
+.browser-sessions-wrapper svg {
+    color: rgba(156, 163, 175, 1) !important;
+}
+
+.browser-sessions-wrapper h2,
+.browser-sessions-wrapper .text-xl {
+    color: white !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.browser-sessions-wrapper h2 svg {
+    color: #f89c00 !important;
+    margin-right: 0.5rem !important;
+}
+
+.browser-sessions-wrapper .max-w-xl {
+    color: rgba(156, 163, 175, 1) !important;
+}
+
+.browser-sessions-wrapper button {
+    background-color: #f89c00 !important;
+    color: #000000 !important;
+    font-weight: 500 !important;
+    padding: 0.5rem 1.5rem !important;
+    border-radius: 0.5rem !important;
+    transition: all 0.2s !important;
+}
+
+.browser-sessions-wrapper button:hover:not(:disabled) {
+    filter: brightness(1.1) !important;
+}
+
+/* Modal styling for browser sessions */
+.browser-sessions-wrapper [x-show] {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+    backdrop-filter: blur(4px) !important;
+}
+
+.browser-sessions-wrapper .bg-white.shadow {
+    background-color: #1F2235 !important;
+    border: 1px solid #4A4D6A !important;
+}
+
+.browser-sessions-wrapper input[type="password"] {
+    background-color: #2A2D47 !important;
+    border-color: #4A4D6A !important;
+    color: white !important;
+}
+
+.browser-sessions-wrapper input[type="password"]::placeholder {
+    color: rgba(156, 163, 219, 0.5) !important;
+}
+
+.browser-sessions-wrapper input[type="password"]:focus {
+    outline: none !important;
+    ring: 2px !important;
+    ring-color: #f89c00 !important;
+    border-color: transparent !important;
+}
+
+/* Custom scrollbar for activity container */
+#activityContainer::-webkit-scrollbar {
+    width: 6px;
+}
+
+#activityContainer::-webkit-scrollbar-track {
+    background: #2A2D47;
+    border-radius: 3px;
+}
+
+#activityContainer::-webkit-scrollbar-thumb {
+    background: #f89c00;
+    border-radius: 3px;
+}
+
+#activityContainer::-webkit-scrollbar-thumb:hover {
+    background: #e68a00;
+}
+
+/* Smooth scroll behavior */
+#activityContainer {
+    scroll-behavior: smooth;
 }
 </style>
 
@@ -336,6 +444,8 @@ async function loadNotificationPreferences() {
 
 async function loadRecentActivity() {
     try {
+        console.log('🔄 Loading recent activity...');
+        
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
         
@@ -349,10 +459,14 @@ async function loadRecentActivity() {
         });
 
         clearTimeout(timeoutId);
+        console.log('📡 Response status:', response.status, response.statusText);
 
         if (!response.ok) throw new Error('Failed to load activity');
 
         const data = await response.json();
+        console.log('📊 Activity data received:', data);
+        console.log('📝 Activities count:', (data.activities || []).length);
+        
         renderActivity(data.activities || []);
     } catch (error) {
         console.error('Error loading activity:', error);
@@ -366,35 +480,57 @@ async function loadRecentActivity() {
 }
 
 function renderActivity(activities) {
+    console.log('🎨 Rendering activities:', activities);
     const container = document.getElementById('activityContainer');
     
     if (activities.length === 0) {
+        console.log('❌ No activities to render');
         container.innerHTML = `
-            <div class="text-center py-8 text-gray-400">
-                <p>No recent activity found.</p>
+            <div class="text-center py-12 text-gray-400">
+                <svg class="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                </svg>
+                <p class="text-lg font-medium">No recent activity found</p>
+                <p class="text-sm mt-1">Your activities will appear here when you start using the platform</p>
             </div>
         `;
         return;
     }
 
-    container.innerHTML = activities.map(activity => `
-        <div class="flex items-center space-x-3 p-3 bg-[#2A2D47] rounded-lg">
-            <div class="text-xl">${activity.activity_type_icon}</div>
-            <div class="flex-1">
-                <div class="text-white text-sm">${activity.description}</div>
-                <div class="text-gray-400 text-xs">
-                    ${activity.time_ago}
-                    ${activity.location ? ` • ${activity.location}` : ''}
-                    ${activity.device_type ? ` • ${activity.device_type}` : ''}
+    const activitiesHtml = activities.map(activity => `
+        <div class="flex items-center space-x-3 p-3 bg-[#2A2D47] rounded-lg hover:bg-[#2D3151] transition-colors duration-200">
+            <div class="text-xl flex-shrink-0">${activity.activity_type_icon}</div>
+            <div class="flex-1 min-w-0">
+                <div class="text-white text-sm font-medium leading-tight">${activity.description}</div>
+                <div class="text-gray-400 text-xs mt-1 flex items-center space-x-2">
+                    <span>${activity.time_ago}</span>
+                    ${activity.location ? `<span>•</span><span class="truncate">${activity.location}</span>` : ''}
+                    ${activity.device_type ? `<span>•</span><span>${activity.device_type}</span>` : ''}
                 </div>
             </div>
-            <div class="text-right">
+            <div class="flex-shrink-0">
                 <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getRiskLevelClass(activity.risk_level)}">
                     ${activity.risk_level_icon} ${activity.risk_level}
                 </span>
             </div>
         </div>
     `).join('');
+
+    container.innerHTML = activitiesHtml;
+
+    // Add scroll indicator if content overflows
+    setTimeout(() => {
+        if (container.scrollHeight > container.clientHeight) {
+            // Add a subtle gradient at the bottom to indicate more content
+            if (!container.querySelector('.scroll-indicator')) {
+                container.insertAdjacentHTML('afterend', `
+                    <div class="scroll-indicator text-center mt-2">
+                        <span class="text-xs text-gray-500">Scroll to see more activities</span>
+                    </div>
+                `);
+            }
+        }
+    }, 100);
 }
 
 function getRiskLevelClass(riskLevel) {
@@ -482,6 +618,7 @@ function setupEventListeners() {
             showNotification(error.message, 'error');
         }
     });
+
 }
 
 async function terminateSession(sessionId) {

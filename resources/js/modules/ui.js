@@ -1,5 +1,8 @@
 // Contains general UI helper functions and initializers.
 
+// Import closeAllActionsMenus from file-folder module
+import { closeAllActionsMenus } from './file-folder.js';
+
 /**
  * Creates and displays a notification toast.
  * @param {string} message The message to display.
@@ -121,6 +124,8 @@ export function initializeNewDropdown() {
             if (isHidden) {
                 // Close other dropdowns first
                 closeAllDropdowns(['new']);
+                // Close all actions menus
+                if (typeof closeAllActionsMenus === 'function') closeAllActionsMenus();
                 activeDropdown = 'new';
                 // Show dropdown
                 newDropdown.classList.remove('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
@@ -154,6 +159,8 @@ export function initializeUserProfile() {
         if (isHidden) {
             // Close other dropdowns first (but keep profile group)
             closeAllDropdowns(['profile', 'language']);
+            // Close all actions menus
+            if (typeof closeAllActionsMenus === 'function') closeAllActionsMenus();
             activeDropdown = 'profile';
             
             // Show profile dropdown and remove overflow-hidden to allow nested language dropdown
@@ -425,6 +432,10 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         // Hide advanced search button
         const advancedSearchBtn = document.getElementById('advanced-search-button');
         if (advancedSearchBtn) advancedSearchBtn.style.display = 'none';
+        
+        // Hide view toggle buttons (grid/list)
+        const viewToggleBtns = document.getElementById('viewToggleBtns');
+        if (viewToggleBtns) viewToggleBtns.style.display = 'none';
     }
 
     function showMyDocumentsElements() {
@@ -442,6 +453,10 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         
         // Show advanced search button
         const advancedSearchBtn = document.getElementById('advanced-search-button');
+        
+        // Show view toggle buttons (grid/list)
+        const viewToggleBtns = document.getElementById('viewToggleBtns');
+        if (viewToggleBtns) viewToggleBtns.style.display = 'flex';
         if (advancedSearchBtn) advancedSearchBtn.style.display = 'flex';
     }
 
@@ -507,6 +522,8 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         if (newButton) newButton.style.display = 'none';
         clearActiveStates();
         trashLink.classList.add('bg-primary', 'text-white');
+        // Hide navigation elements for trash view
+        hideNavigationElements();
         // Show breadcrumbs for trash view
         showBreadcrumbsForView('trash');
         loadTrashItems();
@@ -520,8 +537,8 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         if (newButton) newButton.style.display = 'block'; // Show new button for blockchain upload
         clearActiveStates();
         blockchainLink.classList.add('bg-primary', 'text-white');
-        // Show breadcrumbs for blockchain view
-        showBreadcrumbsForView('blockchain');
+        // Hide navigation elements (breadcrumbs, view toggle, etc.) for blockchain view
+        hideNavigationElements();
         // Keep page-based blockchain view functional (if implemented)
         try { typeof loadBlockchainItems === 'function' && loadBlockchainItems(); } catch (_) {}
         // Intentionally do NOT open the blockchain modal.

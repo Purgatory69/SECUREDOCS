@@ -7,7 +7,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use App\Livewire\Dashboard;
 use App\Http\Controllers\FileController;
-use App\Http\Controllers\FileSharingController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\FileVersionController;
 use App\Http\Controllers\BlockchainTestController;
@@ -15,7 +14,6 @@ use App\Http\Controllers\BlockchainController;
 use App\Http\Controllers\WebAuthnController;
 use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PermanentStorageController;
-use App\Http\Controllers\ArweaveClientController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SchemaController;
 use Illuminate\Http\Request;
@@ -24,10 +22,6 @@ Route::get('/', function () {
     return view('welcome');
 });
 
-// Alchemy Webhook (No auth/CSRF required - external service)
-Route::post('/webhook/alchemy-payment', [PermanentStorageController::class, 'handleAlchemyWebhook'])
-    ->withoutMiddleware([\App\Http\Middleware\VerifyCsrfToken::class])
-    ->name('webhook.alchemy-payment');
 
 // Lightweight keepalive endpoint to prevent session/CSRF from going stale on public pages like /login
 Route::get('/keepalive', function (Request $request) {
@@ -166,15 +160,6 @@ Route::middleware([
 
     // Include Arweave routes
     require __DIR__.'/arweave_routes.php';
-    
-    // Client-Side Arweave Routes (New approach - no server-side payments)
-    Route::prefix('arweave-client')->group(function () {
-        Route::post('/wallet-info', [ArweaveClientController::class, 'getWalletInfo'])->name('arweave.wallet-info');
-        Route::post('/update-balance', [ArweaveClientController::class, 'updateBalance'])->name('arweave.update-balance');
-        Route::post('/save-upload', [ArweaveClientController::class, 'saveUpload'])->name('arweave.save-upload');
-        Route::get('/uploads', [ArweaveClientController::class, 'getUploads'])->name('arweave.uploads');
-        Route::get('/stats', [ArweaveClientController::class, 'getStats'])->name('arweave.stats');
-    });
 
     // OLD: Permanent Storage Routes (DISABLED - use client-side instead)
     Route::prefix('permanent-storage')->group(function () {
@@ -306,6 +291,75 @@ Route::middleware([
         Route::post('/{sessionId}/trust', [App\Http\Controllers\UserSessionController::class, 'trustDevice'])->name('user.sessions.trust');
     });
     
+    // User activity route
+    Route::get('/user/activity/test', function () {
+        try {
+            $user = Auth::user();
+            
+            Log::info('Activity route called', [
+                'user_id' => $user->id,
+                'user_name' => $user->name
+            ]);
+            
+            $activities = \App\Models\SystemActivity::where('user_id', $user->id)
+                ->orderBy('created_at', 'desc')
+                ->limit(10)
+                ->get()
+                ->map(function ($activity) {
+                    $icons = [
+                        'auth' => '🔐',
+                        'file' => '📄', 
+                        'security' => '🛡️',
+                        'system' => '⚙️'
+                    ];
+                    
+                    // Special icons for blockchain activities
+                    if ($activity->activity_type === 'file' && 
+                        isset($activity->metadata['blockchain_provider'])) {
+                        $icons['file'] = '⛓️'; // Blockchain icon for blockchain files
+                    }
+                    
+                    // Handle metadata parsing safely first
+                    $metadata = is_string($activity->metadata) ? json_decode($activity->metadata, true) : $activity->metadata;
+                    $metadata = $metadata ?? [];
+                    
+                    $riskLevels = [
+                        'low' => '✅',
+                        'medium' => '⚠️', 
+                        'high' => '🚨'
+                    ];
+                    
+                    // Special handling for suspicious activities
+                    if ($activity->risk_level === 'high' && 
+                        isset($metadata['is_suspicious']) && 
+                        $metadata['is_suspicious'] === true) {
+                        $icons[$activity->activity_type] = '🚨'; // Override with warning icon
+                    }
+                    
+                    return [
+                        'description' => $activity->description,
+                        'activity_type_icon' => $icons[$activity->activity_type] ?? '📋',
+                        'time_ago' => $activity->created_at->diffForHumans(),
+                        'location' => $metadata['location_info']['city'] ?? ($metadata['city'] ?? null),
+                        'device_type' => $metadata['device_info']['device_type'] ?? ($metadata['device_type'] ?? null),
+                        'risk_level' => $activity->risk_level,
+                        'risk_level_icon' => $riskLevels[$activity->risk_level] ?? '❓'
+                    ];
+                });
+                
+            return response()->json([
+                'success' => true,
+                'activities' => $activities
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'error' => $e->getMessage(),
+                'activities' => []
+            ], 500);
+        }
+    });
+
     // Simple test route for sessions
     Route::get('/user/sessions/test', function () {
         try {
@@ -374,15 +428,6 @@ Route::middleware([
     // Activity tracking routes (must come before /user/{id})
     Route::get('/user/activity', [App\Http\Controllers\UserSessionController::class, 'getRecentActivity'])->name('user.activity');
     
-    // Test route to verify activity endpoint
-    Route::get('/user/activity/test', function () {
-        return response()->json([
-            'success' => true,
-            'message' => 'Activity route is working',
-            'user_id' => Auth::id(),
-            'activities' => []
-        ]);
-    });
     
     // Notification preferences routes
     Route::prefix('user/notifications')->group(function () {
@@ -411,56 +456,6 @@ Route::middleware([
         Route::get('/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('premium.cancel');
         Route::get('/payment-history', [App\Http\Controllers\PaymentController::class, 'paymentHistory'])->name('premium.payment-history');
         
-        // Test route to simulate successful payment (for development) - DISABLED
-        /* Route::post('/test-upgrade', function () {
-            try {
-                $user = Auth::user();
-                
-                if (!$user) {
-                    return response()->json([
-                        'success' => false,
-                        'message' => 'User not authenticated'
-                    ], 401);
-                }
-                
-                if (!$user->is_premium) {
-                    // Use raw SQL with explicit boolean casting for PostgreSQL
-                    DB::statement('UPDATE users SET is_premium = ?::boolean, updated_at = ? WHERE id = ?', [true, now(), $user->id]);
-                    
-                    // Create test subscription using raw SQL to handle boolean casting
-                    DB::statement(
-                        'INSERT INTO subscriptions (user_id, plan_name, status, amount, currency, billing_cycle, starts_at, ends_at, auto_renew, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?::boolean, ?, ?)',
-                        [
-                            $user->id,
-                            'premium',
-                            'active',
-                            299.00,
-                            'PHP',
-                            'monthly',
-                            now(),
-                            now()->addMonth(),
-                            true,
-                            now(),
-                            now()
-                        ]
-                    );
-                }
-                
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Successfully upgraded to premium!',
-                    'redirect' => route('premium.success')
-                ]);
-                
-            } catch (\Exception $e) {
-                Log::error('Test upgrade error: ' . $e->getMessage());
-                
-                return response()->json([
-                    'success' => false,
-                    'message' => 'An error occurred during upgrade: ' . $e->getMessage()
-                ], 500);
-            }
-        })->name('premium.test-upgrade'); */
     });
     
     // PayMongo webhook (no auth/CSRF required - external service)

@@ -16,31 +16,6 @@ class BlockchainTestController extends Controller
         $this->blockchainManager = $blockchainManager;
     }
 
-    /**
-     * Test Pinata connection
-     */
-    public function testPinata(): JsonResponse
-    {
-        try {
-            $result = $this->blockchainManager->testProvider('pinata');
-            
-            return response()->json([
-                'success' => $result['success'],
-                'message' => $result['message'],
-                'provider' => 'pinata',
-                'timestamp' => now()->toIso8601String(),
-                'response' => $result['response'] ?? null
-            ]);
-
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Pinata test failed: ' . $e->getMessage(),
-                'provider' => 'pinata',
-                'timestamp' => now()->toIso8601String()
-            ], 500);
-        }
-    }
 
     /**
      * Test Arweave connection

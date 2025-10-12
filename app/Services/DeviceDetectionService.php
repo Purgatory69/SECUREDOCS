@@ -172,7 +172,7 @@ class DeviceDetectionService
         if ($this->isLocalIP($ip)) {
             return [
                 'ip_address' => $ip,
-                'country' => 'Local',
+                'country' => '--', // Use -- for local/unknown (2 chars)
                 'city' => 'Local',
                 'timezone' => config('app.timezone'),
                 'is_local' => true
@@ -199,14 +199,16 @@ class DeviceDetectionService
     {
         try {
             // Using ipapi.co (free tier: 1000 requests/day)
-            $response = Http::timeout(5)->get("https://ipapi.co/{$ip}/json/");
+            $response = Http::timeout(5)
+                ->withOptions(['verify' => false]) // Disable SSL verification for development
+                ->get("https://ipapi.co/{$ip}/json/");
             
             if ($response->successful()) {
                 $data = $response->json();
                 
                 return [
                     'ip_address' => $ip,
-                    'country' => $data['country_name'] ?? 'Unknown',
+                    'country' => $data['country_code'] ?? '--', // Use 2-letter country code
                     'city' => $data['city'] ?? 'Unknown',
                     'timezone' => $data['timezone'] ?? config('app.timezone'),
                     'is_local' => false,
@@ -223,7 +225,7 @@ class DeviceDetectionService
         // Fallback
         return [
             'ip_address' => $ip,
-            'country' => 'Unknown',
+            'country' => '--', // Use -- for unknown (2 chars)
             'city' => 'Unknown',
             'timezone' => config('app.timezone'),
             'is_local' => false
@@ -302,26 +304,30 @@ class DeviceDetectionService
             ]
         ]);
 
-        return UserSession::create([
-            'user_id' => $user->id,
-            'session_id' => $sessionId,
-            'ip_address' => $locationInfo['ip_address'],
-            'user_agent' => $deviceInfo['user_agent'],
-            'device_fingerprint' => $fingerprint,
-            'location_country' => $locationInfo['country'],
-            'location_city' => $locationInfo['city'],
-            'location_timezone' => $locationInfo['timezone'],
-            'device_type' => $deviceInfo['device_type'],
-            'browser' => $deviceInfo['browser'],
-            'platform' => $deviceInfo['platform'],
-            'is_mobile' => $booleanValues['is_mobile'] ? 1 : 0,
-            'is_tablet' => $booleanValues['is_tablet'] ? 1 : 0,
-            'is_desktop' => $booleanValues['is_desktop'] ? 1 : 0,
-            'login_method' => 'web', // Can be extended for other methods
-            'is_suspicious' => $booleanValues['is_suspicious'] ? 1 : 0,
-            'trusted_device' => $booleanValues['trusted_device'] ? 1 : 0,
-            'expires_at' => now()->addDays(30), // Session expires in 30 days
-        ]);
+        return UserSession::updateOrCreate(
+            [
+                'session_id' => $sessionId, // Find by session_id
+            ],
+            [
+                'user_id' => $user->id,
+                'ip_address' => $locationInfo['ip_address'],
+                'user_agent' => $deviceInfo['user_agent'],
+                'device_fingerprint' => $fingerprint,
+                'location_country' => $locationInfo['country'],
+                'location_city' => $locationInfo['city'],
+                'location_timezone' => $locationInfo['timezone'],
+                'device_type' => $deviceInfo['device_type'],
+                'browser' => $deviceInfo['browser'],
+                'platform' => $deviceInfo['platform'],
+                'is_mobile' => $booleanValues['is_mobile'] ? 1 : 0,
+                'is_tablet' => $booleanValues['is_tablet'] ? 1 : 0,
+                'is_desktop' => $booleanValues['is_desktop'] ? 1 : 0,
+                'login_method' => 'web', // Can be extended for other methods
+                'is_suspicious' => $booleanValues['is_suspicious'] ? 1 : 0,
+                'trusted_device' => $booleanValues['trusted_device'] ? 1 : 0,
+                'expires_at' => now()->addDays(30), // Session expires in 30 days
+            ]
+        );
     }
 
     /**
@@ -329,17 +335,39 @@ class DeviceDetectionService
      */
     protected function logLoginActivity(User $user, array $deviceInfo, array $locationInfo, bool $isNewDevice): void
     {
-        $riskLevel = $isNewDevice ? SystemActivity::RISK_MEDIUM : SystemActivity::RISK_LOW;
+        // Check for suspicious activity (5+ failed attempts from this IP in last hour)
+        $recentFailedAttempts = SystemActivity::where('ip_address', $locationInfo['ip_address'])
+            ->where('activity_type', 'auth')
+            ->where('action', 'failed_login')
+            ->where('created_at', '>=', now()->subHour())
+            ->count();
+
+        $isSuspicious = $recentFailedAttempts >= 5;
+        
+        // Determine risk level based on new device and suspicious activity
+        $riskLevel = SystemActivity::RISK_LOW;
+        if ($isSuspicious) {
+            $riskLevel = SystemActivity::RISK_HIGH;
+        } elseif ($isNewDevice) {
+            $riskLevel = SystemActivity::RISK_MEDIUM;
+        }
         
         $description = $isNewDevice 
             ? "New device login: {$user->name} logged in from {$deviceInfo['device_type']} ({$deviceInfo['browser']}) in {$locationInfo['city']}, {$locationInfo['country']}"
             : "Login: {$user->name} logged in from known device";
+
+        // Add suspicious flag to description if detected
+        if ($isSuspicious) {
+            $description = "🚨 SUSPICIOUS LOGIN: " . $description . " (5+ failed attempts from this IP in past hour)";
+        }
 
         SystemActivity::logAuthActivity(
             SystemActivity::ACTION_LOGIN,
             $description,
             [
                 'is_new_device' => $isNewDevice,
+                'is_suspicious' => $isSuspicious,
+                'failed_attempts_count' => $recentFailedAttempts,
                 'device_info' => $deviceInfo,
                 'location_info' => $locationInfo,
                 'session_id' => session()->getId(),
@@ -354,6 +382,16 @@ class DeviceDetectionService
      */
     protected function detectSuspiciousActivity(User $user, array $deviceInfo, array $locationInfo): bool
     {
+        // Check for failed attempts from this IP in the last hour
+        $recentFailedAttempts = SystemActivity::where('ip_address', $locationInfo['ip_address'])
+            ->where('activity_type', 'auth')
+            ->where('action', 'failed_login')
+            ->where('created_at', '>=', now()->subHour())
+            ->count();
+
+        // Flag as suspicious if 5+ failed attempts in the last hour
+        $isSuspicious = $recentFailedAttempts >= 5;
+
         // Check for multiple rapid logins from different locations
         $recentLogins = UserSession::where('user_id', $user->id)
             ->where('created_at', '>', now()->subHours(1))
@@ -436,7 +474,7 @@ class DeviceDetectionService
 
         if ($session) {
             $session->update([
-                'is_active' => false,
+                'is_active' => DB::raw('false'),
                 'logged_out_at' => now()
             ]);
 
