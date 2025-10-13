@@ -8,7 +8,6 @@ use App\Models\SystemActivity;
 use App\Services\BlockchainStorage\BlockchainStorageManager;
 use App\Services\BlockchainStorage\BlockchainPreflightValidator;
 use App\Services\VectorStoreManager;
-use App\Services\ArweaveService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -120,7 +119,7 @@ class FileController extends Controller
 
         // Filter by type if specified (for move modal folder selection)
         if ($request->query('type') === 'folders') {
-            $query->where('is_folder', true);
+            $query->where('is_folder', DB::raw('true'));
         }
 
         // Add OTP security status to the query
@@ -131,7 +130,7 @@ class FileController extends Controller
         ->select('files.*', 
                  DB::raw('CASE WHEN file_otp_security.id IS NOT NULL THEN true ELSE false END as has_otp_protection'));
 
-        $files = $query->orderBy('is_folder', 'desc')->orderBy('file_name', 'asc')->paginate(20);
+        $files = $query->orderByRaw('is_folder DESC')->orderBy('file_name', 'asc')->paginate(20);
 
         return response()->json($files);
     }
@@ -290,28 +289,33 @@ class FileController extends Controller
             Log::debug('Arweave handling error, falling back to Supabase proxy', ['error' => $t->getMessage()]);
         }
 
-        // Files are actually stored with user_id prefix, not in folder structure
-        // Database stores logical folder path, but Supabase uses user_id/timestamp_filename format
-        $actualPath = "user_{$file->user_id}/" . basename($filePath);
-        
-        // If the filename doesn't have a timestamp prefix, we need to find the actual file
+        $possiblePaths = [];
+
+        // Always include the raw stored path (normalized) as first candidate
+        $normalizedStoredPath = ltrim($filePath, '/');
+        if (!empty($normalizedStoredPath)) {
+            $possiblePaths[] = $normalizedStoredPath;
+        }
+
+        // Files are generally stored under user_{id}/timestamp_filename format – try that next
+        $derivedPath = "user_{$file->user_id}/" . basename($filePath);
+        if (!in_array($derivedPath, $possiblePaths, true)) {
+            $possiblePaths[] = $derivedPath;
+        }
+
+        // For very old uploads the database stored only the display name; try that as well
         if (!preg_match('/^\d+_/', basename($filePath))) {
-            // This is a legacy file path, try to construct the actual path
-            Log::info('Attempting to find actual file path for legacy entry', [
+            Log::info('Attempting legacy file path resolution', [
                 'file_id' => $id,
                 'stored_path' => $filePath,
                 'user_id' => $file->user_id,
                 'filename' => $file->file_name
             ]);
-            
-            // Try common patterns for the actual filename
-            $possiblePaths = [
-                "user_{$file->user_id}/" . $file->file_name,
-                "user_{$file->user_id}/1756194709899_" . $file->file_name, // Based on your URL pattern
-                // Try with various timestamp patterns that might have been used
-            ];
-        } else {
-            $possiblePaths = [$actualPath];
+
+            $legacyPath = "user_{$file->user_id}/" . $file->file_name;
+            if (!in_array($legacyPath, $possiblePaths, true)) {
+                $possiblePaths[] = $legacyPath;
+            }
         }
         
         $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
@@ -576,6 +580,15 @@ class FileController extends Controller
                 'progress' => $validated['progress']
             ]);
 
+            // Broadcast real-time update to frontend (if using broadcasting)
+            if ($validated['status'] === 'in_progress') {
+                // Trigger frontend polling start
+                Cache::put("ai_categorization_polling_active_{$userId}", true, 3600);
+            } elseif (in_array($validated['status'], ['completed', 'failed'])) {
+                // Stop frontend polling
+                Cache::forget("ai_categorization_polling_active_{$userId}");
+            }
+
             return response()->json([
                 'success' => true,
                 'message' => 'Status updated successfully',
@@ -674,6 +687,37 @@ class FileController extends Controller
                 'progress' => 0,
                 'message' => 'No categorization in progress'
             ]
+        ]);
+    }
+
+    /**
+     * Check if AI categorization polling should be active for a user (lightweight endpoint)
+     */
+    public function shouldPollCategorizationStatus(Request $request): JsonResponse
+    {
+        // Check if AI categorization is disabled globally
+        if (!config('services.ai_categorization.enabled', true)) {
+            return response()->json(['should_poll' => false, 'reason' => 'disabled']);
+        }
+
+        // Get user_id from request
+        $userId = $request->input('user_id');
+        if (!$userId) {
+            return response()->json(['should_poll' => false, 'reason' => 'no_user_id']);
+        }
+
+        // Check if user is premium
+        $user = User::find($userId);
+        if (!$user || !$user->is_premium) {
+            return response()->json(['should_poll' => false, 'reason' => 'not_premium']);
+        }
+
+        // Check if there's an active polling flag set by AI
+        $shouldPoll = Cache::has("ai_categorization_polling_active_{$userId}");
+        
+        return response()->json([
+            'should_poll' => $shouldPoll,
+            'reason' => $shouldPoll ? 'ai_active' : 'no_active_ai'
         ]);
     }
 
@@ -871,51 +915,17 @@ class FileController extends Controller
                 'is_arweave' => false, // Will be updated after successful upload
             ]);
 
+            // TODO: Replace with BlockchainStorageManager implementation
             // Upload to Arweave using ArweaveService
-            $arweaveService = new ArweaveService();
-            $arweaveResult = $arweaveService->uploadFile($file, $user->id);
+            // $arweaveService = new ArweaveService();
+            // $arweaveResult = $arweaveService->uploadFile($file, $user->id);
             
-            if (!$arweaveResult['success']) {
-                // Mark upload as failed and clean up
-                $file->markUploadFailed();
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Arweave upload failed: ' . $arweaveResult['error']
-                ], 500);
-            }
-
-            // Update file path and mark as successfully uploaded to Arweave
-            $file->update(['file_path' => 'arweave://' . $arweaveResult['tx_id']]);
-            $file->markAsArweaveStored($arweaveResult['url']);
-
-            // Log Arweave upload activity  
-            SystemActivity::logFileActivity(
-                SystemActivity::ACTION_UPLOADED,
-                $file,
-                "{$user->name} uploaded '{$file->file_name}' to Arweave blockchain",
-                [
-                    'blockchain_provider' => 'arweave',
-                    'transaction_id' => $arweaveResult['tx_id'],
-                    'arweave_url' => $arweaveResult['url'],
-                    'cost' => $arweaveResult['cost'] ?? null,
-                    'permanent_storage' => true
-                ],
-                SystemActivity::RISK_LOW,
-                $user
-            );
-
-            // Clean up temporary file
-            if (file_exists($tempFile)) {
-                unlink($tempFile);
-            }
-
+            // Temporary fallback - return error for now
+            $file->markUploadFailed();
             return response()->json([
-                'success' => true,
-                'message' => 'File uploaded to Arweave blockchain successfully (no AI processing)',
-                'file' => $file->fresh(),
-                'arweave_url' => $arweaveResult['url'],
-                'transaction_id' => $arweaveResult['tx_id']
-            ], 201);
+                'success' => false,
+                'message' => 'Direct blockchain upload is temporarily disabled. Use permanent storage modal instead.'
+            ], 503);
 
         } catch (\Exception $e) {
             Log::error('Blockchain upload failed', [
@@ -1748,7 +1758,13 @@ class FileController extends Controller
             return;
         }
 
-        $client = new Client(['base_uri' => $supabaseUrl]);
+        // Disable SSL verification for local development
+        $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
+        $client = new Client([
+            'base_uri' => $supabaseUrl,
+            'verify' => $verifySsl,
+            'timeout' => 30,
+        ]);
         $originalPath = $file->file_path;
         $trashPath = 'trash/' . $originalPath;
 
@@ -2060,7 +2076,13 @@ class FileController extends Controller
             return;
         }
 
-        $client = new Client(['base_uri' => $supabaseUrl]);
+        // Disable SSL verification for local development
+        $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
+        $client = new Client([
+            'base_uri' => $supabaseUrl,
+            'verify' => $verifySsl,
+            'timeout' => 30,
+        ]);
         $trashPath = $file->file_path;
         $originalPath = Str::after($trashPath, 'trash/');
 
@@ -2112,7 +2134,13 @@ class FileController extends Controller
             return;
         }
 
-        $client = new Client(['base_uri' => $supabaseUrl]);
+        // Disable SSL verification for local development
+        $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
+        $client = new Client([
+            'base_uri' => $supabaseUrl,
+            'verify' => $verifySsl,
+            'timeout' => 30,
+        ]);
 
         foreach ($filePaths as $path) {
             try {
@@ -2357,6 +2385,166 @@ class FileController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to get processing options'
+            ], 500);
+        }
+    }
+
+    /**
+     * Rename a file or folder
+     */
+    public function rename(Request $request, $id): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            // Validate the new name
+            $validated = $request->validate([
+                'new_name' => 'required|string|max:255|regex:/^[a-zA-Z0-9\s._-]+$/'
+            ]);
+
+            // Find the file/folder (including trashed items)
+            $file = $user->files()->withTrashed()->findOrFail($id);
+            
+            // Don't allow renaming trashed items
+            if ($file->trashed()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot rename items in trash'
+                ], 400);
+            }
+
+            $newName = trim($validated['new_name']);
+            $oldName = $file->file_name;
+
+            // Check if the name is actually different
+            if ($newName === $oldName) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'The new name is the same as the current name'
+                ], 400);
+            }
+
+            // Check for duplicates in the same directory
+            $duplicate = $user->files()
+                ->where('parent_id', $file->parent_id)
+                ->where('file_name', $newName)
+                ->where('is_folder', DB::raw($file->is_folder ? 'true' : 'false'))
+                ->where('id', '!=', $file->id)
+                ->first();
+
+            if ($duplicate) {
+                $type = $file->is_folder ? 'folder' : 'file';
+                return response()->json([
+                    'success' => false,
+                    'message' => "A {$type} with the name '{$newName}' already exists in this location"
+                ], 400);
+            }
+
+            // If it's a file (not folder), update the file path in storage
+            $newFilePath = null;
+            if (!$file->is_folder && $file->file_path) {
+                // Extract the directory and extension from the original file path
+                $pathInfo = pathinfo($file->file_path);
+                $directory = $pathInfo['dirname'];
+                $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
+                
+                // Generate new file path
+                $newFilePath = $directory . '/' . $newName . $extension;
+                
+                Log::info('File rename - path update', [
+                    'user_id' => $user->id,
+                    'file_id' => $file->id,
+                    'old_path' => $file->file_path,
+                    'new_path' => $newFilePath,
+                    'old_name' => $oldName,
+                    'new_name' => $newName
+                ]);
+            }
+
+            // Update the file record
+            $updateData = [
+                'file_name' => $newName,
+                'updated_at' => now()
+            ];
+
+            if ($newFilePath) {
+                $updateData['file_path'] = $newFilePath;
+            }
+
+            DB::table('files')
+                ->where('id', $file->id)
+                ->update($updateData);
+
+            // Update the model instance with new data for activity logging
+            $file->file_name = $newName;
+            if ($newFilePath) {
+                $file->file_path = $newFilePath;
+            }
+
+            // Log rename activity
+            try {
+                SystemActivity::logFileActivity(
+                    SystemActivity::ACTION_UPDATED,
+                    $file,
+                    "{$user->name} renamed " . ($file->is_folder ? 'folder' : 'file') . " from '{$oldName}' to '{$newName}'",
+                    [
+                        'old_name' => $oldName,
+                        'new_name' => $newName,
+                        'file_path_updated' => !is_null($newFilePath),
+                        'action_type' => 'rename'
+                    ],
+                    SystemActivity::RISK_LOW,
+                    $user
+                );
+                Log::info('Rename activity logged successfully', ['file_id' => $file->id]);
+            } catch (\Exception $e) {
+                Log::error('Failed to log rename activity', [
+                    'file_id' => $file->id,
+                    'error' => $e->getMessage()
+                ]);
+                // Don't fail the rename operation if activity logging fails
+            }
+
+            // Log the rename action
+            Log::info('File/folder renamed successfully', [
+                'user_id' => $user->id,
+                'file_id' => $file->id,
+                'old_name' => $oldName,
+                'new_name' => $newName,
+                'is_folder' => $file->is_folder,
+                'file_path_updated' => !is_null($newFilePath)
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Item renamed successfully',
+                'file' => [
+                    'id' => $file->id,
+                    'old_name' => $oldName,
+                    'new_name' => $newName,
+                    'is_folder' => $file->is_folder,
+                    'file_path' => $newFilePath ?? $file->file_path
+                ]
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            $errors = collect($e->errors())->flatten()->implode(' ');
+            return response()->json([
+                'success' => false,
+                'message' => 'Invalid name: ' . $errors
+            ], 422);
+            
+        } catch (\Exception $e) {
+            Log::error('File rename failed', [
+                'user_id' => Auth::id(),
+                'file_id' => $id,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to rename item: ' . $e->getMessage()
             ], 500);
         }
     }

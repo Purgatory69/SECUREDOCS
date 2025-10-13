@@ -156,7 +156,17 @@ async function handleFiles(files) {
 }
 
 async function handleUpload() {
-    if (!currentUploadFile) return;
+    if (!currentUploadFile) {
+        showNotification('No file selected for upload', 'error');
+        return;
+    }
+    
+    // Validate the file object has required properties
+    if (!currentUploadFile.name || currentUploadFile.size === undefined) {
+        console.error('Invalid file object:', currentUploadFile);
+        showNotification('Invalid file selected. Please try again.', 'error');
+        return;
+    }
 
     // Check storage before upload
     if (window.storageManager) {
@@ -233,6 +243,10 @@ async function handleUpload() {
 // Separate upload handlers for different processing types
 
 async function handleStandardUpload(onProgress) {
+    if (!currentUploadFile) {
+        throw new Error('No file selected for upload');
+    }
+    
     const filePath = await window.uploadFileToSupabase(currentUploadFile, onProgress);
     
     const currentFolderIdEl = document.getElementById('currentFolderId');
@@ -267,6 +281,10 @@ async function handleStandardUpload(onProgress) {
 
 
 async function handleAiVectorizeUpload(onProgress) {
+    if (!currentUploadFile) {
+        throw new Error('No file selected for upload');
+    }
+    
     const filePath = await window.uploadFileToSupabase(currentUploadFile, onProgress);
     
     const currentFolderIdEl = document.getElementById('currentFolderId');

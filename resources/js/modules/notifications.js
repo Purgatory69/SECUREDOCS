@@ -125,20 +125,20 @@ class NotificationManager {
         }
 
         this.list.innerHTML = notifications.map(notification => `
-            <div class="notification-item border-b border-gray-200 p-3 hover:bg-gray-50 ${notification.read_at ? '' : 'bg-blue-50'}" data-id="${notification.id}">
+            <div class="notification-item group border-b border-gray-200 p-3 hover:bg-gray-50 ${notification.read_at ? '' : 'bg-blue-50'}" data-id="${notification.id}">
                 <div class="flex items-start gap-3">
                     <div class="notification-icon flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${this.getNotificationIconClass(notification.type)}">
                         ${this.getNotificationIcon(notification.type)}
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h4 class="text-sm font-medium text-gray-900 truncate">${notification.title}</h4>
+                            <h4 class="text-sm font-medium text-white-900 group-hover:text-gray-900 truncate">${notification.title}</h4>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs text-gray-500">${this.formatRelativeTime(notification.created_at)}</span>
-                                <button class="delete-notification-btn text-gray-400 hover:text-red-500 text-lg leading-none" data-id="${notification.id}" title="Delete notification">×</button>
+                                <span class="text-xs text-white-500 group-hover:text-gray-700">${this.formatRelativeTime(notification.created_at)}</span>
+                                <button class="delete-notification-btn text-white-400 group-hover:text-gray-900 text-lg leading-none" data-id="${notification.id}" title="Delete notification">×</button>
                             </div>
                         </div>
-                        <p class="text-sm text-gray-600 mt-1">${notification.message}</p>
+                        <p class="text-sm text-white-600 group-hover:text-gray-700 mt-1">${notification.message}</p>
                         ${!notification.read_at ? '<div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>' : ''}
                     </div>
                 </div>

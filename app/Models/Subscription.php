@@ -168,10 +168,9 @@ class Subscription extends Model
      */
     public function cancel(): void
     {
-        $this->update([
-            'status' => 'cancelled',
-            'auto_renew' => false
-        ]);
+        $this->status = 'cancelled';
+        $this->auto_renew = false; // This will be properly cast by the model
+        $this->save();
     }
 
     /**

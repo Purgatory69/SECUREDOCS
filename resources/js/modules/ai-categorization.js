@@ -51,7 +51,7 @@ class AICategorization {
         this.createOverlay();
         this.attachEventListeners();
         this.checkInitialStatus();
-        this.startAmbientWatcher();
+        this.startSmartWatcher(); // Use smart watcher instead of ambient
     }
 
     /**
@@ -256,23 +256,36 @@ class AICategorization {
     }
 
     /**
-     * Ambient watcher that runs even when overlay is hidden.
-     * If server reports in_progress, it will show the overlay.
+     * Smart watcher that only checks when AI might be active.
+     * Uses longer intervals and checks polling flag first.
      */
-    startAmbientWatcher() {
-        if (this.ambientInterval) return;
-        this.ambientInterval = setInterval(async () => {
+    startSmartWatcher() {
+        if (this.smartInterval) return;
+        
+        // Check every 10 seconds (much less frequent)
+        this.smartInterval = setInterval(async () => {
             try {
                 if (this.isActive) return; // active polling handles it
                 
-                // Always use public endpoint since we set skipAuthUntil to far future
+                // First check if polling should be active for this user
                 const userId = window.userId || localStorage.getItem('user_id');
-                const publicUrl = userId ? `${this.apiBase}/ai/categorization-status-public?user_id=${userId}` : `${this.apiBase}/ai/categorization-status-public`;
+                if (!userId) return;
+                
+                const shouldPoll = await this.checkIfShouldPoll(userId);
+                if (!shouldPoll) {
+                    console.debug('🔇 Smart watcher: No active AI categorization, skipping check');
+                    return;
+                }
+                
+                console.log('🔍 Smart watcher: AI categorization active, checking status...');
+                
+                const publicUrl = `${this.apiBase}/ai/categorization-status-public?user_id=${userId}`;
                 const resp = await fetch(publicUrl, {
                     method: 'GET',
                     headers: this.buildAuthHeaders(),
                     credentials: 'include'
                 });
+                
                 if (!resp.ok) return;
                 const data = await resp.json();
                 const status = data.status;
@@ -284,6 +297,7 @@ class AICategorization {
                 }
                 
                 if (status?.status === 'in_progress' && !this.isActive) {
+                    console.log('🚀 Smart watcher: Starting active polling and showing overlay');
                     this.showOverlay();
                     this.updateProgress(status);
                 } else if (status?.status === 'completed' && this.isActive && !this.completedHandled) {
@@ -298,9 +312,29 @@ class AICategorization {
                     }, 2000);
                 }
             } catch (e) {
-                console.error('❌ Ambient watcher error:', e);
+                console.error('❌ Smart watcher error:', e);
             }
-        }, 3000); // every 3s for faster detection
+        }, 10000); // every 10s - much less frequent
+    }
+
+    /**
+     * Check if polling should be active for a user (backend sets this flag)
+     */
+    async checkIfShouldPoll(userId) {
+        try {
+            const resp = await fetch(`${this.apiBase}/ai/categorization-should-poll?user_id=${userId}`, {
+                method: 'GET',
+                headers: this.buildAuthHeaders(),
+                credentials: 'include'
+            });
+            
+            if (!resp.ok) return false;
+            const data = await resp.json();
+            return data.should_poll === true;
+        } catch (e) {
+            console.error('❌ Failed to check polling status:', e);
+            return false;
+        }
     }
 
     /**
@@ -312,7 +346,13 @@ class AICategorization {
         // Stop status polling
         this.stopStatusPolling();
         
-        // Stop ambient watcher
+        // Stop smart watcher
+        if (this.smartInterval) {
+            clearInterval(this.smartInterval);
+            this.smartInterval = null;
+        }
+        
+        // Stop legacy ambient watcher (if exists)
         if (this.ambientInterval) {
             clearInterval(this.ambientInterval);
             this.ambientInterval = null;
@@ -569,11 +609,81 @@ class AICategorization {
         if (window.notifications) {
             window.notifications.show({
                 title: 'AI Categorization Complete',
-                message: 'Your files have been successfully organized',
-                type: 'success'
+                message: 'Your files have been successfully organized. Click to refresh and view changes.',
+                type: 'success',
+                action: {
+                    text: 'Refresh Files',
+                    callback: () => {
+                        this.handleCompletionClick();
+                    }
+                }
             });
         } else {
-            alert('AI categorization completed successfully!');
+            // Fallback for when notifications system isn't available
+            if (window.confirm('AI categorization completed successfully!\n\nClick OK to refresh files and view the organized structure.')) {
+                this.handleCompletionClick();
+            }
+        }
+    }
+
+    /**
+     * Handle completion notification click - restart polling and refresh files
+     */
+    handleCompletionClick() {
+        console.log('🔄 User clicked completion notification - refreshing files and restarting smart watcher');
+        
+        // Restart smart watcher (polling every 10 seconds)
+        this.startSmartWatcher();
+        
+        // Refresh files similar to clicking "My Documents"
+        this.refreshFilesView();
+        
+        // Show feedback
+        if (window.notifications) {
+            window.notifications.show({
+                title: 'Files Refreshed',
+                message: 'File view updated with latest organization',
+                type: 'info'
+            });
+        }
+    }
+
+    /**
+     * Refresh the files view (similar to clicking "My Documents")
+     */
+    refreshFilesView() {
+        try {
+            // Method 1: Use window.loadUserFiles if available (most common)
+            if (typeof window.loadUserFiles === 'function') {
+                console.log('🔄 Refreshing via window.loadUserFiles');
+                // Load root folder (null parent_id) with no search query
+                window.loadUserFiles('', 1, null);
+                return;
+            }
+            
+            // Method 2: Use fileManager if available
+            if (window.fileManager && typeof window.fileManager.refreshFiles === 'function') {
+                console.log('🔄 Refreshing via window.fileManager.refreshFiles');
+                window.fileManager.refreshFiles();
+                return;
+            }
+            
+            // Method 3: Trigger navigation to root folder
+            const myDocumentsLink = document.querySelector('[data-folder-id="null"]');
+            if (myDocumentsLink) {
+                console.log('🔄 Refreshing via My Documents link click');
+                myDocumentsLink.click();
+                return;
+            }
+            
+            // Method 4: Reload the page as last resort
+            console.log('🔄 No refresh method found - reloading page');
+            window.location.reload();
+            
+        } catch (error) {
+            console.error('❌ Error refreshing files view:', error);
+            // Last resort - page reload
+            window.location.reload();
         }
     }
 

@@ -126,6 +126,7 @@ Route::middleware([
     Route::patch('/files/{id}/restore', [FileController::class, 'restore'])->whereNumber('id');
     Route::delete('/files/{id}/force-delete', [FileController::class, 'forceDelete'])->whereNumber('id');
     Route::patch('/files/{id}/move', [FileController::class, 'move'])->whereNumber('id');
+    Route::patch('/files/{id}/rename', [FileController::class, 'rename'])->whereNumber('id');
     Route::get('/files/storage-usage', [FileController::class, 'getStorageUsage']);
 
 

@@ -741,18 +741,32 @@ function showActionsMenu(button, itemId) {
             </button>
         `;
     } else {
-        let menuItems = `
-            <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white flex items-center" data-action="delete" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Delete" data-tooltip="Delete">
-                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                </svg>
-                Delete
-            </button>
+        let menuItems = '';
+
+        // Add "Open" action for files (not folders) - place first in menu
+        if (!isFolder) {
+            menuItems += `
+                <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-[#2A2D47] hover:text-blue-300 flex items-center" data-action="open" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Open file" data-tooltip="Open file">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                    </svg>
+                    Open
+                </button>
+            `;
+        }
+
+        menuItems += `
             <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white flex items-center" data-action="rename" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Rename" data-tooltip="Rename">
                 <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
                 Rename
+            </button>
+            <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white flex items-center" data-action="delete" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Delete" data-tooltip="Delete">
+                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                Delete
             </button>
             <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-gray-200 hover:bg-[#2A2D47] hover:text-white flex items-center" data-action="move" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Move" data-tooltip="Move">
                 <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1304,10 +1318,27 @@ function showActionsMenu(button, itemId) {
             ev.preventDefault();
             ev.stopPropagation();
             ev.stopImmediatePropagation?.();
-            showNotification('Rename functionality coming soon!', 'info');
+            const id = renameBtn.dataset.itemId;
+            showRenameModal(id);
             cleanup();
         };
         renameBtn.addEventListener('click', directRename);
+    }
+
+    // Direct listener for open action (redirects to preview URL)
+    const openBtn = menu.querySelector('.actions-menu-item[data-action="open"]');
+    if (openBtn) {
+        const directOpen = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'open', itemId: openBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = openBtn.dataset.itemId;
+            // Redirect to preview URL
+            window.location.href = `/files/${id}/preview`;
+            cleanup();
+        };
+        openBtn.addEventListener('click', directOpen);
     }
 
     // Direct listeners for vector actions to ensure reliability
@@ -3066,5 +3097,181 @@ function prePopulateArweaveModal(file) {
     } catch (error) {
         console.error('❌ Failed to pre-populate Arweave modal:', error);
         showNotification('File loaded but failed to auto-select. Please choose the file manually.', 'warning');
+    }
+}
+
+// Rename Modal Functions
+function showRenameModal(fileId) {
+    // Get current file info to populate the modal
+    const fileElement = document.querySelector(`[data-item-id="${fileId}"]`);
+    if (!fileElement) {
+        showNotification('File not found', 'error');
+        return;
+    }
+    
+    const fileName = fileElement.getAttribute('data-item-name') || 'Unknown';
+    const isFolder = fileElement.getAttribute('data-is-folder') === 'true';
+    
+    // Remove any existing modal
+    const existingModal = document.getElementById('renameModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+
+    // Create modal HTML
+    const modal = document.createElement('div');
+    modal.id = 'renameModal';
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    modal.innerHTML = `
+        <div class="bg-[#1F2235] rounded-lg p-6 w-full max-w-md mx-4 border border-[#3C3F58]">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Rename ${isFolder ? 'Folder' : 'File'}</h3>
+                <button id="closeRenameModal" class="text-gray-400 hover:text-white">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-sm text-gray-300 mb-2">Current Name</label>
+                    <div class="px-3 py-2 bg-[#2A2D47] text-gray-400 rounded-lg text-sm">${fileName}</div>
+                </div>
+                
+                <div>
+                    <label for="newFileName" class="block text-sm text-gray-300 mb-2">New Name</label>
+                    <input 
+                        type="text" 
+                        id="newFileName" 
+                        class="w-full px-3 py-2 bg-[#2A2D47] text-white rounded-lg border border-[#3C3F58] focus:border-[#f89c00] focus:ring-1 focus:ring-[#f89c00] focus:outline-none"
+                        value="${fileName}"
+                        placeholder="Enter new name"
+                        maxlength="255"
+                    />
+                    <div class="text-xs text-gray-500 mt-1">
+                        Only letters, numbers, spaces, dots, hyphens, and underscores are allowed
+                    </div>
+                </div>
+            </div>
+            
+            <div class="flex justify-end gap-3 mt-6">
+                <button id="cancelRename" class="px-4 py-2 bg-[#3C3F58] text-white rounded-lg hover:bg-[#4A4D6A] transition-colors">
+                    Cancel
+                </button>
+                <button id="confirmRename" class="px-4 py-2 bg-[#f89c00] text-white rounded-lg hover:bg-[#e6890d] transition-colors">
+                    Rename
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Get modal elements
+    const newFileNameInput = modal.querySelector('#newFileName');
+    const confirmBtn = modal.querySelector('#confirmRename');
+    const cancelBtn = modal.querySelector('#cancelRename');
+    const closeBtn = modal.querySelector('#closeRenameModal');
+
+    // Focus and select the input text (without extension for files)
+    newFileNameInput.focus();
+    if (!isFolder && fileName.includes('.')) {
+        const lastDotIndex = fileName.lastIndexOf('.');
+        newFileNameInput.setSelectionRange(0, lastDotIndex);
+    } else {
+        newFileNameInput.select();
+    }
+
+    // Close modal function
+    const closeModal = () => {
+        modal.remove();
+    };
+
+    // Event listeners
+    closeBtn.addEventListener('click', closeModal);
+    cancelBtn.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) closeModal();
+    });
+
+    // Handle Enter key
+    newFileNameInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            confirmBtn.click();
+        }
+        if (e.key === 'Escape') {
+            closeModal();
+        }
+    });
+
+    // Rename confirmation
+    confirmBtn.addEventListener('click', async () => {
+        const newName = newFileNameInput.value.trim();
+        
+        if (!newName) {
+            showNotification('Please enter a valid name', 'error');
+            return;
+        }
+
+        if (newName === fileName) {
+            showNotification('The new name is the same as the current name', 'warning');
+            return;
+        }
+
+        // Disable button during rename
+        confirmBtn.disabled = true;
+        confirmBtn.textContent = 'Renaming...';
+
+        try {
+            await renameItem(fileId, newName);
+            closeModal();
+        } catch (error) {
+            showNotification(error.message, 'error');
+        } finally {
+            confirmBtn.disabled = false;
+            confirmBtn.textContent = 'Rename';
+        }
+    });
+}
+
+async function renameItem(fileId, newName) {
+    try {
+        const response = await fetch(`/files/${fileId}/rename`, {
+            method: 'PATCH',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                new_name: newName
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || 'Failed to rename item');
+        }
+
+        const result = await response.json();
+        
+        if (result.success) {
+            showNotification(result.message || 'Item renamed successfully', 'success');
+            
+            // Refresh the file list to show the updated name
+            if (window.loadUserFiles) {
+                window.loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+            }
+        } else {
+            throw new Error(result.message || 'Failed to rename item');
+        }
+
+    } catch (error) {
+        console.error('Rename failed:', error);
+        throw error;
     }
 }

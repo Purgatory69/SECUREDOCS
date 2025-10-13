@@ -3,7 +3,7 @@
 Table users {
   id bigint [pk]
   name varchar
-  email varchar
+  email varchar [ref: > password_reset_tokens.email]
   email_verified_at timestamp
   password varchar
   remember_token varchar
@@ -276,3 +276,11 @@ Table webauthn_credentials {
   alias varchar
   attestation_format varchar
 }
+
+
+
+
+
+Ref: "files"."id" < "files"."file_path"
+
+Ref: "personal_access_tokens"."tokenable_id" < "password_reset_tokens"."token"

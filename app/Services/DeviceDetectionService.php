@@ -319,12 +319,12 @@ class DeviceDetectionService
                 'device_type' => $deviceInfo['device_type'],
                 'browser' => $deviceInfo['browser'],
                 'platform' => $deviceInfo['platform'],
-                'is_mobile' => $booleanValues['is_mobile'] ? 1 : 0,
-                'is_tablet' => $booleanValues['is_tablet'] ? 1 : 0,
-                'is_desktop' => $booleanValues['is_desktop'] ? 1 : 0,
+                'is_mobile' => DB::raw($booleanValues['is_mobile'] ? 'true' : 'false'),
+                'is_tablet' => DB::raw($booleanValues['is_tablet'] ? 'true' : 'false'),
+                'is_desktop' => DB::raw($booleanValues['is_desktop'] ? 'true' : 'false'),
                 'login_method' => 'web', // Can be extended for other methods
-                'is_suspicious' => $booleanValues['is_suspicious'] ? 1 : 0,
-                'trusted_device' => $booleanValues['trusted_device'] ? 1 : 0,
+                'is_suspicious' => DB::raw($booleanValues['is_suspicious'] ? 'true' : 'false'),
+                'trusted_device' => DB::raw($booleanValues['trusted_device'] ? 'true' : 'false'),
                 'expires_at' => now()->addDays(30), // Session expires in 30 days
             ]
         );

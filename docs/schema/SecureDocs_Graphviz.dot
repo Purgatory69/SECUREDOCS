@@ -1,0 +1,89 @@
+digraph SecureDocsERD {
+  graph [rankdir=LR, bgcolor="#ffffff"];
+  node [fontname="Helvetica", fontsize=10, margin=0.08];
+  edge [fontname="Helvetica", fontsize=9, color="#555555"];
+
+  subgraph cluster_entities {
+    label="Entities";
+    color="#dddddd";
+    style="rounded";
+
+    users [shape=box, label="users\n——————\nid (PK)\nname\nemail\nrole\nis_premium\ncreated_at\nupdated_at"];
+    files [shape=box, label="files\n——————\nid (PK)\nuser_id\nparent_id\nfile_name\nfile_path\nis_folder\nis_confidential"];
+    documents [shape=box, label="documents\n——————\nid (PK)\nfile_id\nuser_id\nmetadata\nembedding"];
+    document_metadata [shape=box, label="document_metadata\n——————\nid (PK)\nfile_id\nuser_id\ntitle\nurl"];
+    document_rows [shape=box, label="document_rows\n——————\nid (PK)\ndataset_id\nfile_id"];
+    file_otp_security [shape=box, label="file_otp_security\n——————\nid (PK)\nuser_id\nfile_id\nis_otp_enabled\notp_expires_at"];
+    subscriptions [shape=box, label="subscriptions\n——————\nid (PK)\nuser_id\nplan_name\nstatus\namount"];
+    payments [shape=box, label="payments\n——————\nid (PK)\nsubscription_id\nuser_id\namount\nstatus"];
+    user_payment_methods [shape=box, label="user_payment_methods\n——————\nid (PK)\nuser_id\npayment_method_type\nis_default"];
+    arweave_urls [shape=box, label="arweave_urls\n——————\nid (PK)\nuser_id\nurl\nfile_name"];
+    system_activities [shape=box, label="system_activities\n——————\nid (PK)\nuser_id\ntarget_user_id\nfile_id\naction"];
+    file_access_logs [shape=box, label="file_access_logs\n——————\nid (PK)\nfile_id\nuser_id\nsession_id\naccess_type"];
+    notifications [shape=box, label="notifications\n——————\nid (PK)\nuser_id\ntype\ntitle"];
+    chat_histories [shape=box, label="chat_histories\n——————\nid (PK)\nsession_id"];
+    password_reset_tokens [shape=box, label="password_reset_tokens\n——————\nemail (PK)\ntoken"];
+    sessions [shape=box, label="sessions\n——————\nid (PK)\nuser_id\nip_address"];
+    personal_access_tokens [shape=box, label="personal_access_tokens\n——————\nid (PK)\ntokenable_id\nname\ntoken"];
+    user_sessions [shape=box, label="user_sessions\n——————\nid (PK)\nuser_id\nsession_id\nlocation_city"];
+    webauthn_credentials [shape=box, label="webauthn_credentials\n——————\nid (PK)\nauthenticatable_id\npublic_key\ncounter"];
+  }
+
+  subgraph cluster_relationships {
+    label="Relationships";
+    color="#dddddd";
+    style="rounded";
+
+    owns [shape=circle, label="owns"];
+    contains [shape=circle, label="contains"];
+    secures [shape=circle, label="secures"];
+    pays [shape=circle, label="pays"];
+    tracks [shape=circle, label="tracks"];
+    notifies [shape=circle, label="notifies"];
+    authenticates [shape=circle, label="auth"];
+    references [shape=triangle, label="references\nFK"];
+  }
+
+  users -> owns -> files [arrowhead=none, color="#3b82f6"];
+  files -> contains -> files [arrowhead=none, color="#3b82f6"];
+  files -> documents [label="has", color="#3b82f6"];
+  files -> document_metadata [label="metadata", color="#3b82f6"];
+  document_metadata -> document_rows [label="has rows", color="#3b82f6"];
+  users -> subscriptions [label="has", color="#22a862"];
+  subscriptions -> payments [label="paid by", color="#22a862"];
+  users -> user_payment_methods [label="stores", color="#22a862"];
+  users -> arweave_urls [label="creates", color="#f97316"];
+  users -> system_activities [label="performs", color="#8b5cf6"];
+  system_activities -> files [label="targets", color="#8b5cf6"];
+  users -> file_otp_security -> files [label="protects", color="#ef4444"];
+  users -> file_access_logs [label="accesses", color="#0ea5e9"];
+  file_access_logs -> sessions [label="session", color="#0ea5e9"];
+  users -> notifications -> notifies [arrowhead=none, color="#f59e0b"];
+  notifies -> notifications [arrowhead=none, color="#f59e0b"];
+  users -> chat_histories [label="chats", color="#14b8a6"];
+  users -> password_reset_tokens [label="resets", color="#64748b"];
+  users -> sessions [label="session", color="#0ea5e9"];
+  users -> personal_access_tokens [label="API token", color="#0ea5e9"];
+  users -> user_sessions [label="tracks", color="#0ea5e9"];
+  user_sessions -> file_access_logs [label="logs", color="#0ea5e9"];
+  users -> webauthn_credentials [label="auth", color="#ef4444"];
+
+  documents -> references -> files [arrowhead=none, color="#94a3b8"];
+  document_metadata -> references -> files [arrowhead=none, color="#94a3b8"];
+  document_rows -> references -> files [arrowhead=none, color="#94a3b8"];
+  payments -> references -> subscriptions [arrowhead=none, color="#94a3b8"];
+  payments -> references -> users [arrowhead=none, color="#94a3b8"];
+  user_payment_methods -> references -> users [arrowhead=none, color="#94a3b8"];
+  file_otp_security -> references -> users [arrowhead=none, color="#94a3b8"];
+  file_otp_security -> references -> files [arrowhead=none, color="#94a3b8"];
+  arweave_urls -> references -> users [arrowhead=none, color="#94a3b8"];
+  system_activities -> references -> users [arrowhead=none, color="#94a3b8"];
+  system_activities -> references -> files [arrowhead=none, color="#94a3b8"];
+  file_access_logs -> references -> users [arrowhead=none, color="#94a3b8"];
+  file_access_logs -> references -> files [arrowhead=none, color="#94a3b8"];
+  notifications -> references -> users [arrowhead=none, color="#94a3b8"];
+  sessions -> references -> users [arrowhead=none, color="#94a3b8"];
+  personal_access_tokens -> references -> users [arrowhead=none, color="#94a3b8"];
+  user_sessions -> references -> users [arrowhead=none, color="#94a3b8"];
+  webauthn_credentials -> references -> users [arrowhead=none, color="#94a3b8"];
+}

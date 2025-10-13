@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class UserSessionController extends Controller
@@ -249,41 +250,72 @@ class UserSessionController extends Controller
      */
     public function updateNotificationPreferences(Request $request): JsonResponse
     {
-        $validated = $request->validate([
-            'email_notifications_enabled' => 'boolean',
-            'login_notifications_enabled' => 'boolean',
-            'security_notifications_enabled' => 'boolean',
-            'activity_notifications_enabled' => 'boolean',
-        ]);
+        try {
+            Log::info('Notification preferences update request', [
+                'user_id' => Auth::id(),
+                'request_data' => $request->all()
+            ]);
 
-        // Explicitly convert to proper boolean values for PostgreSQL
-        $booleanData = [];
-        foreach ($validated as $key => $value) {
-            $booleanData[$key] = (bool) $value;
+            $validated = $request->validate([
+                'email_notifications_enabled' => 'boolean',
+                'login_notifications_enabled' => 'boolean',
+                'security_notifications_enabled' => 'boolean',
+                'activity_notifications_enabled' => 'boolean',
+            ]);
+
+            Log::info('Validated notification data', ['validated' => $validated]);
+
+            // Explicitly convert to proper boolean values for PostgreSQL using DB::raw
+            $user = Auth::user();
+            
+            // Use individual field updates with DB::raw to ensure proper boolean casting
+            foreach ($validated as $key => $value) {
+                $booleanValue = $value ? 'true' : 'false';
+                DB::statement("UPDATE users SET {$key} = {$booleanValue} WHERE id = ?", [$user->id]);
+            }
+            
+            // Refresh the user model to get updated values
+            $user->refresh();
+
+            Log::info('Boolean converted data', ['validated' => $validated]);
+
+            Log::info('User preferences updated successfully', [
+                'user_id' => $user->id,
+                'updated_data' => $validated
+            ]);
+
+            // Log preference changes
+            SystemActivity::logAuthActivity(
+                'notification_preferences_updated',
+                "Notification preferences updated by {$user->name}",
+                $validated,
+                SystemActivity::RISK_LOW,
+                $user
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notification preferences updated successfully',
+                'preferences' => [
+                    'email_notifications_enabled' => $user->email_notifications_enabled,
+                    'login_notifications_enabled' => $user->login_notifications_enabled,
+                    'security_notifications_enabled' => $user->security_notifications_enabled,
+                    'activity_notifications_enabled' => $user->activity_notifications_enabled,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Notification preferences update failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update preferences: ' . $e->getMessage()
+            ], 500);
         }
-
-        $user = Auth::user();
-        $user->update($booleanData);
-
-        // Log preference changes
-        SystemActivity::logAuthActivity(
-            'notification_preferences_updated',
-            "Notification preferences updated by {$user->name}",
-            $booleanData,
-            SystemActivity::RISK_LOW,
-            $user
-        );
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Notification preferences updated successfully',
-            'preferences' => [
-                'email_notifications_enabled' => $user->email_notifications_enabled,
-                'login_notifications_enabled' => $user->login_notifications_enabled,
-                'security_notifications_enabled' => $user->security_notifications_enabled,
-                'activity_notifications_enabled' => $user->activity_notifications_enabled,
-            ]
-        ]);
     }
 
     /**

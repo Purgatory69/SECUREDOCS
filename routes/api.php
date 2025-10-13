@@ -55,6 +55,9 @@ Route::middleware('auth:sanctum')->group(function () {
 // Public categorization status endpoint (no auth required for initial check)
 Route::get('/ai/categorization-status-public', [FileController::class, 'getCategorizationStatusPublic']);
 
+// Check if polling should be active for a user (lightweight endpoint)
+Route::get('/ai/categorization-should-poll', [FileController::class, 'shouldPollCategorizationStatus']);
+
 // AI status update endpoint (for AI to call)
 Route::post('/ai/categorization-update', [FileController::class, 'updateCategorizationStatus']);
 

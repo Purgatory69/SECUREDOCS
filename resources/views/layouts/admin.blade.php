@@ -46,7 +46,7 @@
     </head>
     <body style="background-color: #141326;" class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main">
         @yield('content')
-        <div id="notification-container" class="fixed bottom-4 right-4 z-[1000] space-y-2"></div>
+        <div id="notification-container" class="fixed bottom-4 left-4 z-[1000] space-y-2"></div>
         @stack('scripts')
     </body>
 </html>

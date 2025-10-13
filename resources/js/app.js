@@ -43,9 +43,14 @@ import './modules/ai-categorization.js';
             throw new Error('Supabase client not found. Ensure SUPABASE_URL/KEY are set and the CDN script is loaded.');
         }
 
+        // Validate file parameter
+        if (!file) {
+            throw new Error('File is required for upload');
+        }
+
         const bucket = 'docs';
         const userId = window.userId || 'anonymous';
-        const safeName = (file?.name || `file_${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '_');
+        const safeName = (file.name || `file_${Date.now()}`).replace(/[^a-zA-Z0-9._-]/g, '_');
         const key = `user_${userId}/${Date.now()}_${safeName}`;
 
         // Simulate progress while the SDK uploads in a single request
@@ -62,7 +67,8 @@ import './modules/ai-categorization.js';
         // Stop simulation and finish to 100%
         progressTimer.stop();
         if (typeof onProgress === 'function') {
-            onProgress({ loaded: file?.size || 1, total: file?.size || 1 });
+            const fileSize = file && file.size ? file.size : 1;
+            onProgress({ loaded: fileSize, total: fileSize });
         }
 
         if (error) {

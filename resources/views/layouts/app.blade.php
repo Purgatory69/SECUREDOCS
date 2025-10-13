@@ -119,7 +119,7 @@
         <div class="loading-spinner"></div>
         
         @yield('content')
-        <div id="notification-container" class="fixed bottom-4 right-4 z-[1000] space-y-2"></div>
+        <div id="notification-container" class="fixed bottom-4 left-4 z-[1000] space-y-2"></div>
         
         @stack('scripts')
     
