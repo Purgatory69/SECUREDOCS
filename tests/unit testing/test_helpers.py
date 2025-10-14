@@ -32,8 +32,10 @@ def open_upload_modal(driver):
     Open the upload modal/dialog
     Returns True if modal opened successfully
     """
-    # Look for upload button
+    # Look for upload button or "New" button that reveals dropdown
     upload_button_selectors = [
+        "#newBtn",
+        "button[id='newBtn']",
         "button[id='uploadBtn']",
         "button:contains('Upload')",
         ".upload-btn",
@@ -59,9 +61,37 @@ def open_upload_modal(driver):
             continue
     
     if upload_btn:
-        upload_btn.click()
-        time.sleep(2)  # Wait for modal animation
-        return True
+        try:
+            driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", upload_btn)
+        except:
+            pass
+        try:
+            actions = ActionChains(driver)
+            actions.move_to_element(upload_btn).click().perform()
+        except:
+            upload_btn.click()
+        time.sleep(0.5)  # Allow dropdown/modal to appear
+        
+        # Verify dropdown or modal is visible
+        dropdown_selectors = [
+            "#newDropdown",
+            "#uploadModal",
+            ".upload-modal",
+            "[data-modal='upload']"
+        ]
+        
+        for selector in dropdown_selectors:
+            try:
+                element = WebDriverWait(driver, 5).until(
+                    EC.visibility_of_element_located((By.CSS_SELECTOR, selector))
+                )
+                if element:
+                    print(f"📂 Upload dropdown/modal visible: {selector}")
+                    return True
+            except:
+                continue
+        
+        return False
     
     return False
 
@@ -202,6 +232,10 @@ def count_files_on_dashboard(driver):
     Returns count of visible items
     """
     file_selectors = [
+        "#filesContainer [data-item-id]",
+        "#filesContainer .file-card",
+        "#filesContainer .file-item",
+        "#filesContainer .document-item",
         "[data-item-id]",
         ".file-card",
         ".file-item",

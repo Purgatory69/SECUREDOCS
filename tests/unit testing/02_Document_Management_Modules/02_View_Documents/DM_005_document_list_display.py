@@ -11,6 +11,7 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from global_session import session
+from test_helpers import wait_for_dashboard, count_files_on_dashboard
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -28,46 +29,51 @@ def DM_005_document_list_display():
         driver = session.login()
         session.navigate_to_dashboard()
         
-        # Look for document list/grid container
-        list_selectors = [
-            ".file-list",
-            ".document-list",
-            ".files-grid",
-            ".documents-grid",
-            ".file-container",
-            ".document-container",
-            ".files-wrapper"
-        ]
+        # Wait for dashboard to load
+        wait_for_dashboard(driver)
+        print("✅ Dashboard loaded")
         
-        list_container_found = False
-        for selector in list_selectors:
-            container_elements = driver.find_elements(By.CSS_SELECTOR, selector)
-            if container_elements and any(elem.is_displayed() for elem in container_elements):
-                list_container_found = True
-                print(f"📋 Document list container found: {selector}")
-                break
+        # Count files using helper
+        file_count = count_files_on_dashboard(driver)
+        print(f"📊 Total files on dashboard: {file_count}")
         
-        # Look for individual document items
+        # Locate primary files container
+        files_container = None
+        try:
+            files_container = driver.find_element(By.ID, "filesContainer")
+            if files_container.is_displayed():
+                print("📂 Found #filesContainer on dashboard")
+        except Exception as container_error:
+            print(f"⚠️ filesContainer not found directly: {str(container_error)}")
+        
+        list_container_found = files_container is not None and files_container.is_displayed()
+        
+        # Look for individual document items inside filesContainer first
         document_selectors = [
+            "[data-item-id]",
+            "[data-item-type]",
             ".file-card",
             ".file-item",
             ".document-item",
-            ".document-card", 
+            ".document-card",
             ".list-item",
             ".file-row"
         ]
         
         documents_found = []
+        search_root = files_container if files_container else driver
         for selector in document_selectors:
-            elements = driver.find_elements(By.CSS_SELECTOR, selector)
-            visible_elements = [elem for elem in elements if elem.is_displayed()]
-            if visible_elements:
-                documents_found.extend(visible_elements)
-                print(f"📄 Found {len(visible_elements)} documents with selector: {selector}")
-                break
+            try:
+                elements = search_root.find_elements(By.CSS_SELECTOR, selector)
+                visible_elements = [elem for elem in elements if elem.is_displayed()]
+                if visible_elements:
+                    documents_found.extend(visible_elements)
+                    print(f"📄 Found {len(visible_elements)} documents with selector: {selector}")
+            except Exception as e:
+                continue
         
         document_count = len(documents_found)
-        print(f"📊 Total documents displayed: {document_count}")
+        print(f"📊 Total documents displayed (visible): {document_count}")
         
         # Check for organized display (headers, sections, etc.)
         organization_selectors = [

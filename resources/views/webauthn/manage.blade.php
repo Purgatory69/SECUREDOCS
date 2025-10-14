@@ -132,7 +132,7 @@
                 -->
 
                 @forelse ($credentials as $credential)
-                <div class="px-6 py-4 hover:bg-[#55597C] transition-colors">
+                <div class="px-6 py-4 hover:bg-[#55597C] transition-colors group-hover:bg-[#55597C] transition-colors">
                     <div class="flex items-center justify-between">
                         <div class="flex items-center space-x-4">
                             <div class="flex-shrink-0">

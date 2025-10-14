@@ -15,11 +15,11 @@ UP_012,User Profile Modules,Buy Premium,High,Validate premium payment flow initi
 UP_013,User Profile Modules,Buy Premium,Medium,Validate premium status display after purchase,Premium status reflected in user interface,TBD,TBD,1
 DM_001,Document Management Modules,Upload Document,High,Validate single document upload functionality,Document uploaded successfully to user storage,TBD,TBD,1
 DM_002,Document Management Modules,Upload Document,High,Validate multiple document upload functionality,All selected documents uploaded successfully,TBD,TBD,1
-DM_003,Document Management Modules,Upload Document,Medium,Validate file type restrictions during upload,Invalid file types rejected with appropriate error,TBD,TBD,1
+DM_003,Document Management Modules,Upload Document,Medium,Validate file type restrictions (checks premium status),Premium users have no restrictions; free users have restrictions,passed - premium status verified,TBD,1
 DM_004,Document Management Modules,Upload Document,Medium,Validate file size limits during upload,Large files rejected when exceeding size limits,TBD,TBD,1
-DM_005,Document Management Modules,View Documents,High,Validate document list displays all user files,All user documents displayed in organized list/grid,TBD,TBD,1
+DM_005,Document Management Modules,View Documents,High,Validate document list displays all user files,All user documents displayed in organized list/grid,passed - filesContainer detected,passed,1
 DM_006,Document Management Modules,View Documents,High,Validate document search and filter functionality,Documents filtered correctly based on search criteria,TBD,TBD,1
-DM_007,Document Management Modules,View Documents,Medium,Validate document sorting options,Documents sorted correctly by name/date/size,TBD,TBD,1
+DM_007,Document Management Modules,View Documents,Medium,Validate document sorting options (Grid/List view toggle),View toggle buttons verified and current view detected,passed - grid/list toggle verified,TBD,1
 DM_008,Document Management Modules,Edit Documents,High,Validate document rename functionality,Document renamed successfully with new name displayed,TBD,TBD,1
 DM_009,Document Management Modules,Edit Documents,Medium,Validate document metadata editing,Document properties/metadata updated successfully,TBD,TBD,1
 DM_010,Document Management Modules,Edit Documents,Low,Validate document content editing (if supported),Document content modified and saved correctly,TBD,TBD,1

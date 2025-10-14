@@ -695,6 +695,10 @@ async function checkBalance() {
     }
 }
 
+async function handleCheckBalance() {
+    await checkBalance();
+}
+
 /**
  * Handle balance refresh
  */

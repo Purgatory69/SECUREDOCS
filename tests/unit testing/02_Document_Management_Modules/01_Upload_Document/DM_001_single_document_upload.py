@@ -57,8 +57,40 @@ def DM_001_single_document_upload():
         # Try to open upload modal (if exists)
         modal_opened = open_upload_modal(driver)
         if modal_opened:
-            print("✅ Upload modal opened")
+            print("✅ Upload menu triggered")
             time.sleep(1)
+        
+        dropdown_visible = False
+        try:
+            dropdown_element = driver.find_element(By.ID, "newDropdown")
+            dropdown_visible = dropdown_element.is_displayed()
+            if dropdown_visible:
+                print("📂 Upload dropdown visible")
+        except Exception as dropdown_error:
+            print(f"⚠️ Upload dropdown not detected: {str(dropdown_error)}")
+        
+        assert dropdown_visible, "Upload dropdown did not appear after clicking New button"
+        
+        option_selectors = {
+            "upload_file": "#uploadFileOption",
+            "arweave": "#openClientArweaveBtn",
+            "new_folder": "#createFolderOption"
+        }
+        option_elements = {}
+        for key, selector in option_selectors.items():
+            try:
+                elem = driver.find_element(By.CSS_SELECTOR, selector)
+                if elem.is_displayed():
+                    option_elements[key] = elem
+                    print(f"📌 Option available: {selector}")
+            except Exception as option_error:
+                print(f"⚠️ Option missing: {selector} ({str(option_error)})")
+        
+        assert "upload_file" in option_elements, "Upload file option not available in dropdown"
+        
+        option_elements["upload_file"].click()
+        print("📥 Selected New File option")
+        time.sleep(1)
         
         # Find file input element using helper
         file_input = find_file_input(driver)
