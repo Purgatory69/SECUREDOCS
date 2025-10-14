@@ -2,6 +2,22 @@ import './bootstrap';
 import './modules/notifications.js';
 import './modules/ai-categorization.js';
 
+// Global error handler for debugging
+window.addEventListener('error', (e) => {
+    console.error('🚨 Global JavaScript Error:', {
+        message: e.message,
+        filename: e.filename,
+        lineno: e.lineno,
+        colno: e.colno,
+        error: e.error,
+        stack: e.error?.stack
+    });
+});
+
+window.addEventListener('unhandledrejection', (e) => {
+    console.error('🚨 Unhandled Promise Rejection:', e.reason);
+});
+
 // WebAuthn scripts are now only loaded on pages that specifically need them
 // Removed global import to prevent conflicts on regular login page
 
@@ -38,6 +54,14 @@ import './modules/ai-categorization.js';
 
     // Expose a single helper used by upload.js
     window.uploadFileToSupabase = async function uploadFileToSupabase(file, onProgress) {
+        console.log('🚀 uploadFileToSupabase called with:', { 
+            file: file, 
+            hasSize: file && 'size' in file,
+            size: file?.size,
+            name: file?.name,
+            type: file?.type 
+        });
+        
         const client = ensureSupabaseClient();
         if (!client) {
             throw new Error('Supabase client not found. Ensure SUPABASE_URL/KEY are set and the CDN script is loaded.');
@@ -45,7 +69,13 @@ import './modules/ai-categorization.js';
 
         // Validate file parameter
         if (!file) {
+            console.error('❌ File is null/undefined in uploadFileToSupabase');
             throw new Error('File is required for upload');
+        }
+        
+        if (typeof file.size !== 'number') {
+            console.error('❌ File.size is not a number:', file.size, typeof file.size);
+            throw new Error('Invalid file: size property is missing or invalid');
         }
 
         const bucket = 'docs';

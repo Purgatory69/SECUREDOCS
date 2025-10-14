@@ -648,6 +648,9 @@ function showUploadSuccess(arweaveUrl, remainingBalance) {
     
     // Show success step
     showStep('success');
+    
+    // Show mining wait notification
+    showSuccess('✅ Upload successful! ⏳ Please wait 5-30 minutes for block mining to complete before your file becomes accessible on all Arweave gateways.');
 }
 
 /**

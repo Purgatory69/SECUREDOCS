@@ -12,9 +12,16 @@ import os
 sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..'))
 
 from global_session import session
+from test_helpers import (
+    wait_for_dashboard,
+    open_upload_modal,
+    find_file_input,
+    wait_for_upload_complete,
+    check_success_message,
+    count_files_on_dashboard,
+    find_file_by_name
+)
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
-from selenium.webdriver.support import expected_conditions as EC
 import time
 import tempfile
 
@@ -32,38 +39,29 @@ def DM_001_single_document_upload():
         driver = session.login()
         session.navigate_to_dashboard()
         
+        # Wait for dashboard to load using helper
+        wait_for_dashboard(driver)
+        print("✅ Dashboard loaded")
+        
         # Create a test document file
         with tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False) as f:
-            f.write("This is a test document for upload validation.\nDocument Management Module Test.\nLouiejay Bonghanoy - UP_001")
+            f.write("This is a test document for upload validation.\nDocument Management Module Test.\nLouiejay Bonghanoy - DM_001")
             test_file_path = f.name
         
         print(f"📄 Created test document: {os.path.basename(test_file_path)}")
         
         # Count existing documents before upload
-        initial_docs = driver.find_elements(By.CSS_SELECTOR, ".file-card, .file-item, .document-item, .list-item")
-        initial_count = len([doc for doc in initial_docs if doc.is_displayed()])
+        initial_count = count_files_on_dashboard(driver)
         print(f"📊 Initial document count: {initial_count}")
         
-        # Find upload input element
-        upload_selectors = [
-            "input[type='file']",
-            "#file-upload",
-            "#document-upload",
-            ".file-upload-input",
-            "[name='file']",
-            "[name='files[]']",
-            "[name='document']"
-        ]
+        # Try to open upload modal (if exists)
+        modal_opened = open_upload_modal(driver)
+        if modal_opened:
+            print("✅ Upload modal opened")
+            time.sleep(1)
         
-        file_input = None
-        for selector in upload_selectors:
-            try:
-                file_input = driver.find_element(By.CSS_SELECTOR, selector)
-                if file_input.is_displayed() or file_input.get_attribute('type') == 'file':
-                    break
-            except:
-                continue
-        
+        # Find file input element using helper
+        file_input = find_file_input(driver)
         assert file_input is not None, "Could not find document upload input"
         print("📤 Found document upload input")
         
@@ -71,29 +69,17 @@ def DM_001_single_document_upload():
         file_input.send_keys(test_file_path)
         print(f"📤 Document selected for upload: {os.path.basename(test_file_path)}")
         
-        # Wait for upload to process
-        time.sleep(5)
+        # Wait for upload to complete using helper
+        wait_for_upload_complete(driver)
+        print("⏳ Upload processing complete")
         
-        # Check for upload success indicators
-        success_selectors = [
-            ".alert-success",
-            ".success-message",
-            ".upload-success", 
-            ".toast-success",
-            ".notification-success"
-        ]
-        
-        upload_success = False
-        for selector in success_selectors:
-            success_elements = driver.find_elements(By.CSS_SELECTOR, selector)
-            if success_elements and any(elem.is_displayed() for elem in success_elements):
-                upload_success = True
-                print(f"✅ Upload success indicator found: {selector}")
-                break
+        # Check for success message
+        upload_success = check_success_message(driver)
+        if upload_success:
+            print("✅ Upload success message found")
         
         # Check if document count increased
-        final_docs = driver.find_elements(By.CSS_SELECTOR, ".file-card, .file-item, .document-item, .list-item")
-        final_count = len([doc for doc in final_docs if doc.is_displayed()])
+        final_count = count_files_on_dashboard(driver)
         count_increased = final_count > initial_count
         
         if count_increased:
@@ -101,37 +87,11 @@ def DM_001_single_document_upload():
         
         # Check if the uploaded document appears in the list
         file_name = os.path.basename(test_file_path)
-        document_found = False
+        document_element = find_file_by_name(driver, file_name)
+        document_found = document_element is not None
         
-        for doc_element in final_docs:
-            if doc_element.is_displayed():
-                doc_text = doc_element.text.lower()
-                if file_name.lower() in doc_text or "test" in doc_text:
-                    document_found = True
-                    print(f"🎯 Uploaded document found in list")
-                    break
-        
-        # Check for upload progress indicators (may still be visible)
-        progress_selectors = [
-            ".upload-progress",
-            ".progress-bar",
-            ".uploading"
-        ]
-        
-        upload_in_progress = False
-        for selector in progress_selectors:
-            progress_elements = driver.find_elements(By.CSS_SELECTOR, selector)
-            if progress_elements and any(elem.is_displayed() for elem in progress_elements):
-                upload_in_progress = True
-                print("⏳ Upload still in progress, waiting...")
-                time.sleep(3)  # Wait a bit more
-                break
-        
-        # Re-check after waiting if upload was in progress
-        if upload_in_progress:
-            final_docs = driver.find_elements(By.CSS_SELECTOR, ".file-card, .file-item, .document-item, .list-item")
-            final_count = len([doc for doc in final_docs if doc.is_displayed()])
-            count_increased = final_count > initial_count
+        if document_found:
+            print(f"🎯 Uploaded document found in list")
         
         # Assert upload success (at least one indicator should be true)
         upload_successful = upload_success or count_increased or document_found

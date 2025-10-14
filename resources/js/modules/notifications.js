@@ -23,6 +23,7 @@ class NotificationManager {
         this.dropdown = document.getElementById('notificationDropdown');
         this.list = document.getElementById('notificationsList');
         this.markAllReadBtn = document.getElementById('markAllRead');
+        this.deleteAllBtn = document.getElementById('deleteAllNotifications');
         this.viewAllBtn = document.getElementById('viewAllNotifications');
         this.isOpen = false;
 
@@ -45,6 +46,12 @@ class NotificationManager {
         if (this.markAllReadBtn) {
             this.markAllReadBtn.addEventListener('click', () => {
                 this.markAllAsRead();
+            });
+        }
+
+        if (this.deleteAllBtn) {
+            this.deleteAllBtn.addEventListener('click', () => {
+                this.deleteAllNotifications();
             });
         }
 
@@ -293,6 +300,44 @@ class NotificationManager {
             }
         } catch (error) {
             console.error('Error deleting notification:', error);
+        }
+    }
+
+    async deleteAllNotifications() {
+        // Show confirmation dialog
+        if (!window.confirm('Are you sure you want to delete all notifications? This action cannot be undone.')) {
+            return;
+        }
+
+        try {
+            const response = await fetch('/notifications', {
+                method: 'DELETE',
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': getMetaCsrf(),
+                    'X-XSRF-TOKEN': getXsrfCookie(),
+                },
+                credentials: 'same-origin'
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                
+                // Show success message
+                if (window.showNotification) {
+                    window.showNotification(data.message || 'All notifications deleted', 'success');
+                }
+                
+                // Reload notifications and update count
+                this.loadNotifications();
+                this.updateUnreadCount();
+            }
+        } catch (error) {
+            console.error('Error deleting all notifications:', error);
+            if (window.showNotification) {
+                window.showNotification('Failed to delete notifications', 'error');
+            }
         }
     }
 

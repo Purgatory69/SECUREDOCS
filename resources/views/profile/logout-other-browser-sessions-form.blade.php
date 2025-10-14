@@ -1,4 +1,4 @@
-<div class="settings-form-wrapper">
+<div class="settings-form-wrapper2">
 <x-action-section>
     <x-slot name="title">
         <span class="settings-title">{{ __('Browser Sessions') }}</span>

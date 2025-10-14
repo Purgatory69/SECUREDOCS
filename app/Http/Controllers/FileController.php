@@ -1402,7 +1402,8 @@ class FileController extends Controller
             ]);
 
             // Download file content from Supabase
-            $client = new Client(['verify' => false, 'timeout' => 30]);
+            $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
+            $client = new Client(['verify' => $verifySsl, 'timeout' => 30]);
             $response = $client->get($fileUrl);
             
             if ($response->getStatusCode() !== 200) {

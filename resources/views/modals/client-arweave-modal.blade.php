@@ -354,6 +354,21 @@
                     </div>
                     
                     <!-- Arweave Info Panel -->
+                    <!-- Mining Wait Notice -->
+                    <div class="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 mb-4">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-yellow-400 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
+                            </svg>
+                            <div>
+                                <h5 class="text-sm font-semibold text-yellow-300 mb-1">⏳ Block Mining in Progress</h5>
+                                <p class="text-xs text-yellow-200">
+                                    Your file has been uploaded successfully! However, it may take <strong>5-30 minutes</strong> for the block to be mined and your file to become accessible on all Arweave gateways. Please be patient.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
                     <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
                         <h5 class="text-sm font-medium text-blue-400 mb-2">📋 Arweave File Access Guide</h5>
                         <div class="text-xs text-gray-300 space-y-1">

@@ -28,18 +28,69 @@ def UP_008_biometric_setup_access():
         driver = session.login()
         session.navigate_to_dashboard()
         
-        # TODO: Implement test logic for Validate biometric authentication setup access
-        # This is a placeholder implementation
+        # Wait for dashboard to load
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, "[data-page='user-dashboard']"))
+        )
+        print("✅ Dashboard loaded")
         
-        # Wait for page to load
+        # Find and click the user profile button (id="userProfileBtn")
+        user_profile_btn = driver.find_element(By.ID, "userProfileBtn")
+        print("🎯 Found user profile button")
+        user_profile_btn.click()
         time.sleep(2)
+        print("✅ Clicked user profile button - dropdown opened")
         
-        # Basic validation that we're logged in and on dashboard
-        dashboard_element = driver.find_element(By.CSS_SELECTOR, "[data-page='user-dashboard'], body")
-        assert dashboard_element is not None, "Could not verify page loaded"
+        # Look for "Biometrics" link in the dropdown
+        biometrics_link = None
+        all_links = driver.find_elements(By.CSS_SELECTOR, "a")
+        for link in all_links:
+            if link.is_displayed() and "biometrics" in link.text.lower():
+                biometrics_link = link
+                print(f"🎯 Found Biometrics link: {link.text}")
+                break
         
-        print(f"✓ {test_id}: Biometric Authentication Setup Access test PASSED (placeholder implementation)")
-        print(f"🎯 Result: Test structure created - needs implementation")
+        assert biometrics_link is not None, "Could not find Biometrics link in dropdown"
+        
+        # Click the biometrics link
+        biometrics_link.click()
+        print("🔐 Clicked Biometrics link")
+        
+        # Wait for biometrics page to load
+        time.sleep(3)
+        
+        # Check if we're on biometrics/webauthn page
+        current_url = driver.current_url
+        url_indicates_biometrics = "/webauthn" in current_url
+        
+        # Look for biometrics page indicators
+        biometrics_selectors = [
+            ".webauthn",
+            ".biometric",
+            ".security-keys",
+            "[data-page='biometrics']",
+            "[data-page='webauthn']"
+        ]
+        
+        biometrics_page_found = False
+        for selector in biometrics_selectors:
+            elements = driver.find_elements(By.CSS_SELECTOR, selector)
+            if elements and any(elem.is_displayed() for elem in elements):
+                biometrics_page_found = True
+                print(f"🔐 Biometrics page content found: {selector}")
+                break
+        
+        # Check page content for biometrics/webauthn keywords
+        page_text = driver.page_source.lower()
+        content_indicates_biometrics = any(word in page_text for word in ['webauthn', 'biometric', 'security key', 'passkey'])
+        
+        biometrics_accessible = url_indicates_biometrics or biometrics_page_found or content_indicates_biometrics
+        
+        assert biometrics_accessible, \
+            f"Biometrics page not accessible - URL: {url_indicates_biometrics}, Page: {biometrics_page_found}, Content: {content_indicates_biometrics}"
+        
+        print(f"✓ {test_id}: Biometric Authentication Setup Access test PASSED")
+        print(f"🎯 Result: Biometrics page loaded successfully")
         return True
         
     except Exception as e:

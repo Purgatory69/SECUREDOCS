@@ -436,6 +436,11 @@ Route::middleware([
         Route::put('/preferences', [App\Http\Controllers\UserSessionController::class, 'updateNotificationPreferences'])->name('user.notifications.update');
     });
     
+    // User profile settings page (Jetstream)
+    Route::get('/user/profile', function () {
+        return view('profile.show');
+    })->name('profile.show');
+    
     // User public info for chat widget (must be LAST among /user/ routes)
     Route::get('/user/{id}', [UserController::class, 'showPublic'])->whereNumber('id')->name('user.show_public');
     
@@ -767,5 +772,6 @@ Route::middleware([
         Route::patch('/mark-all-read', [App\Http\Controllers\NotificationController::class, 'markAllAsRead'])->name('mark_all_read');
         Route::post('/', [App\Http\Controllers\NotificationController::class, 'store'])->name('store');
         Route::delete('/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
+        Route::delete('/', [App\Http\Controllers\NotificationController::class, 'deleteAll'])->name('delete_all');
     });
 });

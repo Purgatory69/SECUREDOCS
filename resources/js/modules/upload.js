@@ -134,13 +134,24 @@ function handleDrop(e) {
 async function handleFiles(files) {
     if (files.length > 0) {
         const file = files[0];
+        
+        // Validate file object before using it
+        if (!file || typeof file.size !== 'number' || !file.name) {
+            console.error('Invalid file object received:', file);
+            showNotification('Invalid file selected. Please try again.', 'error');
+            resetUploadForm();
+            return;
+        }
+        
         currentUploadFile = file;
         const dropZoneContent = document.getElementById('dropZoneContent');
         if (dropZoneContent) {
+            const fileSize = file.size || 0;
+            const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
             dropZoneContent.innerHTML = `
                 <div class="text-3xl mb-2">📄</div>
-                <p class="text-sm text-white truncate max-w-[90%] mx-auto">${file.name}</p>
-                <p class="text-xs text-gray-400">${(file.size / 1024 / 1024).toFixed(2)} MB</p>
+                <p class="text-sm text-white truncate max-w-[90%] mx-auto">${file.name || 'Unknown'}</p>
+                <p class="text-xs text-gray-400">${fileSizeMB} MB</p>
             `;
         }
         
@@ -169,7 +180,7 @@ async function handleUpload() {
     }
 
     // Check storage before upload
-    if (window.storageManager) {
+    if (window.storageManager && currentUploadFile && currentUploadFile.size) {
         const storageCheck = window.storageManager.checkStorageBeforeUpload(currentUploadFile.size);
         if (!storageCheck.allowed) {
             showNotification(storageCheck.message, 'error');
@@ -217,8 +228,9 @@ async function handleUpload() {
         hideUploadModal();
         
         // Trigger storage usage update
+        const fileSize = currentUploadFile && currentUploadFile.size ? currentUploadFile.size : 0;
         document.dispatchEvent(new CustomEvent('fileUploaded', { 
-            detail: { fileSize: currentUploadFile.size } 
+            detail: { fileSize: fileSize } 
         }));
         
         // Refresh file list in current folder context
@@ -588,7 +600,15 @@ export function initializeUploadModal() {
     closeModalBtn.addEventListener('click', hideUploadModal);
     cancelUploadBtn?.addEventListener('click', hideUploadModal);
     dropZone.addEventListener('click', () => fileInput.click());
-    fileInput.addEventListener('change', () => handleFiles(fileInput.files));
+    fileInput.addEventListener('change', (e) => {
+        console.log('File input changed:', e.target.files);
+        if (e.target.files && e.target.files.length > 0) {
+            handleFiles(e.target.files);
+        } else {
+            console.warn('No files selected or invalid file input');
+            resetUploadForm();
+        }
+    });
     dropZone.addEventListener('dragover', handleDragOver);
     dropZone.addEventListener('dragleave', handleDragLeave);
     dropZone.addEventListener('drop', handleDrop);
