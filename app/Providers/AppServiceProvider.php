@@ -26,8 +26,12 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // Force HTTPS URLs when behind a proxy (ngrok, cloudflare, etc.)
-        if (config('app.force_https', false) || request()->header('X-Forwarded-Proto') === 'https') {
+        // Force HTTPS URLs when behind a proxy (ngrok, cloudflare, Firebase IDE, etc.)
+        // Check for Firebase IDE environment or other HTTPS proxies
+        $isFirebaseIDE = str_contains(request()->getHost(), 'cloudworkstations.dev');
+        $isHttpsProxy = request()->header('X-Forwarded-Proto') === 'https';
+        
+        if (config('app.force_https', false) || $isHttpsProxy || $isFirebaseIDE) {
             URL::forceScheme('https');
         }
 
