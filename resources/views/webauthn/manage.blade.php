@@ -1,38 +1,26 @@
-
 @extends('layouts.app')
 
 @section('title', 'Security Keys - WebAuthn')
 
 @section('content')
-<div class="min-h-screen bg-[#141326] text-white">
+<div class="min-h-screen bg-[#24243B] text-white">
     <!-- Header -->
-    <div class="bg-[#141326] border-b border-[#3C3F58]">
-        <div class="max-w-7xl mx-auto px-6 lg:px-8">
-            <div class="flex items-center justify-between h-18 py-4">
-                <div class="flex items-center">
-                    <a href="{{ route('user.dashboard') }}" class="text-gray-300 hover:text-white transition-colors mr-4">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-                        </svg>
-                    </a>
-                    <div class="flex items-center space-x-3">
-                        <div class="w-10 h-10 bg-[#3C3F58] rounded-lg flex items-center justify-center">
-                            <svg class="w-6 h-6 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h1 class="text-xl font-bold text-white">Security Keys</h1>
-                            <p class="text-sm text-gray-400">Manage your WebAuthn authenticators</p>
-                        </div>
-                    </div>
-                </div>
+    <div class="bg-[#141326] px-6 py-6">
+        <div class="flex items-center justify-between w-full">
+            <a href="{{ route('user.dashboard') }}" style="margin-left: 100px;"
+            class="flex items-center text-white hover:text-gray-300 transition-colors duration-200">
+                <img src="{{ asset('back-arrow.png') }}" alt="Back" class="w-5 h-5">
+            </a>
+            <div class="flex items-center space-x-3 absolute left-1/2 transform -translate-x-1/2">
+                <img src="{{ asset('logo-white.png') }}" alt="Logo" class="h-8 w-auto">
+                <h2 class="font-bold text-xl text-[#f89c00] font-['Poppins']">Manage Biometrics</h2>
             </div>
+            
         </div>
     </div>
 
     <!-- Main Content -->
-    <div class="max-w-6xl mx-auto px-6 lg:px-8 py-8">
+    <div class="max-w-6xl mx-auto px-6 mt-8 lg:px-8 py-8">
         <!-- Success Message -->
         @if (session('status'))
             <div class="mb-6 bg-green-500/10 border border-green-500/20 rounded-lg p-4">
@@ -45,119 +33,153 @@
             </div>
         @endif
 
+        
+
         <!-- Action Buttons -->
-        <div class="mb-8 flex flex-col sm:flex-row gap-4">
+        <div class="mb-8 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div>
+                <h2 class="text-lg font-bold text-white">Manage Security Keys</h2>
+                <p class="text-sm text-gray-300 mt-1">Manage your password-less authenticators here.</p>
+                <p class="text-sm text-gray-300">Use them for your biometric logins.</p>
+            </div>
             <button onclick="registerNewKey()" 
-                class="inline-flex items-center px-6 py-3 bg-[#f89c00] hover:bg-[#e68900] text-black font-bold rounded-full transition-colors">
+                class="inline-flex items-center px-6 py-3 bg-[#f89c00] hover:brightness-110 text-black font-bold rounded-full transition-all duration-200">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                 </svg>
                 Add New Security Key
             </button>
-            
-            <a href="{{ route('webauthn.login') }}" 
+            <!-- <a href="{{ route('webauthn.login') }}" 
                 class="inline-flex items-center px-6 py-3 bg-[#3C3F58] hover:bg-[#55597C] text-white font-medium rounded-full transition-colors">
                 <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
                 </svg>
                 Test Passwordless Login
-            </a>
+            </a> -->
         </div>
 
         <!-- Security Keys List -->
-        <div class="bg-[#3C3F58] rounded-lg overflow-hidden">
-            <div class="px-6 py-4 border-b border-[#55597C]">
-                <h2 class="text-lg font-bold text-white">Your Security Keys</h2>
-                <p class="text-sm text-gray-300 mt-1">Manage your registered WebAuthn authenticators</p>
-            </div>
-
+        <div class="bg-[#3C3F58] rounded-lg max-h-96 overflow-y-auto custom-scrollbar">
             <div class="divide-y divide-[#55597C]">
-                @forelse ($credentials as $credential)
-                    <div class="px-6 py-4 hover:bg-[#55597C] transition-colors">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-4">
-                                <!-- Authenticator Icon -->
-                                <div class="flex-shrink-0">
-                                    <div class="w-12 h-12 bg-[#f89c00] rounded-lg flex items-center justify-center text-2xl">
-                                        {{ $credential->authenticator_icon }}
-                                    </div>
-                                </div>
-                                
-                                <!-- Credential Info -->
-                                <div class="flex-1 min-w-0">
-                                    <div class="flex items-center space-x-2">
-                                        <h3 class="text-lg font-medium text-white truncate">
-                                            {{ $credential->name ?: 'Unnamed Key' }}
-                                        </h3>
-                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f89c00]/20 text-[#f89c00]">
-                                            {{ $credential->authenticator_display_name }}
-                                        </span>
-                                    </div>
-                                    
-                                    <div class="mt-1 flex items-center space-x-4 text-sm text-gray-300">
-                                        <span class="flex items-center">
-                                            <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                            </svg>
-                                            Added {{ $credential->created_at->diffForHumans() }}
-                                        </span>
-                                        
-                                        @if($credential->attachment_type)
-                                            <span class="flex items-center">
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                                </svg>
-                                                {{ ucfirst($credential->attachment_type) }}
-                                            </span>
-                                        @endif
-                                        
-                                        @if($credential->updated_at && $credential->updated_at != $credential->created_at)
-                                            <span class="flex items-center">
-                                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                                                </svg>
-                                                Last used {{ $credential->updated_at->diffForHumans() }}
-                                            </span>
-                                        @endif
-                                    </div>
+                <!-- Temp Design Divs
+                Old Layout
+                <div class="px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0">
+                                <div class="w-12 h-12 bg-[#f89c00] rounded-lg flex items-center justify-center text-2xl">
+                                    💻
                                 </div>
                             </div>
-                            
-                            <!-- Actions -->
-                            <div class="flex items-center space-x-2">
-                                <form action="{{ route('webauthn.keys.destroy', $credential->id) }}" method="POST" class="inline">
-                                    @csrf
-                                    @method('DELETE')
-                                    <button type="submit" 
-                                        onclick="return confirm('Are you sure you want to remove this security key? You may lose access to your account if this is your only authentication method.')"
-                                        class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors">
-                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Remove
-                                    </button>
-                                </form>
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center space-x-2">
+                                    <h3 class="text-lg font-medium text-white truncate">
+                                        My Laptop Fingerprint
+                                    </h3>
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#f89c00]/20 text-[#f89c00]">
+                                        Windows Hello
+                                    </span>
+                                </div>
+                                <div class="mt-1 flex items-center space-x-4 text-sm text-gray-300">
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        Added 2 days ago
+                                    </span>
+                                    <span class="flex items-center">
+                                        <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                        Platform
+                                    </span>
+                                </div>
                             </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <button class="inline-flex items-center px-3 py-2 text-sm font-medium text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-colors">
+                                <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                Remove
+                            </button>
                         </div>
                     </div>
-                @empty
-                    <div class="px-6 py-12 text-center">
-                        <div class="w-16 h-16 mx-auto mb-4 bg-[#f89c00]/20 rounded-lg flex items-center justify-center">
-                            <svg class="w-8 h-8 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
-                            </svg>
+                </div>
+
+                
+                <div class="px-6 py-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0">
+                                <div class="w-12 h-12 bg-[#3C3F58] rounded-lg flex items-center justify-center">
+                                    Same image source for all keys
+                                    <img src="{{ asset('key-gold.png') }}" alt="Cross-Platform Authenticator" class="w-8 h-8">
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-lg font-semibold text-white truncate">
+                                    My YubiKey
+                                </h3>
+                                <div class="mt-1 flex items-center space-x-4 text-sm text-gray-400">
+                                    <span class="font-medium text-gray-300">Cross-platform</span>
+                                    <span>&bull;</span>
+                                    <span>Added 1 week ago</span>
+                                </div>
+                            </div>
                         </div>
-                        <h3 class="text-lg font-medium text-white mb-2">No security keys registered</h3>
-                        <p class="text-gray-300 mb-6">Add a security key to enable passwordless authentication</p>
-                        <button onclick="registerNewKey()" 
-                            class="inline-flex items-center px-4 py-2 bg-[#f89c00] hover:bg-[#e68900] text-black font-bold rounded-full transition-colors">
-                            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-                            </svg>
-                            Add Your First Key
+                        <div class="flex items-center space-x-2">
+                        <button title="Remove" aria-label="Remove" class="flex items-center p-2 text-red-400 hover:text-white rounded-lg transition-colors duration-200">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
                         </button>
+                        </div>
                     </div>
-                @endforelse
+                </div>
+                -->
+
+                @forelse ($credentials as $credential)
+                <div class="px-6 py-4 hover:bg-[#55597C] transition-colors">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-shrink-0">
+                                <div class="w-12 h-12 bg-[#3C3F58] rounded-lg flex items-center justify-center">
+                                    @if($credential->attachment_type === 'platform')
+                                        <img src="{{ asset('responsive.png') }}" alt="Platform Authenticator" class="w-8 h-8">
+                                    @else
+                                        <img src="{{ asset('key-gold.png') }}" alt="Cross-Platform Authenticator" class="w-8 h-8">
+                                    @endif
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <h3 class="text-lg font-semibold text-white truncate">
+                                    {{ Str::limit($credential->name ?: 'Unnamed Key', 35) }}
+                                </h3>
+                                <div class="mt-1 flex items-center space-x-4 text-sm text-gray-400">
+                                    @if($credential->attachment_type)
+                                        <span class="font-medium text-gray-300">{{ ucfirst($credential->attachment_type) }}</span>
+                                        <span>&bull;</span>
+                                    @endif
+                                    <span>Added {{ $credential->created_at->diffForHumans() }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="flex items-center space-x-2">
+                            <form action="{{ route('webauthn.keys.destroy', $credential->id) }}" method="POST" class="inline">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" 
+                                        onclick="return confirm('Are you sure you want to remove this security key? You may lose access to your account if this is your only authentication method.')"
+                                        title="Remove" aria-label="Remove" 
+                                        class="flex items-center p-2 text-red-400 hover:text-white rounded-lg transition-colors duration-200">
+                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            @empty
+                <div class="px-6 py-12 text-center">
+                    <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                        <img src="{{ asset('key-gold.png') }}" alt="Back" class="w-12 h-12 mb-2">
+                    </div>
+                    <h3 class="text-lg font-medium text-white mb-2">No security keys registered</h3>
+                    <p class="text-sm text-gray-300 -mt-2">Add a security key to enable password-less authentication</p>
+                </div>
+            @endforelse
             </div>
         </div>
     </div>
@@ -166,24 +188,22 @@
 <!-- Registration Modal -->
 <div id="registrationModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-black opacity-50"></div>
-        <div class="relative bg-[#3C3F58] rounded-lg border border-[#55597C] max-w-md w-full p-6">
+        <div style="background-color: #141326; opacity: 0.8;" class="fixed inset-0"></div>
+        <div style="background-color: #24243B;" class="relative rounded-lg max-w-md w-full p-6">
             <div class="text-center">
-                <div class="w-16 h-16 mx-auto mb-4 bg-[#f89c00]/20 rounded-lg flex items-center justify-center">
-                    <svg class="w-8 h-8 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
-                    </svg>
+                <div class="w-16 h-16 mx-auto mb-2 flex items-center justify-center">
+                    <img src="{{ asset('key-gold.png') }}" alt="Back" class="w-12 h-12">
                 </div>
                 <h3 class="text-lg font-bold text-white mb-2">Register Security Key</h3>
-                <p id="modalMessage" class="text-gray-300 mb-6">Follow your browser's prompts to register your security key.</p>
+                <p id="modalMessage" class="text-sm text-gray-300 mb-6">Follow your browser's prompts to register your security key.</p>
                 
-                <div id="loadingSpinner" class="hidden mb-4">
+                <div id="loadingSpinner" class="hidden mb-8">
                     <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f89c00] mx-auto"></div>
                 </div>
                 
-                <div class="flex space-x-3">
+                <div class="flex justify-end space-x-3">
                     <button onclick="closeRegistrationModal()" 
-                        class="flex-1 px-4 py-2 text-gray-300 hover:text-white border border-[#55597C] hover:border-gray-400 rounded-lg transition-colors">
+                        class="cancel-button px-4 py-2 rounded-lg transition-colors">
                         Cancel
                     </button>
                 </div>
@@ -191,6 +211,20 @@
         </div>
     </div>
 </div>
+
+<style>
+    /* Cancel button */
+    .cancel-button {background-color: #3C3F58; color: rgba(255, 255, 255, 0.5);; font-weight: 400; transition: background-color 0.2s ease;}
+    .cancel-button:hover {background-color: #55597C;}
+
+    /* --- WebKit Scrollbar Styling (Chrome, Safari, Edge) --- */
+    .custom-scrollbar::-webkit-scrollbar-track {background: transparent;}
+    .custom-scrollbar {scrollbar-width: auto;scrollbar-color: #55597C transparent;}
+
+    /* Scrollbarless version
+    .custom-scrollbar::-webkit-scrollbar {display: none;}
+    .custom-scrollbar {scrollbar-width: none;} */
+</style>
 
 @push('scripts')
 <script>
@@ -280,7 +314,7 @@ async function registerNewKey() {
         }
         
         // Update modal message
-        showRegistrationModal('Please use your Windows Hello, Touch ID, or security key when prompted...');
+        showRegistrationModal('Please use your Windows Hello, Touch ID, or security key when prompted.');
         
         // Create credential
         const credential = await navigator.credentials.create({

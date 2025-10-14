@@ -172,7 +172,7 @@ class DeviceDetectionService
         if ($this->isLocalIP($ip)) {
             return [
                 'ip_address' => $ip,
-                'country' => 'Local',
+                'country' => '--', // Use -- for local/unknown (2 chars)
                 'city' => 'Local',
                 'timezone' => config('app.timezone'),
                 'is_local' => true
@@ -206,7 +206,7 @@ class DeviceDetectionService
                 
                 return [
                     'ip_address' => $ip,
-                    'country' => $data['country_name'] ?? 'Unknown',
+                    'country' => $data['country_code'] ?? '--', // Use 2-letter country code
                     'city' => $data['city'] ?? 'Unknown',
                     'timezone' => $data['timezone'] ?? config('app.timezone'),
                     'is_local' => false,
@@ -223,7 +223,7 @@ class DeviceDetectionService
         // Fallback
         return [
             'ip_address' => $ip,
-            'country' => 'Unknown',
+            'country' => '--', // Use -- for unknown (2 chars)
             'city' => 'Unknown',
             'timezone' => config('app.timezone'),
             'is_local' => false
