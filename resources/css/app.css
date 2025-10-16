@@ -56,6 +56,40 @@ body {
   background-color: #6B7280;
 }
 
+/* Selection styles */
+.file-card.selected, .file-row.selected {
+  background-color: #1E3A5F !important; /* Google Drive blue selection */
+  border-color: #4285F4 !important; /* Google blue */
+  box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.3);
+}
+
+.file-card.selected:hover, .file-row.selected:hover {
+  background-color: #1E3A5F !important;
+  border-color: #4285F4 !important;
+}
+
+/* Selection toolbar */
+#selectionToolbar {
+  backdrop-filter: blur(10px);
+}
+
+#selectionToolbar button {
+  transition: all 0.2s ease;
+  color: #FFFFFF;
+}
+
+#selectionToolbar button:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+#selectionToolbar button:disabled {
+  color: rgba(255, 255, 255, 0.65);
+}
+
+#selectionToolbar button svg {
+  color: inherit;
+}
+
 /* Clamp long file names if we ever opt-in with a class */
 .clamp-2 {
   display: -webkit-box;

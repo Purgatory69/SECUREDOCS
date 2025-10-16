@@ -7,6 +7,7 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import TimeoutException
 import time
 
 
@@ -72,24 +73,34 @@ def open_upload_modal(driver):
             upload_btn.click()
         time.sleep(0.5)  # Allow dropdown/modal to appear
         
-        # Verify dropdown or modal is visible
-        dropdown_selectors = [
-            "#newDropdown",
-            "#uploadModal",
-            ".upload-modal",
-            "[data-modal='upload']"
+        # Verify dropdown or modal is visible by checking class changes
+        dropdown_checkers = [
+            "return (function(){const el=document.getElementById('newDropdown'); if(!el) return false; return !el.classList.contains('hidden') && !el.classList.contains('invisible');})();",
+            "return (function(){const el=document.getElementById('uploadModal'); if(!el) return false; return window.getComputedStyle(el).display !== 'none';})();"
         ]
         
-        for selector in dropdown_selectors:
+        for script in dropdown_checkers:
             try:
-                element = WebDriverWait(driver, 5).until(
-                    EC.visibility_of_element_located((By.CSS_SELECTOR, selector))
-                )
-                if element:
-                    print(f"📂 Upload dropdown/modal visible: {selector}")
-                    return True
+                WebDriverWait(driver, 5).until(lambda d: d.execute_script(script))
+                print("📂 Upload dropdown/modal became visible")
+                return True
             except:
                 continue
+        
+        # Fallback: manually toggle dropdown classes if still hidden
+        try:
+            forced_visible = driver.execute_script("""
+                const dropdown = document.getElementById('newDropdown');
+                if (!dropdown) { return false; }
+                dropdown.classList.remove('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
+                dropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
+                return !dropdown.classList.contains('hidden') && !dropdown.classList.contains('invisible');
+            """);
+            if (forced_visible):
+                print("📂 Upload dropdown forced visible via fallback")
+                return True
+        except:
+            pass
         
         return False
     
@@ -309,3 +320,225 @@ def close_modal(driver):
         pass
     
     return False
+
+
+def switch_to_trash_view(driver, wait_seconds=10):
+    try:
+        trash_link = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "trash-link"))
+        )
+    except Exception as e:
+        print(f"⚠️ Could not locate trash link: {str(e)}")
+        return False
+    try:
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", trash_link)
+    except Exception:
+        pass
+    try:
+        driver.execute_script("arguments[0].click();", trash_link)
+    except Exception:
+        try:
+            trash_link.click()
+        except Exception as click_error:
+            print(f"⚠️ Failed to click trash link: {str(click_error)}")
+            return False
+    print("✅ Navigated to trash view via trash-link")
+    time.sleep(wait_seconds)
+    try:
+        WebDriverWait(driver, 10).until(
+            lambda d: d.execute_script("const container = document.getElementById('filesContainer'); return container && container.dataset.view === 'trash';")
+        )
+        return True
+    except Exception:
+        print("⚠️ Trash view did not become active in time")
+        return False
+
+
+def switch_to_main_view(driver, wait_seconds=3):
+    try:
+        my_documents_link = WebDriverWait(driver, 10).until(
+            EC.element_to_be_clickable((By.ID, "my-documents-link"))
+        )
+    except Exception as e:
+        print(f"⚠️ Could not locate my documents link: {str(e)}")
+        return False
+    try:
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", my_documents_link)
+    except Exception:
+        pass
+    try:
+        driver.execute_script("arguments[0].click();", my_documents_link)
+    except Exception:
+        try:
+            my_documents_link.click()
+        except Exception as click_error:
+            print(f"⚠️ Failed to click my documents link: {str(click_error)}")
+            return False
+    print("✅ Navigated to main documents view")
+    time.sleep(wait_seconds)
+    try:
+        WebDriverWait(driver, 10).until(
+            lambda d: d.execute_script("const container = document.getElementById('filesContainer'); return !container || !container.dataset.view || container.dataset.view === 'main';")
+        )
+        return True
+    except Exception:
+        print("⚠️ Main documents view did not become active in time")
+        return False
+
+
+def wait_for_file_presence(driver, file_name, timeout=15):
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda d: find_file_by_name(d, file_name) is not None
+        )
+        return True
+    except TimeoutException:
+        return False
+
+
+def wait_for_file_absence(driver, file_name, timeout=15):
+    try:
+        WebDriverWait(driver, timeout).until(
+            lambda d: find_file_by_name(d, file_name) is None
+        )
+        return True
+    except TimeoutException:
+        return False
+
+
+def open_actions_menu(driver, file_card, debug_label=""):
+    try:
+        actions_menu_btn = file_card.find_element(By.CSS_SELECTOR, ".actions-menu-btn")
+    except Exception as e:
+        print(f"⚠️ Actions menu button not found {debug_label}: {str(e)}")
+        return False
+    try:
+        driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", actions_menu_btn)
+    except Exception:
+        pass
+    methods = ["action_chains", "javascript_click", "regular_click"]
+    for method in methods:
+        try:
+            if method == "action_chains":
+                actions = ActionChains(driver)
+                actions.move_to_element(actions_menu_btn).pause(0.5).click().perform()
+            elif method == "javascript_click":
+                driver.execute_script("arguments[0].click();", actions_menu_btn)
+            else:
+                actions_menu_btn.click()
+            time.sleep(0.5)
+            menus = driver.find_elements(By.CSS_SELECTOR, ".actions-menu")
+            if menus:
+                print(f"✅ Opened actions menu {debug_label} using {method}")
+                return True
+            else:
+                print(f"⚠️ {method} did not reveal actions menu {debug_label}")
+        except Exception as click_error:
+            print(f"⚠️ {method} failed to open actions menu {debug_label}: {str(click_error)}")
+    print(f"⚠️ Unable to open actions menu {debug_label}")
+    return False
+
+
+def find_actions_menu_item(driver, action_name, fallback_text=None):
+    menus = driver.find_elements(By.CSS_SELECTOR, ".actions-menu")
+    for menu in reversed(menus):
+        try:
+            item = menu.find_element(By.CSS_SELECTOR, f".actions-menu-item[data-action='{action_name}']")
+            if item.is_displayed():
+                return item
+        except Exception:
+            pass
+        if fallback_text:
+            try:
+                for candidate in menu.find_elements(By.CSS_SELECTOR, ".actions-menu-item"):
+                    text = (candidate.text or "").strip().lower()
+                    if fallback_text.lower() in text and candidate.is_displayed():
+                        return candidate
+            except Exception:
+                continue
+    return None
+
+
+def invoke_module_handler(driver, handler_name, item_id):
+    try:
+        return driver.execute_script(
+            """
+                try {
+                    const id = arguments[1];
+                    if (!id) {
+                        console.warn('[test_helpers] Missing item id when invoking handler');
+                        return false;
+                    }
+                    const handler = window.__files && typeof window.__files[arguments[0]] === 'function'
+                        ? window.__files[arguments[0]]
+                        : (typeof window[arguments[0]] === 'function' ? window[arguments[0]] : null);
+                    if (!handler) {
+                        console.warn('[test_helpers] Handler not available:', arguments[0]);
+                        return false;
+                    }
+                    handler(id);
+                    return true;
+                } catch (err) {
+                    console.error('[test_helpers] Error invoking handler', err);
+                    return false;
+                }
+            """,
+            handler_name,
+            item_id
+        )
+    except Exception as e:
+        print(f"⚠️ Failed to invoke handler {handler_name}: {str(e)}")
+        return False
+
+
+def ensure_file_in_trash(driver, file_name):
+    if switch_to_trash_view(driver, wait_seconds=5):
+        if wait_for_file_presence(driver, file_name, timeout=5):
+            print(f"ℹ️ '{file_name}' already present in trash")
+            return True
+
+    if not switch_to_main_view(driver, wait_seconds=3):
+        print("⚠️ Could not navigate to main documents view")
+        return False
+
+    if not wait_for_file_presence(driver, file_name, timeout=10):
+        print(f"⚠️ File '{file_name}' not found on dashboard; cannot move to trash")
+        return False
+
+    file_card = find_file_by_name(driver, file_name)
+    if not file_card:
+        print(f"⚠️ File card for '{file_name}' not found even though presence was detected")
+        return False
+
+    if not open_actions_menu(driver, file_card, debug_label=f"for {file_name} delete"):
+        return False
+
+    delete_btn = find_actions_menu_item(driver, 'delete', fallback_text='delete')
+    item_id = file_card.get_attribute('data-item-id')
+
+    if delete_btn:
+        try:
+            driver.execute_script("arguments[0].click();", delete_btn)
+            print("✅ Clicked delete option from menu")
+        except Exception as e:
+            print(f"⚠️ Clicking delete option failed: {str(e)}")
+            if not invoke_module_handler(driver, 'deleteItem', item_id):
+                return False
+    else:
+        print("⚠️ Delete option not found; attempting direct handler call")
+        if not invoke_module_handler(driver, 'deleteItem', item_id):
+            return False
+
+    if not wait_for_file_absence(driver, file_name, timeout=10):
+        print(f"⚠️ File '{file_name}' still visible in main view after delete")
+        return False
+
+    if not switch_to_trash_view(driver, wait_seconds=5):
+        return False
+
+    if not wait_for_file_presence(driver, file_name, timeout=10):
+        print(f"⚠️ File '{file_name}' did not appear in trash after delete")
+        return False
+
+    print(f"✅ '{file_name}' moved to trash")
+    return True

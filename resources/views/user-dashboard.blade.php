@@ -49,7 +49,7 @@
             </button>
             
             <!-- Bundlr Wallet Dropdown -->
-            <div id="bundlrWalletDropdown" class="hidden absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50">
+            <div id="bundlrWalletDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
                 <div class="px-4 py-3 border-b border-[#4A4D6A]">
                     <div class="flex items-center justify-between mb-2">
                         <div class="text-sm font-medium">Bundlr Wallet</div>
@@ -97,7 +97,7 @@
             <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
             
             <!-- Notification Dropdown -->
-            <div id="notificationDropdown" class="hidden absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50">
+            <div id="notificationDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
                 <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
                     <div class="text-sm font-medium">Notifications</div>
                     <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>
@@ -391,7 +391,7 @@
 
     <!-- Dropdown Menu - Simplified Structure -->
     <div id="newDropdown" 
-     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C] hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200"
+     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C] opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200"
      style="background-color: #55597C;">
         <div>
             <div id="uploadFileOption"
@@ -441,8 +441,7 @@
             <img src="{{ asset('delete.png') }}" alt="Trash" class="mr-4 w-5 h-5">
             <span class="text-sm">{{ __('auth.db_trash') }}</span>
         </li>
-        <li id="blockchain-storage-link" class="py-3 px-8 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light @if(!auth()->user()->is_premium) opacity-60 @endif"
-            @if(!auth()->user()->is_premium) onclick="showPremiumUpgradeModal('blockchain')" @endif>
+        <li id="blockchain-storage-link" class="py-3 px-8 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light @if(!auth()->user()->is_premium) opacity-60 @endif" onclick="handleBlockchainClick(event)">
             <img src="{{ asset('link-symbol.png') }}" alt="Blockchain" class="mr-4 w-5 h-5">
             <span class="text-white text-sm">{{ __('auth.db_blockchain_storage') }}</span>
             
@@ -521,6 +520,50 @@
     </div>
     <!-- <h1 id="header-title" class="text-2xl text-white font-bold mb-6">My Documents</h1> -->
 
+    <!-- Selection Toolbar - Google Drive style -->
+    <div id="selectionToolbar" class="hidden mb-4 flex items-center gap-4 px-4 py-3 bg-[#2A2D47] rounded-lg border border-[#4A4D6A] shadow-lg">
+        <div class="flex items-center gap-2 text-white">
+            <span id="selectionCount">0 selected</span>
+        </div>
+        <div class="flex items-center gap-2 ml-auto">
+            <button id="selectionOpenBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+                <span class="btn-label">Open</span>
+            </button>
+            <button id="selectionRestoreBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors hidden">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 4l-6 6M4 20l6-6"></path>
+                </svg>
+                <span class="btn-label">Restore</span>
+            </button>
+            <button id="selectionDeleteBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <span class="btn-label">Delete</span>
+            </button>
+            <button id="selectionMoveBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                <span class="btn-label">Move</span>
+            </button>
+            <button id="selectionRenameBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                <span class="btn-label">Rename</span>
+            </button>
+        </div>
+        <button id="selectionClearBtn" class="flex items-center gap-1 px-2 py-1 bg-transparent hover:bg-[#4A4D6A] rounded text-white text-sm transition-colors ml-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
     <!-- JS Localization -->
     <div id="db-js-localization-data" class="hidden" data-my-documents="{{ __('auth.db_my_documents') }}"></div>
     <!-- Hidden file input for uploading new versions -->
@@ -593,60 +636,6 @@
         background-color: #55597C;
     }
     </style>
-<!--
-    <script>
-        // View toggle functionality
-        document.addEventListener('DOMContentLoaded', function() {
-            const gridBtn = document.getElementById('btnGridLayout');
-            const listBtn = document.getElementById('btnListLayout');
-            
-            function setActiveButton(activeBtn, inactiveBtn) {
-                // Remove active from both first
-                gridBtn.classList.remove('active');
-                listBtn.classList.remove('active');
-                // Then add to the active one
-                activeBtn.classList.add('active');
-            }
-            
-            function showGridView() {
-                setActiveButton(gridBtn, listBtn);
-                // Add your grid view logic here
-                const filesContainer = document.getElementById('filesContainer');
-                if (filesContainer) {
-                    filesContainer.className = 'grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4';
-                }
-            }
-            
-            function showListView() {
-                setActiveButton(listBtn, gridBtn);
-                // Add your list view logic here
-                const filesContainer = document.getElementById('filesContainer');
-                if (filesContainer) {
-                    filesContainer.className = 'space-y-2';
-                }
-            }
-            
-            // Grid button click handler
-            if (gridBtn) {
-                gridBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    showGridView();
-                });
-            }
-            
-            // List button click handler
-            if (listBtn) {
-                listBtn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    showListView();
-                });
-            }
-            
-            // Initialize with grid view active (default)
-            showGridView();
-        });
-    </script>
--->
     <div id="filesContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         <div class="p-4 text-center text-text-secondary col-span-full">Loading files...</div>
     </div>

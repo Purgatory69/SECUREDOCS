@@ -86,15 +86,8 @@ function setupWalletWidgetListeners() {
         }
     }, 500);
     
-    // Close dropdown when clicking outside
-    document.addEventListener('click', (e) => {
-        const dropdown = document.getElementById('bundlrWalletDropdown');
-        const walletBtn = document.getElementById('bundlrWalletBtn');
-        
-        if (dropdown && !dropdown.contains(e.target) && !walletBtn?.contains(e.target)) {
-            dropdown.classList.add('hidden');
-        }
-    });
+    // Note: Global click handler is managed by ui.js
+    // Individual dropdown closing is handled by closeAllDropdowns()
 }
 
 /**
@@ -104,18 +97,32 @@ function toggleWalletDropdown() {
     console.log('🔄 Toggling wallet dropdown...');
     const dropdown = document.getElementById('bundlrWalletDropdown');
     if (dropdown) {
-        const isHidden = dropdown.classList.contains('hidden');
+        const isHidden = dropdown.classList.contains('opacity-0') || 
+                         dropdown.classList.contains('invisible');
         console.log('Dropdown currently hidden:', isHidden);
         
-        dropdown.classList.toggle('hidden');
-        
-        // Update balance when opening and if initialized
-        if (isHidden && isInitialized) {
-            console.log('Updating balance display...');
-            updateBalanceDisplay();
+        if (isHidden) {
+            // Close all other dropdowns first (except language which is nested)
+            if (window.closeAllDropdowns) {
+                window.closeAllDropdowns(['bundlrWallet', 'language']);
+            }
+            
+            // Show dropdown with animation
+            dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+            dropdown.classList.add('opacity-100', 'visible', 'translate-y-0', 'scale-100');
+            
+            // Update balance when opening and if initialized
+            if (isInitialized) {
+                console.log('Updating balance display...');
+                updateBalanceDisplay();
+            }
+        } else {
+            // Hide dropdown with animation
+            dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+            dropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
         }
         
-        console.log('Dropdown now hidden:', dropdown.classList.contains('hidden'));
+        console.log('Dropdown now hidden:', dropdown.classList.contains('opacity-0'));
     } else {
         console.error('❌ Dropdown element not found!');
     }

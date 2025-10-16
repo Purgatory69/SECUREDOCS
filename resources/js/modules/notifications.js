@@ -76,9 +76,9 @@ class NotificationManager {
         if (this.isOpen) {
             this.closeDropdown();
         } else {
-            // Close all other dropdowns first
+            // Close all other dropdowns first (except language which is nested)
             if (window.closeAllDropdowns) {
-                window.closeAllDropdowns('notification');
+                window.closeAllDropdowns(['notification', 'language']);
             }
             // Close all actions menus
             if (typeof closeAllActionsMenus === 'function') closeAllActionsMenus();
@@ -91,14 +91,14 @@ class NotificationManager {
 
     openDropdown() {
         // Make sure any hidden state is cleared across Tailwind variants
-        this.dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'hidden');
-        this.dropdown.classList.add('opacity-100', 'visible', 'translate-y-0', 'block');
+        this.dropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+        this.dropdown.classList.add('opacity-100', 'visible', 'translate-y-0', 'scale-100');
         this.isOpen = true;
     }
 
     closeDropdown() {
-        this.dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'hidden');
-        this.dropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'block');
+        this.dropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+        this.dropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
         this.isOpen = false;
     }
 

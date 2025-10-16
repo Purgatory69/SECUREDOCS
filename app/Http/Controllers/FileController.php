@@ -2027,6 +2027,103 @@ class FileController extends Controller
     }
 
     /**
+     * Empty trash - permanently delete all trashed items for the authenticated user.
+     */
+    public function emptyTrash(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            $trashedItems = $user->files()->onlyTrashed()->get();
+            
+            if ($trashedItems->isEmpty()) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Trash is already empty',
+                    'deleted_count' => 0
+                ]);
+            }
+
+            $deletedCount = 0;
+
+            DB::transaction(function () use ($trashedItems, &$deletedCount) {
+                // Separate folders and files
+                $folders = $trashedItems->where('is_folder', true);
+                $files = $trashedItems->where('is_folder', false);
+
+                // Delete all files first
+                foreach ($files as $file) {
+                    // Clean up vectors if vectorized
+                    if ($file->isVectorized()) {
+                        $this->vectorManager->unvector($file->id, $file->user_id);
+                    }
+                    
+                    // Delete from storage
+                    if (!empty($file->file_path)) {
+                        $this->deleteFilesFromStorage(collect([$file]));
+                    }
+                    
+                    $file->forceDelete();
+                    $deletedCount++;
+                }
+
+                // Delete all folders (they should be empty now or contain only other trashed items)
+                foreach ($folders as $folder) {
+                    // Get all children (including nested)
+                    $allChildren = $this->getAllChildren($folder, true);
+                    
+                    // Delete children files
+                    $childFiles = $allChildren->where('is_folder', false);
+                    foreach ($childFiles as $childFile) {
+                        if ($childFile->isVectorized()) {
+                            $this->vectorManager->unvector($childFile->id, $childFile->user_id);
+                        }
+                        if (!empty($childFile->file_path)) {
+                            $this->deleteFilesFromStorage(collect([$childFile]));
+                        }
+                        $childFile->forceDelete();
+                        $deletedCount++;
+                    }
+                    
+                    // Delete child folders
+                    $childFolders = $allChildren->where('is_folder', true);
+                    foreach ($childFolders as $childFolder) {
+                        $childFolder->forceDelete();
+                        $deletedCount++;
+                    }
+                    
+                    // Delete the parent folder
+                    $folder->forceDelete();
+                    $deletedCount++;
+                }
+            });
+
+            Log::info('Trash emptied successfully', [
+                'user_id' => $user->id,
+                'deleted_count' => $deletedCount
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => "Successfully deleted {$deletedCount} item(s) permanently",
+                'deleted_count' => $deletedCount
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Error emptying trash', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'error' => 'Error emptying trash',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Helper to restore a file or folder and its contents.
      */
     private function restoreItem($item)

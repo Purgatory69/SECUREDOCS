@@ -27,6 +27,9 @@ let state = {
     delegatedListenersBound: false,
     containerRef: null,
     processingStatusCache: {},
+    // Selection state
+    selectedItems: new Set(),
+    lastSelectedIndex: -1
 };
 
 // CSRF helper: safely read token from meta or cookie
@@ -66,7 +69,337 @@ async function getProcessingStatus(fileId) {
     }
 }
 
-// --- Local UI helpers for this module ---
+// --- Selection Management Functions ---
+
+/**
+ * Clear all selected items and update UI
+ */
+function clearSelection() {
+    state.selectedItems.clear();
+    state.lastSelectedIndex = -1;
+    updateSelectionUI();
+    updateItemVisualStates();
+}
+
+/**
+ * Select all visible items
+ */
+function selectAll() {
+    const container = document.getElementById('filesContainer');
+    if (!container) return;
+
+    // Only select items that are currently visible (not hidden)
+    container.querySelectorAll('[data-item-id]:not([style*="display: none"]):not([style*="display:none"])').forEach(item => {
+        const itemId = item.dataset.itemId;
+        if (itemId) {
+            state.selectedItems.add(itemId);
+        }
+    });
+
+    updateSelectionUI();
+    updateItemVisualStates();
+    showSelectionCountNotification();
+}
+
+/**
+ * Select/deselect a single item
+ * @param {string} itemId - The item ID to toggle
+ * @param {boolean} addToSelection - If true, add to existing selection (Ctrl+click behavior)
+ */
+function toggleItemSelection(itemId, addToSelection = false) {
+    if (!addToSelection) {
+        // Single selection - clear previous and select this one
+        state.selectedItems.clear();
+    }
+
+    if (state.selectedItems.has(itemId)) {
+        state.selectedItems.delete(itemId);
+    } else {
+        state.selectedItems.add(itemId);
+    }
+
+    // Update last selected index for range selection (future use)
+    const items = Array.from(document.querySelectorAll('#filesContainer [data-item-id]'));
+    const index = items.findIndex(item => item.dataset.itemId === itemId);
+    if (index !== -1) {
+        state.lastSelectedIndex = index;
+    }
+
+    updateSelectionUI();
+    updateItemVisualStates();
+}
+
+/**
+ * Update the selection toolbar visibility and content
+ */
+function updateSelectionUI() {
+    const toolbar = document.getElementById('selectionToolbar');
+    const countElement = document.getElementById('selectionCount');
+    const openBtn = document.getElementById('selectionOpenBtn');
+    const renameBtn = document.getElementById('selectionRenameBtn');
+    const moveBtn = document.getElementById('selectionMoveBtn');
+    const restoreBtn = document.getElementById('selectionRestoreBtn');
+    const deleteBtn = document.getElementById('selectionDeleteBtn');
+    const deleteLabel = deleteBtn?.querySelector('.btn-label');
+    const container = document.getElementById('filesContainer');
+    const inTrashView = container?.dataset.view === 'trash';
+
+    if (!toolbar || !countElement) return;
+
+    const count = state.selectedItems.size;
+
+    if (count === 0) {
+        toolbar.classList.add('hidden');
+        return;
+    }
+
+    // Update count text
+    countElement.textContent = `${count} selected`;
+
+    // Show toolbar
+    toolbar.classList.remove('hidden');
+
+    if (inTrashView) {
+        openBtn?.classList.add('hidden');
+        moveBtn?.classList.add('hidden');
+        renameBtn?.classList.add('hidden');
+        restoreBtn?.classList.remove('hidden');
+        if (deleteLabel) deleteLabel.textContent = 'Delete permanently';
+    } else {
+        openBtn?.classList.remove('hidden');
+        moveBtn?.classList.remove('hidden');
+        renameBtn?.classList.remove('hidden');
+        restoreBtn?.classList.add('hidden');
+        if (deleteLabel) deleteLabel.textContent = 'Delete';
+
+        // Disable Open button if multiple items selected (can only open one)
+        if (openBtn) {
+            openBtn.disabled = count > 1;
+        }
+
+        // Disable Rename button if multiple items selected (can only rename one)
+        if (renameBtn) {
+            renameBtn.disabled = count > 1;
+        }
+    }
+}
+
+/**
+ * Update visual state of all items based on selection
+ */
+function updateItemVisualStates() {
+    const container = document.getElementById('filesContainer');
+    if (!container) return;
+
+    // Update all item elements
+    container.querySelectorAll('[data-item-id]').forEach(item => {
+        const itemId = item.dataset.itemId;
+        const isSelected = state.selectedItems.has(itemId);
+
+        if (isSelected) {
+            item.classList.add('selected');
+        } else {
+            item.classList.remove('selected');
+        }
+    });
+}
+
+/**
+ * Show notification with selection count
+ */
+function showSelectionCountNotification() {
+    const count = state.selectedItems.size;
+    if (count > 0) {
+        showNotification(`${count} items selected`, 'info');
+    }
+}
+
+/**
+ * Handle item click for selection
+ * @param {Event} event - The click event
+ * @param {string} itemId - The item ID
+ */
+function handleItemClick(event, itemId) {
+    // Don't handle selection if clicking on actions menu button
+    if (event.target.closest('.actions-menu-btn')) {
+        return false; // Let the actions menu handle it
+    }
+
+    // Check if Ctrl key is pressed (multi-select)
+    const isMultiSelect = event.ctrlKey || event.metaKey;
+
+    // Handle selection
+    toggleItemSelection(itemId, isMultiSelect);
+
+    // Prevent default navigation/preview behavior
+    event.preventDefault();
+    event.stopPropagation();
+
+    return true; // Selection was handled
+}
+
+/**
+ * Handle keyboard shortcuts for selection
+ */
+function handleKeyboardShortcuts(event) {
+    // Only handle shortcuts when not in an input field
+    if (event.target.tagName === 'INPUT' || event.target.tagName === 'TEXTAREA' || event.target.contentEditable === 'true') {
+        return;
+    }
+
+    const container = document.getElementById('filesContainer');
+    const inTrashView = container?.dataset.view === 'trash';
+
+    if (event.ctrlKey || event.metaKey) {
+        switch (event.key.toLowerCase()) {
+            case 'a':
+                // Ctrl+A: Select all
+                event.preventDefault();
+                selectAll();
+                break;
+        }
+    } else {
+        switch (event.key) {
+            case 'Escape':
+                // Esc: Clear selection
+                event.preventDefault();
+                clearSelection();
+                break;
+            case 'Delete':
+            case 'Backspace':
+                // Delete/Backspace: Delete selected items
+                if (state.selectedItems.size > 0) {
+                    event.preventDefault();
+                    handleSelectionDelete();
+                }
+                break;
+            case 'Enter':
+                // Enter: Open selected item (if single selection)
+                if (state.selectedItems.size === 1) {
+                    event.preventDefault();
+                    handleSelectionOpen();
+                }
+                break;
+        }
+    }
+}
+
+/**
+ * Handle opening selected items from toolbar
+ */
+function handleSelectionOpen() {
+    if (state.selectedItems.size !== 1) return;
+
+    const itemId = Array.from(state.selectedItems)[0];
+    const item = findItemById(itemId);
+
+    if (!item) return;
+
+    if (item.is_folder) {
+        // Navigate to folder
+        navigateToFolder(item.id, item.file_name || item.name);
+    } else {
+        // Preview file
+        handleFilePreview(item.id);
+    }
+
+    clearSelection();
+}
+
+/**
+ * Handle deleting selected items from toolbar
+ */
+async function handleSelectionDelete() {
+    if (state.selectedItems.size === 0) return;
+
+    const container = document.getElementById('filesContainer');
+    const inTrashView = container?.dataset.view === 'trash';
+
+    const confirmMessage = inTrashView
+        ? `Permanently delete ${state.selectedItems.size} item${state.selectedItems.size > 1 ? 's' : ''}?`
+        : `Move ${state.selectedItems.size} item${state.selectedItems.size > 1 ? 's' : ''} to trash?`;
+
+    if (!confirm(confirmMessage)) return;
+
+    try {
+        const promises = Array.from(state.selectedItems).map(itemId => {
+            if (inTrashView) {
+                return forceDeleteItem(itemId);
+            } else {
+                return deleteItem(itemId);
+            }
+        });
+
+        await Promise.all(promises);
+
+        showNotification(
+            inTrashView ? 'Items permanently deleted' : 'Items moved to trash',
+            'success'
+        );
+
+        clearSelection();
+
+        // Refresh the view
+        if (inTrashView) {
+            loadTrashItems();
+        } else {
+            loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+        }
+    } catch (error) {
+        console.error('Error deleting items:', error);
+        showNotification('Error deleting items', 'error');
+    }
+}
+
+/**
+ * Handle moving selected items from toolbar
+ */
+function handleSelectionMove() {
+    if (state.selectedItems.size === 0) return;
+
+    // For now, just show a notification - full move functionality would need a multi-item move modal
+    showNotification('Multi-item move functionality coming soon', 'info');
+}
+
+/**
+ * Handle renaming selected item from toolbar
+ */
+function handleSelectionRename() {
+    if (state.selectedItems.size !== 1) return;
+
+    const itemId = Array.from(state.selectedItems)[0];
+    showRenameModal(itemId);
+    clearSelection();
+}
+
+/**
+ * Restore selected items from toolbar
+ */
+async function handleSelectionRestore() {
+    if (state.selectedItems.size === 0) return;
+
+    const confirmed = confirm(`Restore ${state.selectedItems.size} item${state.selectedItems.size > 1 ? 's' : ''}?`);
+    if (!confirmed) return;
+
+    try {
+        const promises = Array.from(state.selectedItems).map(itemId => restoreItem(itemId));
+        await Promise.all(promises);
+
+        showNotification('Items restored successfully', 'success');
+        clearSelection();
+
+        const container = document.getElementById('filesContainer');
+        const inTrashView = container?.dataset.view === 'trash';
+        if (inTrashView) {
+            await loadTrashItems();
+        } else {
+            await loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+        }
+    } catch (error) {
+        console.error('Error restoring items:', error);
+        showNotification('Failed to restore items', 'error');
+    }
+}
 function showCreateFolderModal() {
     const modal = document.getElementById('createFolderModal');
     modal?.classList.remove('hidden');
@@ -247,6 +580,29 @@ export function initializeFileFolderManagement(initialState) {
             syncLayoutVisualState();
         }
     }, 100);
+
+    // Add global keyboard event listener for selection shortcuts
+    document.addEventListener('keydown', handleKeyboardShortcuts);
+
+    // Add click listener to clear selection when clicking empty space
+    document.addEventListener('click', (event) => {
+        // Only clear if clicking on the files container background (not on items)
+        const container = document.getElementById('filesContainer');
+        if (container && container.contains(event.target) && !event.target.closest('[data-item-id]')) {
+            clearSelection();
+        }
+    });
+
+    // Bind toolbar button event listeners
+    const toolbar = document.getElementById('selectionToolbar');
+    if (toolbar) {
+        document.getElementById('selectionOpenBtn')?.addEventListener('click', handleSelectionOpen);
+        document.getElementById('selectionDeleteBtn')?.addEventListener('click', handleSelectionDelete);
+        document.getElementById('selectionRestoreBtn')?.addEventListener('click', handleSelectionRestore);
+        document.getElementById('selectionMoveBtn')?.addEventListener('click', handleSelectionMove);
+        document.getElementById('selectionRenameBtn')?.addEventListener('click', handleSelectionRename);
+        document.getElementById('selectionClearBtn')?.addEventListener('click', clearSelection);
+    }
 }
 
 async function handleCreateFolder(folderName) {
@@ -323,6 +679,9 @@ export async function loadTrashItems() {
             items = data.items;
         }
 
+        // Add trash banner at the top if there are items
+        renderTrashBanner(items.length);
+        
         // Render using the common files renderer; folder navigation is disabled in Trash via dataset.view
         renderFiles(items);
     } catch (error) {
@@ -336,6 +695,109 @@ export async function loadTrashItems() {
     }
 }
 
+/**
+ * Render the trash banner with "Empty trash" button (Google Drive style)
+ */
+function renderTrashBanner(itemCount) {
+    // Remove existing banner if present
+    const existingBanner = document.getElementById('trashBanner');
+    if (existingBanner) {
+        existingBanner.remove();
+    }
+
+    // Only show banner if there are items in trash AND we're in trash view
+    const container = document.getElementById('filesContainer');
+    const inTrashView = container?.dataset.view === 'trash';
+    
+    if (itemCount === 0 || !inTrashView) return;
+
+    const itemsContainer = document.getElementById('filesContainer');
+    if (!itemsContainer) return;
+
+    const banner = document.createElement('div');
+    banner.id = 'trashBanner';
+    banner.className = 'flex items-center justify-between px-6 py-3 mb-4 bg-surface-dark border border-border-light rounded-lg';
+    banner.innerHTML = `
+        <div class="flex items-center gap-2 text-text-secondary text-sm">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+            </svg>
+            <span>Items in trash will be deleted forever after 30 days</span>
+        </div>
+        <button 
+            id="emptyTrashBtn" 
+            class="px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 focus:ring-offset-surface-dark"
+        >
+            Empty trash
+        </button>
+    `;
+
+    // Insert banner before the files container
+    itemsContainer.parentNode.insertBefore(banner, itemsContainer);
+
+    // Attach event listener to empty trash button
+    const emptyTrashBtn = document.getElementById('emptyTrashBtn');
+    if (emptyTrashBtn) {
+        emptyTrashBtn.addEventListener('click', handleEmptyTrash);
+    }
+}
+
+/**
+ * Handle empty trash action with confirmation
+ */
+async function handleEmptyTrash() {
+    const confirmed = window.confirm(
+        'Are you sure you want to permanently delete all items in trash? This action cannot be undone.'
+    );
+
+    if (!confirmed) return;
+
+    const emptyTrashBtn = document.getElementById('emptyTrashBtn');
+    if (!emptyTrashBtn) return;
+
+    // Disable button and show loading state
+    const originalText = emptyTrashBtn.textContent;
+    emptyTrashBtn.disabled = true;
+    emptyTrashBtn.textContent = 'Emptying...';
+    emptyTrashBtn.classList.add('opacity-50', 'cursor-not-allowed');
+
+    try {
+        const response = await fetch('/files/trash/empty', {
+            method: 'DELETE',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+
+        const result = await response.json();
+
+        if (response.ok && result.success) {
+            showNotification(result.message || 'Trash emptied successfully', 'success');
+            
+            // Remove banner
+            const banner = document.getElementById('trashBanner');
+            if (banner) banner.remove();
+            
+            // Reload trash view to show empty state
+            await loadTrashItems();
+        } else {
+            throw new Error(result.message || 'Failed to empty trash');
+        }
+    } catch (error) {
+        console.error('Error emptying trash:', error);
+        showNotification(error.message || 'Failed to empty trash', 'error');
+        
+        // Re-enable button
+        emptyTrashBtn.disabled = false;
+        emptyTrashBtn.textContent = originalText;
+        emptyTrashBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+    }
+}
+
 
 function navigateToFolder(folderId, folderName) {
     const existingIndex = state.breadcrumbs.findIndex(crumb => crumb.id == folderId);
@@ -345,6 +807,9 @@ function navigateToFolder(folderId, folderName) {
     } else {
         state.breadcrumbs.push({ id: folderId, name: folderName });
     }
+
+    // Clear selection when navigating to a new folder
+    clearSelection();
 
     // Normalize folderId to number or null
     if (folderId === null || folderId === 'null') {
@@ -666,9 +1131,11 @@ export function renderFiles(items) {
     if (!inTrashView) {
         container.querySelectorAll('[data-folder-nav-id]').forEach(folder => {
             folder.addEventListener('click', e => {
-                // Don't navigate if clicking on actions menu
-                if (e.target.closest('.actions-menu-btn')) return;
+                // Handle selection first - don't navigate if actions menu button was clicked
+                const selectionHandled = handleItemClick(e, folder.dataset.itemId);
+                if (selectionHandled) return; // Selection handled, don't navigate
                 
+                // If no selection was triggered (e.g., double-click), proceed with navigation
                 const folderId = e.currentTarget.dataset.folderNavId;
                 const folderName = e.currentTarget.dataset.folderNavName;
                 navigateToFolder(folderId, folderName);
@@ -684,12 +1151,71 @@ export function renderFiles(items) {
             });
         });
     }
+
+    // Attach event listeners for file preview (files only, not folders)
+    container.querySelectorAll('[data-file-id]').forEach(fileCard => {
+        fileCard.addEventListener('click', e => {
+            // Handle selection first
+            const selectionHandled = handleItemClick(e, fileCard.dataset.fileId);
+            if (selectionHandled) return; // Selection handled, don't preview
+            
+            // If no selection was triggered (e.g., double-click), proceed with preview
+            const fileId = fileCard.dataset.fileId;
+            const isFolder = fileCard.dataset.isFolder === 'true';
+            if (!isFolder) {
+                // Check if file has OTP protection before allowing preview
+                handleFilePreview(fileId);
+            }
+        });
+        // Keyboard preview file
+        fileCard.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                const fileId = e.currentTarget.dataset.fileId;
+                const isFolder = e.currentTarget.dataset.isFolder === 'true';
+                if (!isFolder) {
+                    handleFilePreview(fileId);
+                }
+            }
+        });
+    });
+
+    // Add double-click handlers for opening items (both files and folders)
+    container.querySelectorAll('[data-item-id]').forEach(item => {
+        item.addEventListener('dblclick', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const itemId = item.dataset.itemId;
+            const itemData = findItemById(itemId);
+            
+            if (!itemData) return;
+            
+            if (itemData.is_folder) {
+                // Navigate to folder on double-click
+                navigateToFolder(itemId, itemData.file_name || itemData.name);
+            } else {
+                // Preview file on double-click
+                handleFilePreview(itemId);
+            }
+        });
+    });
 }
 
 // Function to close all actions menus (exported for use by other modules)
 export function closeAllActionsMenus() {
     document.querySelectorAll('.actions-menu').forEach(m => m.remove());
     document.querySelectorAll('.actions-menu-btn[aria-expanded="true"]').forEach(b => b.setAttribute('aria-expanded', 'false'));
+}
+
+/**
+ * Hide the trash banner when not in trash view
+ */
+export function hideTrashBanner() {
+    const existingBanner = document.getElementById('trashBanner');
+    if (existingBanner) {
+        existingBanner.remove();
+    }
 }
 
 function showActionsMenu(button, itemId) {
@@ -2150,6 +2676,8 @@ export async function loadUserFiles(query = '', page = 1, parentId = null, creat
     }
     // Mark main view so actions menu renders correct options
     itemsContainer.dataset.view = 'main';
+    // Hide trash banner when not in trash view
+    hideTrashBanner();
 
     // Create unique request ID to prevent race conditions
     const requestId = Date.now() + Math.random();

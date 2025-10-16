@@ -34,16 +34,16 @@ class GlobalSession:
         """Get or create the shared driver instance"""
         if self._driver is None:
             self._driver = web_driver()
-            print("🚀 Created new browser session")
+            print("Created new browser session")
         return self._driver
     
     def login(self, email=None, password=None, account_type="user"):
         """Login once and maintain session across tests"""
         if self._logged_in and self.current_account_type == account_type:
-            print(f"✓ Already logged in as {account_type}, using existing session")
+            print(f"Already logged in as {account_type}, using existing session")
             return self._driver
         elif self._logged_in and self.current_account_type != account_type:
-            print(f"🔄 Switching from {self.current_account_type} to {account_type} account")
+            print(f"Switching from {self.current_account_type} to {account_type} account")
             self.reset_session()
             
         driver = self.get_driver()
@@ -57,7 +57,7 @@ class GlobalSession:
             password = password or self.test_user_password
         
         try:
-            print(f"🔐 Logging in as {email}...")
+            print(f"Logging in as {email}...")
             driver.get(f"{self.BASE_URL}/login")
             
             # Wait for login form to load
@@ -96,11 +96,11 @@ class GlobalSession:
             
             self._logged_in = True
             self.current_account_type = account_type
-            print(f"✓ Login successful as {account_type} - session established")
+            print(f"Login successful as {account_type} - session established")
             return driver
             
         except Exception as e:
-            print(f"✗ Login failed: {str(e)}")
+            print(f"Login failed: {str(e)}")
             self.cleanup()
             raise e
     
@@ -141,7 +141,7 @@ class GlobalSession:
         if self._driver:
             try:
                 self._driver.quit()
-                print("🧹 Browser session closed")
+                print("Browser session closed")
             except:
                 pass
             
@@ -151,7 +151,7 @@ class GlobalSession:
     
     def reset_session(self):
         """Force logout and cleanup for fresh session"""
-        print("🔄 Resetting session...")
+        print("Resetting session...")
         self.cleanup()
 
 # Global session instance

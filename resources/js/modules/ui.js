@@ -87,10 +87,11 @@ let activeDropdown = null;
 // Close all dropdowns or specific ones
 function closeAllDropdowns(except = []) {
     const dropdowns = {
-        new: { element: document.getElementById('newDropdown'), classes: ['hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]'] },
+        new: { element: document.getElementById('newDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] },
         profile: { element: document.getElementById('profileDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] },
         language: { element: document.getElementById('headerLanguageSubmenu2'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]'], arrow: document.getElementById('langCaret') },
-        notification: { element: document.getElementById('notificationDropdown'), classes: ['hidden'] }
+        notification: { element: document.getElementById('notificationDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] },
+        bundlrWallet: { element: document.getElementById('bundlrWalletDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] }
     };
 
     for (const [key, config] of Object.entries(dropdowns)) {
@@ -106,34 +107,38 @@ function closeAllDropdowns(except = []) {
     }
 }
 
+// Export for use in other modules
+window.closeAllDropdowns = closeAllDropdowns;
+
 export function initializeNewDropdown() {
     const newButton = document.getElementById('newBtn');
     const newDropdown = document.getElementById('newDropdown');
 
     // Guard against missing dropdown on pages that don't include it
     if (newButton && newDropdown) {
-        // Ensure dropdown starts hidden
-        newDropdown.classList.add('hidden');
+        // Ensure dropdown starts hidden with proper classes
+        newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
         
         newButton.addEventListener('click', (e) => {
             e.stopPropagation();
             
             // Check current state and toggle accordingly
-            const isHidden = newDropdown.classList.contains('hidden');
+            const isHidden = newDropdown.classList.contains('opacity-0') || 
+                             newDropdown.classList.contains('invisible');
             
             if (isHidden) {
-                // Close other dropdowns first
-                closeAllDropdowns(['new']);
+                // Close other dropdowns first (except language which is nested)
+                closeAllDropdowns(['new', 'language']);
                 // Close all actions menus
                 if (typeof closeAllActionsMenus === 'function') closeAllActionsMenus();
                 activeDropdown = 'new';
-                // Show dropdown
-                newDropdown.classList.remove('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
-                newDropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
+                // Show dropdown with animation
+                newDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+                newDropdown.classList.add('opacity-100', 'visible', 'translate-y-0', 'scale-100');
             } else {
-                // Hide dropdown
-                newDropdown.classList.add('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
-                newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+                // Hide dropdown with animation
+                newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+                newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
                 activeDropdown = null;
             }
         });
@@ -376,7 +381,8 @@ export function initializeUi(dependencies) {
             new: [document.getElementById('newBtn'), document.getElementById('newDropdown')],
             profile: [document.getElementById('userProfileBtn'), document.getElementById('profileDropdown')],
             language: [document.getElementById('headerLanguageToggle2'), document.getElementById('headerLanguageSubmenu2')],
-            notification: [document.getElementById('notificationBell'), document.getElementById('notificationDropdown')]
+            notification: [document.getElementById('notificationBell'), document.getElementById('notificationDropdown')],
+            bundlrWallet: [document.getElementById('bundlrWalletBtn'), document.getElementById('bundlrWalletDropdown')]
         };
         
         // Check if click is inside any dropdown
@@ -532,6 +538,12 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
     // Security Dashboard feature removed
 
     blockchainLink?.addEventListener('click', (e) => {
+        // Check if user is premium before allowing navigation
+        if (!window.userIsPremium) {
+            // Non-premium user - don't proceed with navigation
+            return;
+        }
+
         e.preventDefault();
         if (headerTitle) headerTitle.textContent = 'Blockchain Storage';
         if (newButton) newButton.style.display = 'block'; // Show new button for blockchain upload
@@ -713,5 +725,15 @@ document.addEventListener('keydown', (e) => {
 if (typeof window !== 'undefined') {
     window.openModal = openModalById;
     window.closeModal = closeModalById;
+    window.handleBlockchainClick = function(event) {
+        // Check if user is premium
+        if (!window.userIsPremium) {
+            // Non-premium user - prevent navigation and show modal
+            event.preventDefault();
+            event.stopPropagation();
+            showPremiumUpgradeModal('blockchain');
+        }
+        // Premium user - allow normal navigation flow (addEventListener will handle it)
+    };
 }
 

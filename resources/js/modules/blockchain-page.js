@@ -1,6 +1,6 @@
 // Blockchain page functionality - separate from modal-based blockchain.js
 import { escapeHtml, formatFileSize, showNotification } from './ui.js';
-import { renderFiles } from './file-folder.js';
+import { renderFiles, hideTrashBanner } from './file-folder.js';
 
 export async function loadBlockchainItems() {
     const itemsContainer = document.getElementById('filesContainer');
@@ -12,6 +12,8 @@ export async function loadBlockchainItems() {
     try {
         // Mark container as blockchain view for context-sensitive actions
         itemsContainer.dataset.view = 'blockchain';
+        // Hide trash banner when not in trash view
+        hideTrashBanner();
         itemsContainer.innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
 
         // Fetch Arweave URLs from arweave_urls table

@@ -96,7 +96,7 @@
                     <ul class="space-y-3 mb-6">
                         <li class="flex items-center text-white">
                             <span class="text-white mr-3">✓</span>
-                            Unlimited document uploads
+                            Increased document uploads
                         </li>
                         <li class="flex items-center text-white">
                             <span class="text-white mr-3">✓</span>

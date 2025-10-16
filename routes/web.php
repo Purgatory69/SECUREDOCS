@@ -119,6 +119,7 @@ Route::middleware([
     Route::post('/files/upload/ai-vectorize', [FileController::class, 'uploadAiVectorize']);
     
     Route::get('/files/trash', [FileController::class, 'getTrashItems']);
+    Route::delete('/files/trash/empty', [FileController::class, 'emptyTrash']);
     Route::post('/files/create-folder', [FileController::class, 'createFolder']);
     Route::get('/files/{id}', [FileController::class, 'show'])->whereNumber('id');
     Route::get('/files/{id}/preview', [FileController::class, 'preview'])->name('file-preview')->whereNumber('id');
