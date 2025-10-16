@@ -129,47 +129,76 @@
                         </div>
                     </div>
                 </div>
+
+
+                <div class="px-6 py-4 group hover:bg-[#55597C] transition-colors">
+    <div class="flex items-center justify-between">
+        <div class="flex items-center space-x-4">
+            <div class="flex-shrink-0">
+                <div class="w-12 h-12 bg-[#3C3F58] rounded-lg flex items-center justify-center group-hover:bg-[#55597C] transition-colors">
+                    <img src="{{ asset('key-gold.svg') }}" alt="Cross-Platform Authenticator" class="w-8 h-8">
+                </div>
+            </div>
+            <div class="flex-1 min-w-0">
+                <h3 class="text-lg font-semibold text-white truncate">
+                    My Laptop Fingerprint (Platform)
+                </h3>
+                <div class="mt-1 flex items-center space-x-4 text-sm text-gray-400">
+                    <span class="font-medium text-gray-300">Platform</span>
+                    <span>&bull;</span>
+                    <span>Added 2 days ago</span>
+                </div>
+            </div>
+        </div>
+        <div class="flex items-center space-x-2">
+            <button title="Remove" aria-label="Remove" class="flex items-center p-2 text-red-400 hover:text-white rounded-lg transition-colors duration-200">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+            </button>
+        </div>
+    </div>
+</div>
                 -->
 
                 @forelse ($credentials as $credential)
-                <div class="px-6 py-4 hover:bg-[#55597C] transition-colors group-hover:bg-[#55597C] transition-colors">
-                    <div class="flex items-center justify-between">
-                        <div class="flex items-center space-x-4">
-                            <div class="flex-shrink-0">
-                                <div class="w-12 h-12 bg-[#3C3F58] rounded-lg flex items-center justify-center">
-                                    @if($credential->attachment_type === 'platform')
-                                        <img src="{{ asset('responsive.png') }}" alt="Platform Authenticator" class="w-8 h-8">
-                                    @else
-                                        <img src="{{ asset('key-gold.png') }}" alt="Cross-Platform Authenticator" class="w-8 h-8">
-                                    @endif
-                                </div>
-                            </div>
-                            <div class="flex-1 min-w-0">
-                                <h3 class="text-lg font-semibold text-white truncate">
-                                    {{ Str::limit($credential->name ?: 'Unnamed Key', 35) }}
-                                </h3>
-                                <div class="mt-1 flex items-center space-x-4 text-sm text-gray-400">
-                                    @if($credential->attachment_type)
-                                        <span class="font-medium text-gray-300">{{ ucfirst($credential->attachment_type) }}</span>
-                                        <span>&bull;</span>
-                                    @endif
-                                    <span>Added {{ $credential->created_at->diffForHumans() }}</span>
-                                </div>
+                <div class="px-6 py-4 group hover:bg-[#55597C] transition-colors">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-4">
+                        <div class="flex-shrink-0">
+                            <div class="w-12 h-12 bg-[#3C3F58] rounded-lg flex items-center justify-center group-hover:bg-[#55597C] transition-colors">
+                                @if($credential->attachment_type === 'platform')
+                                    <img src="{{ asset('responsive.svg') }}" alt="Platform Authenticator" class="w-8 h-8">
+                                @else
+                                    <img src="{{ asset('key-gold.svg') }}" alt="Cross-Platform Authenticator" class="w-8 h-8">
+                                @endif
                             </div>
                         </div>
-                        <div class="flex items-center space-x-2">
-                            <form action="{{ route('webauthn.keys.destroy', $credential->id) }}" method="POST" class="inline">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" 
-                                        onclick="return confirm('Are you sure you want to remove this security key? You may lose access to your account if this is your only authentication method.')"
-                                        title="Remove" aria-label="Remove" 
-                                        class="flex items-center p-2 text-red-400 hover:text-white rounded-lg transition-colors duration-200">
-                                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                                </button>
-                            </form>
+                        <div class="flex-1 min-w-0">
+                            <h3 class="text-lg font-semibold text-white truncate">
+                                {{ Str::limit($credential->name ?: 'Unnamed Key', 35) }}
+                            </h3>
+                            <div class="mt-1 flex items-center space-x-4 text-sm text-gray-400">
+                                @if($credential->attachment_type)
+                                    <span class="font-medium text-gray-300">{{ ucfirst($credential->attachment_type) }}</span>
+                                    <span>&bull;</span>
+                                @endif
+                                <span>Added {{ $credential->created_at->diffForHumans() }}</span>
+                            </div>
                         </div>
                     </div>
+                    <div class="flex items-center space-x-2">
+                        <form action="{{ route('webauthn.keys.destroy', $credential->id) }}" method="POST" class="inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" 
+                                    onclick="return confirm('Are you sure you want to remove this security key? You may lose access to your account if this is your only authentication method.')"
+                                    title="Remove" aria-label="Remove" 
+                                    class="flex items-center p-2 text-red-400 hover:text-white rounded-lg transition-colors duration-200">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
                 </div>
             @empty
                 <div class="px-6 py-12 text-center">
