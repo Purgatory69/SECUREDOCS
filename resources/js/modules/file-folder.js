@@ -102,6 +102,47 @@ function selectAll() {
 }
 
 /**
+ * Select a range of items from last selected to current item (Shift+click)
+ * @param {string} itemId - The item ID to select to
+ */
+function selectItemRange(itemId) {
+    // Find indices of all visible items
+    const allItems = Array.from(document.querySelectorAll('#filesContainer [data-item-id]'));
+    const startIndex = state.lastSelectedIndex;
+    const endIndex = allItems.findIndex(item => item.dataset.itemId === itemId);
+
+    if (startIndex === -1 || endIndex === -1) {
+        // Fallback to single selection if indices not found
+        toggleItemSelection(itemId, false);
+        return;
+    }
+
+    // Determine range bounds
+    const minIndex = Math.min(startIndex, endIndex);
+    const maxIndex = Math.max(startIndex, endIndex);
+
+    // Clear current selection and select the range
+    state.selectedItems.clear();
+
+    // Add all items in the range to selection
+    for (let i = minIndex; i <= maxIndex; i++) {
+        const itemElement = allItems[i];
+        if (itemElement) {
+            const currentItemId = itemElement.dataset.itemId;
+            if (currentItemId) {
+                state.selectedItems.add(currentItemId);
+            }
+        }
+    }
+
+    // Update last selected index to the clicked item
+    state.lastSelectedIndex = endIndex;
+
+    updateSelectionUI();
+    updateItemVisualStates();
+}
+
+/**
  * Select/deselect a single item
  * @param {string} itemId - The item ID to toggle
  * @param {boolean} addToSelection - If true, add to existing selection (Ctrl+click behavior)
@@ -225,15 +266,21 @@ function handleItemClick(event, itemId) {
         return false; // Let the actions menu handle it
     }
 
-    // Check if Ctrl key is pressed (multi-select)
-    const isMultiSelect = event.ctrlKey || event.metaKey;
-
-    // Handle selection
-    toggleItemSelection(itemId, isMultiSelect);
-
-    // Prevent default navigation/preview behavior
+    // Prevent default browser behavior (text selection, etc.)
     event.preventDefault();
     event.stopPropagation();
+
+    // Check modifier keys for different selection behaviors
+    const isMultiSelect = event.ctrlKey || event.metaKey; // Ctrl/Cmd + click
+    const isRangeSelect = event.shiftKey; // Shift + click
+
+    if (isRangeSelect && state.lastSelectedIndex !== -1) {
+        // Shift+click: Select range from last selected item to current item
+        selectItemRange(itemId);
+    } else {
+        // Regular click or Ctrl+click: Toggle single item selection
+        toggleItemSelection(itemId, isMultiSelect);
+    }
 
     return true; // Selection was handled
 }
@@ -937,7 +984,7 @@ function createGoogleDriveCard(item) {
     }
 
     const cardElement = document.createElement('div');
-    cardElement.className = 'group relative rounded-lg border border-[#4A4D6A] hover:border-[#7C7F96] hover:shadow-lg transition-all duration-200 cursor-pointer';
+    cardElement.className = 'group relative rounded-lg border border-[#4A4D6A] hover:border-[#7C7F96] hover:shadow-lg transition-all duration-200 cursor-pointer file-card';
     cardElement.classList.add('file-card');
 
 
@@ -3803,3 +3850,7 @@ async function renameItem(fileId, newName) {
         throw error;
     }
 }
+
+// Export functions to global scope for testing and external access
+window.showRenameModal = showRenameModal;
+window.renameItem = renameItem;

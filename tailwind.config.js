@@ -22,6 +22,8 @@ export default {
                 'text-secondary': '#5f6368',
                 'border-color': '#dadce0',
                 'bg-light': '#f8f9fa',
+                'custom-blue': '#3c3f58',
+                'custom-orange': '#ff9c00'
             },
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],

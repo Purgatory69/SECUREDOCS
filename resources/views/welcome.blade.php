@@ -6,20 +6,7 @@
   <title>SecureDocs</title>
   <link rel="icon" type="image/png" href="{{ asset('logo-favicon.png') }}">
 
-  <!-- Tailwind CSS -->
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            'custom-blue': '#3c3f58',
-            'custom-orange': '#ff9c00'
-          }
-        }
-      }
-    }
-  </script>
+  @vite(['resources/css/app.css'])
 
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet"/>
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>

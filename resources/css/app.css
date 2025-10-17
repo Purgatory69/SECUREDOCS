@@ -17,6 +17,10 @@ body {
   border-radius: 0.5rem; /* 8px */
   transition: border-color 0.2s ease, box-shadow 0.2s ease, transform 0.05s ease;
   color: #E5E7EB; /* text-gray-200 */
+  user-select: none; /* Prevent text selection */
+  -webkit-user-select: none; /* Safari */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* IE/Edge */
 }
 .file-card:hover {
   border-color: #6B7280; /* gray-500 */
@@ -66,6 +70,15 @@ body {
 .file-card.selected:hover, .file-row.selected:hover {
   background-color: #1E3A5F !important;
   border-color: #4285F4 !important;
+}
+
+/* Prevent text selection on file containers */
+#filesContainer .file-card,
+#filesContainer .file-row {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
 }
 
 /* Selection toolbar */
