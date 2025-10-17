@@ -20,7 +20,7 @@ DM_004,Document Management Modules,Upload Document,Medium,Validate file size lim
 DM_005,Document Management Modules,View Documents,High,Validate document list displays all user files,All user documents displayed in organized list/grid,passed - filesContainer detected,passed,1
 DM_006,Document Management Modules,View Documents,High,Validate document search and filter functionality,Documents filtered correctly based on search criteria,TBD,TBD,1
 DM_007,Document Management Modules,View Documents,Medium,Validate document sorting options (Grid/List view toggle),View toggle buttons verified and current view detected,passed - grid/list toggle verified,passed,1
-DM_008,Document Management Modules,Edit Documents,High,Validate document rename functionality,Document renamed successfully with new name displayed,TBD,TBD,1
+DM_008,Document Management Modules,Edit Documents,High,Validate document rename functionality,Document renamed successfully with new name displayed,File successfully renamed from 'test.csv' to 'test_renamed.csv' - backend state confirmed,passed,1
 DM_009,Document Management Modules,Edit Documents,Medium,Validate document metadata editing,Document properties/metadata updated successfully,TBD,TBD,1
 DM_011,Document Management Modules,Delete Documents,High,Validate document soft delete (move to trash),Document moved to trash and removed from main view,test implemented - soft delete works, restore functionality added,passed,1
 DM_012,Document Management Modules,Delete Documents,High,Validate document restore from trash,Document restored from trash to original location,test implemented - restore from trash works,passed,1

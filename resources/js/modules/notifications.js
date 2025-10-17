@@ -55,6 +55,25 @@ class NotificationManager {
             });
         }
 
+        if (this.viewAllBtn) {
+            this.viewAllBtn.addEventListener('click', async (e) => {
+                e.preventDefault(); // Prevent default link behavior
+
+                // Show loading state
+                const originalText = this.viewAllBtn.textContent;
+                this.viewAllBtn.textContent = 'Loading...';
+                this.viewAllBtn.style.pointerEvents = 'none'; // Disable clicks during loading
+
+                try {
+                    await this.loadNotifications(0); // Load all notifications (no limit)
+                } finally {
+                    // Restore original text and enable clicks
+                    this.viewAllBtn.textContent = originalText;
+                    this.viewAllBtn.style.pointerEvents = 'auto';
+                }
+            });
+        }
+
         // Close dropdown when clicking outside
         document.addEventListener('click', (e) => {
             if (!this.dropdown.contains(e.target) && !this.bell.contains(e.target)) {
@@ -139,13 +158,13 @@ class NotificationManager {
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h4 class="text-sm font-medium text-white-900 group-hover:text-gray-900 truncate">${notification.title}</h4>
+                            <h4 class="text-sm font-medium text-gray-900 group-hover:text-gray-900 truncate">${notification.title}</h4>
                             <div class="flex items-center gap-2">
-                                <span class="text-xs text-white-500 group-hover:text-gray-700">${this.formatRelativeTime(notification.created_at)}</span>
-                                <button class="delete-notification-btn text-white-400 group-hover:text-gray-900 text-lg leading-none" data-id="${notification.id}" title="Delete notification">×</button>
+                                <span class="text-xs text-gray-500 group-hover:text-gray-700">${this.formatRelativeTime(notification.created_at)}</span>
+                                <button class="delete-notification-btn text-gray-400 group-hover:text-gray-900 text-lg leading-none" data-id="${notification.id}" title="Delete notification">×</button>
                             </div>
                         </div>
-                        <p class="text-sm text-white-600 group-hover:text-gray-700 mt-1">${notification.message}</p>
+                        <p class="text-sm text-gray-600 group-hover:text-gray-700 mt-1">${notification.message}</p>
                         ${!notification.read_at ? '<div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>' : ''}
                     </div>
                 </div>

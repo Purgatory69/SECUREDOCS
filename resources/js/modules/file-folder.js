@@ -3783,7 +3783,9 @@ function showRenameModal(fileId) {
 
     // Rename confirmation
     confirmBtn.addEventListener('click', async () => {
+        console.log('[RENAME] Confirm button clicked');
         const newName = newFileNameInput.value.trim();
+        console.log('[RENAME] New name:', newName);
         
         if (!newName) {
             showNotification('Please enter a valid name', 'error');
@@ -3800,7 +3802,7 @@ function showRenameModal(fileId) {
         confirmBtn.textContent = 'Renaming...';
 
         try {
-            await renameItem(fileId, newName);
+            await window.renameItem(fileId, newName);
             closeModal();
         } catch (error) {
             showNotification(error.message, 'error');
@@ -3812,6 +3814,7 @@ function showRenameModal(fileId) {
 }
 
 async function renameItem(fileId, newName) {
+    console.log('[RENAME] renameItem called with:', { fileId, newName });
     try {
         const response = await fetch(`/files/${fileId}/rename`, {
             method: 'PATCH',

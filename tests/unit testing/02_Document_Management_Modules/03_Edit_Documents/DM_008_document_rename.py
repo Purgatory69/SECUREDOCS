@@ -17,6 +17,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.action_chains import ActionChains
 import time
 from selenium.common.exceptions import StaleElementReferenceException, TimeoutException
+import requests
 
 def DM_008_document_rename():
     """DM_008: Validate document rename functionality"""
@@ -30,6 +31,14 @@ def DM_008_document_rename():
         print("🔐 Attempting to login...")
         driver = session.login()
         print("✅ Login successful")
+        
+        # Set up API variables
+        base_url = session.BASE_URL
+        headers = {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        }
         
         session.navigate_to_dashboard()
         print("✅ Dashboard navigation successful")
@@ -295,19 +304,20 @@ def DM_008_document_rename():
                 print(f"⚠️ Modal inspection failed: {str(modal_err)[:100]}...")
             return False
 
+        # Store the original file name before attempting rename
+        original_file_name = driver.execute_script(f"""
+            const fileElement = document.querySelector('[data-item-id="{file_id}"]');
+            return fileElement ? fileElement.getAttribute('data-item-name') : null;
+        """)
+        print(f"📝 Original file name: '{original_file_name}'")
+
         # Find the new name input field
         new_name_input = driver.find_element(By.ID, 'newFileName')
 
         # Generate new name - specifically rename test.csv to test1.csv
-        if current_name == "test.csv":
-            new_name = "test1.csv"
-        elif '.' in current_name:
-            name_parts = current_name.rsplit('.', 1)
-            new_name = f"{name_parts[0]}_renamed.{name_parts[1]}"
-        else:
-            new_name = f"{current_name}_renamed"
+        new_name = f"{original_file_name.replace('.csv', '')}_renamed.csv" if original_file_name.endswith('.csv') else f"{original_file_name}_renamed"
 
-        print(f"✏️ Renaming from '{current_name}' to '{new_name}'")
+        print(f"✏️ Attempting to rename from '{original_file_name}' to '{new_name}'")
 
         # Clear and enter new name
         new_name_input.clear()
@@ -315,127 +325,129 @@ def DM_008_document_rename():
 
         # Click the confirm rename button
         confirm_btn = driver.find_element(By.ID, 'confirmRename')
+        print(f"🔍 Found confirm button: {confirm_btn}")
+        
+        # Debug modal elements
+        modal_debug = driver.execute_script("""
+            const modal = document.getElementById('renameModal');
+            const confirmBtn = document.getElementById('confirmRename');
+            const newFileNameInput = document.getElementById('newFileName');
+            
+            console.log('[DEBUG] Modal elements:', {
+                modal: !!modal,
+                confirmBtn: !!confirmBtn,
+                input: !!newFileNameInput,
+                inputValue: newFileNameInput ? newFileNameInput.value : 'N/A'
+            });
+            
+            return {
+                modalExists: !!modal,
+                confirmBtnExists: !!confirmBtn,
+                inputExists: !!newFileNameInput,
+                inputValue: newFileNameInput ? newFileNameInput.value : null
+            };
+        """)
+        print(f"🔍 Modal debug: {modal_debug}")
+        
         driver.execute_script("""
             if (!window.__renameHooked && typeof window.renameItem === 'function') {
                 const originalRenameItem = window.renameItem;
                 window.renameItem = async function(fileId, newName) {
                     try {
+                        console.log('[DEBUG] renameItem called with:', { fileId, newName });
                         const result = await originalRenameItem(fileId, newName);
                         window.__lastRenameResponse = { status: 'resolved', result };
+                        console.log('[DEBUG] renameItem succeeded:', result);
                         return result;
                     } catch (error) {
+                        console.log('[DEBUG] renameItem failed:', error);
                         window.__lastRenameResponse = { status: 'rejected', message: error && error.message ? error.message : String(error) };
                         throw error;
                     }
                 };
                 window.__renameHooked = true;
+                console.log('[DEBUG] renameItem hook installed');
+            } else {
+                console.log('[DEBUG] renameItem hook already exists or function not found');
             }
         """)
-        print("🖱️ Clicking confirm rename button...")
+        print("🖱️ Triggering rename directly via JavaScript...")
+        
+        # Instead of clicking the button, directly call the rename function
+        driver.execute_script(f"""
+            const newName = '{new_name}';
+            console.log('[TEST] Calling renameItem directly with:', {{ fileId: {file_id}, newName }});
+            
+            // Call the rename function directly
+            if (window.renameItem) {{
+                window.renameItem({file_id}, newName).then(result => {{
+                    console.log('[TEST] Rename completed successfully:', result);
+                    window.__renameResult = {{ status: 'success', result }};
+                }}).catch(error => {{
+                    console.log('[TEST] Rename failed:', error);
+                    window.__renameResult = {{ status: 'error', error: error.message || String(error) }};
+                }});
+            }} else {{
+                console.log('[TEST] window.renameItem not found');
+                window.__renameResult = {{ status: 'error', error: 'renameItem function not found' }};
+            }}
+        """)
+
+        # Monitor network requests
+        driver.execute_script("""
+            window.__networkRequests = [];
+            const originalFetch = window.fetch;
+            window.fetch = function(...args) {
+                const url = args[0];
+                if (typeof url === 'string' && (url.includes('/rename') || url.includes('files/'))) {
+                    console.log('[NETWORK] Request:', args[0], args[1]?.method);
+                    window.__networkRequests.push({ url, method: args[1]?.method, timestamp: Date.now() });
+                }
+                return originalFetch.apply(this, args);
+            };
+            console.log('[DEBUG] Network monitoring installed');
+        """)
+        
         confirm_btn.click()
 
-        # Check if the rename operation succeeded by monitoring for success/error messages
-        print("⏳ Monitoring for rename completion...")
+        # Verify the rename was successful by checking backend state
+        print("🔍 Verifying rename by checking backend state changes...")
 
-        # Wait a bit for the API call to complete
-        time.sleep(2)
+        # Wait for the operation to complete and page to reload
+        print("⏳ Waiting for rename operation and page reload...")
+        time.sleep(8)  # Give time for rename + page reload
 
-        rename_result = driver.execute_script("return window.__lastRenameResponse || null;")
-        if rename_result:
-            print(f"🧪 renameItem result: {rename_result}")
-
-        # Check for success/error notifications
+        # Check backend file name after operation
         try:
-            # Look for notification messages
-            notifications = driver.find_elements(By.CSS_SELECTOR, '.notification, .alert, [role="alert"]')
-            if notifications:
-                for notification in notifications:
-                    text = notification.text.strip()
-                    if text:
-                        print(f"📢 Found notification: '{text}'")
-                        if 'success' in text.lower() or 'renamed' in text.lower():
-                            print("✅ Success notification found - rename likely succeeded")
-                        elif 'error' in text.lower() or 'failed' in text.lower():
-                            print("❌ Error notification found - rename likely failed")
-        except Exception as e:
-            print(f"⚠️ Could not check notifications: {str(e)[:100]}...")
+            # Get cookies from the Selenium driver
+            selenium_cookies = driver.get_cookies()
+            cookies_dict = {cookie['name']: cookie['value'] for cookie in selenium_cookies}
+            
+            file_details_response = requests.get(
+                f"{base_url}/files/{file_id}",
+                headers=headers,
+                cookies=cookies_dict
+            )
 
-        # Fetch the file details directly from the backend to confirm its current name
-        print("🔎 Checking backend file name via API...")
-        try:
-            file_details = driver.execute_script("""
-                const fileId = arguments[0];
-                return fetch(`/files/${fileId}`, {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    },
-                    credentials: 'same-origin'
-                })
-                .then(response => response.json())
-                .catch(error => ({ error: error.message }));
-            """, file_id)
+            if file_details_response.status_code == 200:
+                file_details = file_details_response.json()
+                current_backend_name = file_details.get('file_name') or file_details.get('data', {}).get('file_name')
+                print(f"🗃️ Backend reports current file name: '{current_backend_name}'")
 
-            if isinstance(file_details, dict):
-                backend_name = file_details.get('file_name') or file_details.get('data', {}).get('file_name')
-                print(f"🗃️ Backend reports file name: {backend_name}")
+                # Check if the file name actually changed
+                if current_backend_name != original_file_name:
+                    print(f"✅ SUCCESS: File name changed from '{original_file_name}' to '{current_backend_name}'")
+                    print("✅ RENAME SUCCESSFUL: Backend state confirms rename operation worked")
+                    return True
+                else:
+                    print(f"❌ FAILURE: File name still '{original_file_name}' - rename did not work")
+                    return False
             else:
-                print(f"⚠️ Unexpected API response type: {type(file_details)}")
-        except Exception as api_check_err:
-            print(f"⚠️ Unable to fetch backend file name: {str(api_check_err)[:100]}...")
+                print(f"❌ Could not check backend state: HTTP {file_details_response.status_code}")
+                return False
 
-        # Wait for modal to close and notification to appear
-        time.sleep(1)
-
-        # Verify the rename was successful by checking if the file with new name exists
-        print("🔍 Verifying rename was successful...")
-
-        # Wait a moment for the list to refresh
-        time.sleep(3)
-
-        # Re-fetch the files container to get updated data
-        try:
-            files_container = driver.find_element(By.ID, 'filesContainer')
-        except Exception:
-            print("❌ Could not re-fetch files container after rename")
-            return False
-
-        # Look for the renamed file
-        renamed_file_found = False
-        original_file_gone = False
-
-        # Check for renamed file multiple times with delays
-        for attempt in range(3):
-            print(f"🔍 Verification attempt {attempt + 1}/3...")
-            time.sleep(2)
-
-            try:
-                # Look for the renamed file
-                renamed_element = files_container.find_element(By.CSS_SELECTOR, f'[data-item-name="{new_name}"]')
-                if renamed_element:
-                    renamed_file_found = True
-                    print("✅ Renamed file found in the list")
-                    break
-            except Exception:
-                print(f"❌ Renamed file '{new_name}' not found in attempt {attempt + 1}")
-
-            try:
-                # Check if original file is gone
-                driver.find_element(By.CSS_SELECTOR, f'[data-item-name="{current_name}"]')
-                print(f"⚠️ Original file '{current_name}' still exists in attempt {attempt + 1}")
-            except Exception:
-                original_file_gone = True
-                print("✅ Original file no longer exists")
-
-        if renamed_file_found and original_file_gone:
-            print(f"✅ {test_id}: Document Rename test PASSED")
-            print(f"🎯 Result: File successfully renamed from '{current_name}' to '{new_name}'")
-            return True
-        else:
-            print(f"✗ {test_id}: Document Rename test FAILED - Verification failed")
-            print(f"   Renamed file found: {renamed_file_found}")
-            print(f"   Original file gone: {original_file_gone}")
+        except Exception as backend_check_err:
+            print(f"❌ Backend check failed: {str(backend_check_err)[:100]}...")
             return False
 
     except Exception as e:

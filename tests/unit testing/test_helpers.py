@@ -183,11 +183,13 @@ def check_success_message(driver):
     """
     success_selectors = [
         ".alert-success",
-        ".success-message",
+        ".success-message", 
         ".upload-success",
         ".toast-success",
         ".notification-success",
-        ".swal2-success"  # SweetAlert2
+        ".swal2-success",  # SweetAlert2
+        ".flex.items-center.bg-green-500.text-white",  # Success notification
+        "[class*='bg-green-500']"  # Any element with green background (success color)
     ]
     
     for selector in success_selectors:

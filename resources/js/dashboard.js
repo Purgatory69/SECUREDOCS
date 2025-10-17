@@ -136,7 +136,7 @@ function initializeApp() {
         }
         
         console.log('Delayed services initialized!');
-    }, 10000); // 10 second delay
+    }, 5000); // 5 second delay
     
     // --- Initial Data Load ---
     // Fetches the initial set of files for the root directory.

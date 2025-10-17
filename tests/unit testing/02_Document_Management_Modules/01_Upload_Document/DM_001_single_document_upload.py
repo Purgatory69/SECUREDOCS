@@ -139,8 +139,32 @@ def DM_001_single_document_upload():
         if upload_btn.is_enabled():
             print("✅ Upload button is enabled - ready to upload")
             pause_if_requested("Ready to click upload")
-            upload_btn.click()
-            print("✅ Clicked Upload button")
+            
+            # Try JavaScript click for better modal interaction
+            try:
+                driver.execute_script("document.getElementById('uploadBtn').click();")
+                print("✅ Clicked Upload button via JavaScript")
+            except Exception as js_click_error:
+                print(f"⚠️ JavaScript click failed: {str(js_click_error)[:100]}...")
+                # Fallback to regular click
+                try:
+                    upload_btn.click()
+                    print("✅ Clicked Upload button via Selenium fallback")
+                except Exception as selenium_click_error:
+                    print(f"❌ Both click methods failed: JS={str(js_click_error)[:50]}..., Selenium={str(selenium_click_error)[:50]}...")
+                    return False
+            
+            # Add some debugging to check if the button was actually clicked
+            time.sleep(1)
+            try:
+                # Check if modal is still visible (should be hidden after successful upload)
+                modal = driver.find_element(By.ID, "uploadModal")
+                if modal and modal.is_displayed():
+                    print("⚠️ Upload modal still visible after click - upload may not have started")
+                else:
+                    print("✅ Upload modal hidden - upload process started")
+            except:
+                print("✅ Upload modal no longer found - upload process likely started")
             
             # Wait for upload to complete
             wait_for_upload_complete(driver)
@@ -150,6 +174,41 @@ def DM_001_single_document_upload():
             upload_success = check_success_message(driver)
             if upload_success:
                 print("✅ Upload success message found")
+            else:
+                print("❌ No success message found")
+                # Debug: Check what notifications are present
+                try:
+                    notifications = driver.execute_script("""
+                        const container = document.getElementById('notification-container');
+                        if (container) {
+                            const notifs = Array.from(container.children);
+                            return notifs.map(n => ({
+                                text: n.textContent,
+                                classes: n.className,
+                                visible: n.offsetWidth > 0 && n.offsetHeight > 0
+                            }));
+                        }
+                        return [];
+                    """)
+                    if notifications:
+                        print(f"📢 Found {len(notifications)} notifications:")
+                        for i, notif in enumerate(notifications):
+                            print(f"  {i+1}. '{notif['text']}' (visible: {notif['visible']}, classes: {notif['classes']})")
+                    else:
+                        print("📢 No notifications found in container")
+                except Exception as debug_error:
+                    print(f"⚠️ Could not debug notifications: {str(debug_error)[:100]}...")
+                
+                # Also check for any error messages
+                try:
+                    error_elements = driver.find_elements(By.CSS_SELECTOR, ".text-red-400, .text-red-500, .bg-red-500, [class*='error']")
+                    visible_errors = [elem for elem in error_elements if elem.is_displayed()]
+                    if visible_errors:
+                        print(f"🚨 Found {len(visible_errors)} visible error messages:")
+                        for i, error in enumerate(visible_errors[:3]):  # Show first 3
+                            print(f"  {i+1}. '{error.text[:100]}...'")
+                except Exception as error_debug_error:
+                    print(f"⚠️ Could not debug errors: {str(error_debug_error)[:100]}...")
             
             # Check if document count increased
             final_count = count_files_on_dashboard(driver)

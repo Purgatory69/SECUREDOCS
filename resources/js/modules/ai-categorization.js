@@ -22,7 +22,7 @@ class AICategorization {
             setTimeout(() => {
                 console.log('Initializing AI categorization (delayed)...');
                 this.init();
-            }, 30000); // 10 second delay
+            }, 5000); // 5 second delay
         }
     }
 

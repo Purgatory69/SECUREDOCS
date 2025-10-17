@@ -113,6 +113,9 @@ Route::middleware([
     Route::get('/files', [FileController::class, 'index']);
     Route::post('/files/upload', [FileController::class, 'store']);
     
+    // Duplicate file check endpoint
+    Route::post('/files/check-duplicate', [FileController::class, 'checkDuplicate']);
+    
     // Separated upload endpoints
     Route::post('/files/upload/standard', [FileController::class, 'uploadStandard']);
     Route::post('/files/upload/blockchain', [FileController::class, 'uploadBlockchain']);

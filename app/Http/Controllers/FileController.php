@@ -839,16 +839,57 @@ class FileController extends Controller
                 'file_type' => 'required|string',
                 'mime_type' => 'required|string',
                 'parent_id' => 'nullable|integer|exists:files,id',
+                'replace_existing' => 'nullable|boolean',
             ]);
 
+            $fileName = $validated['file_name'];
+            $parentId = $validated['parent_id'] ?? null;
+            $replaceExisting = $validated['replace_existing'] ?? false;
+
+            // Check for duplicate and handle accordingly
+            $existingFile = $this->findDuplicateFile($user->id, $fileName, $parentId);
+            
+            if ($existingFile && $replaceExisting) {
+                // Replace existing file - update its record
+                $existingFile->update([
+                    'file_path' => $validated['file_path'],
+                    'file_size' => $validated['file_size'],
+                    'mime_type' => $validated['mime_type'],
+                    'updated_at' => now(),
+                ]);
+
+                Log::info('File replaced successfully', [
+                    'user_id' => $user->id,
+                    'file_id' => $existingFile->id,
+                    'file_name' => $fileName
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'File replaced successfully',
+                    'file' => $existingFile
+                ], 200);
+                
+            } elseif ($existingFile && !$replaceExisting) {
+                // Keep both - generate unique name
+                $fileName = $this->generateUniqueFileName($user->id, $fileName, $parentId);
+                
+                Log::info('Duplicate file detected, using unique name', [
+                    'user_id' => $user->id,
+                    'original_name' => $validated['file_name'],
+                    'unique_name' => $fileName
+                ]);
+            }
+
+            // Create new file record
             $file = File::create([
                 'user_id' => $user->id,
-                'file_name' => $validated['file_name'],
+                'file_name' => $fileName,
                 'file_path' => $validated['file_path'],
                 'file_size' => $validated['file_size'],
                 'file_type' => $validated['file_type'],
                 'mime_type' => $validated['mime_type'],
-                'parent_id' => $validated['parent_id'],
+                'parent_id' => $parentId,
                 'is_folder' => DB::raw('FALSE'),
             ]);
 
@@ -965,16 +1006,60 @@ class FileController extends Controller
                 'file_type' => 'required|string',
                 'mime_type' => 'required|string',
                 'parent_id' => 'nullable|integer|exists:files,id',
+                'replace_existing' => 'nullable|boolean',
             ]);
 
+            $fileName = $validated['file_name'];
+            $parentId = $validated['parent_id'] ?? null;
+            $replaceExisting = $validated['replace_existing'] ?? false;
+
+            // Check for duplicate and handle accordingly
+            $existingFile = $this->findDuplicateFile($user->id, $fileName, $parentId);
+            
+            if ($existingFile && $replaceExisting) {
+                // Replace existing file - update its record
+                $existingFile->update([
+                    'file_path' => $validated['file_path'],
+                    'file_size' => $validated['file_size'],
+                    'mime_type' => $validated['mime_type'],
+                    'updated_at' => now(),
+                ]);
+
+                // Process with AI vectorization
+                $this->processN8nVectorization($existingFile, $user);
+
+                Log::info('File replaced and queued for vectorization', [
+                    'user_id' => $user->id,
+                    'file_id' => $existingFile->id,
+                    'file_name' => $fileName
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'message' => 'File replaced and queued for AI vectorization',
+                    'file' => $existingFile
+                ], 200);
+                
+            } elseif ($existingFile && !$replaceExisting) {
+                // Keep both - generate unique name
+                $fileName = $this->generateUniqueFileName($user->id, $fileName, $parentId);
+                
+                Log::info('Duplicate file detected, using unique name', [
+                    'user_id' => $user->id,
+                    'original_name' => $validated['file_name'],
+                    'unique_name' => $fileName
+                ]);
+            }
+
+            // Create new file record
             $file = File::create([
                 'user_id' => $user->id,
-                'file_name' => $validated['file_name'],
+                'file_name' => $fileName,
                 'file_path' => $validated['file_path'],
                 'file_size' => $validated['file_size'],
                 'file_type' => $validated['file_type'],
                 'mime_type' => $validated['mime_type'],
-                'parent_id' => $validated['parent_id'],
+                'parent_id' => $parentId,
                 'is_folder' => false,
             ]);
 
@@ -2645,5 +2730,101 @@ class FileController extends Controller
                 'message' => 'Failed to rename item: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Check if a file with the same name exists in the target folder
+     */
+    public function checkDuplicate(Request $request): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            $validated = $request->validate([
+                'file_name' => 'required|string|max:255',
+                'parent_id' => 'nullable|integer|exists:files,id',
+            ]);
+
+            $fileName = $validated['file_name'];
+            $parentId = $validated['parent_id'] ?? null;
+
+            // Check if file exists in the same folder
+            $existingFile = $this->findDuplicateFile($user->id, $fileName, $parentId);
+
+            if ($existingFile) {
+                // Generate suggested name with increment
+                $suggestedName = $this->generateUniqueFileName($user->id, $fileName, $parentId);
+                
+                return response()->json([
+                    'success' => true,
+                    'duplicate_exists' => true,
+                    'existing_file' => [
+                        'id' => $existingFile->id,
+                        'name' => $existingFile->file_name,
+                        'size' => $existingFile->file_size,
+                        'updated_at' => $existingFile->updated_at->format('M d, Y')
+                    ],
+                    'suggested_name' => $suggestedName
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'duplicate_exists' => false
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Duplicate check failed', [
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check for duplicates: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Find duplicate file in the same folder
+     */
+    private function findDuplicateFile(int $userId, string $fileName, ?int $parentId)
+    {
+        $query = File::where('user_id', $userId)
+            ->where('file_name', $fileName)
+            ->where('is_folder', DB::raw('false'))
+            ->whereNull('deleted_at');
+
+        if ($parentId === null) {
+            $query->whereNull('parent_id');
+        } else {
+            $query->where('parent_id', $parentId);
+        }
+
+        return $query->first();
+    }
+
+    /**
+     * Generate unique file name with incrementing number (Google Drive style)
+     * Example: file.pdf -> file (1).pdf -> file (2).pdf
+     */
+    private function generateUniqueFileName(int $userId, string $fileName, ?int $parentId): string
+    {
+        // Extract file name and extension
+        $pathInfo = pathinfo($fileName);
+        $baseName = $pathInfo['filename'];
+        $extension = isset($pathInfo['extension']) ? '.' . $pathInfo['extension'] : '';
+
+        $counter = 1;
+        $newFileName = $fileName;
+
+        // Keep incrementing until we find a unique name
+        while ($this->findDuplicateFile($userId, $newFileName, $parentId)) {
+            $newFileName = $baseName . ' (' . $counter . ')' . $extension;
+            $counter++;
+        }
+
+        return $newFileName;
     }
 }

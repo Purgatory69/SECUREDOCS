@@ -17,10 +17,15 @@ class NotificationController extends Controller
         $user = Auth::user();
         $limit = $request->input('limit', 10);
         
-        $notifications = $user->notifications()
-            ->orderBy('created_at', 'desc')
-            ->limit($limit)
-            ->get();
+        $query = $user->notifications()
+            ->orderBy('created_at', 'desc');
+            
+        // If limit is 0 or not set, don't apply limit (load all)
+        if ($limit > 0) {
+            $query->limit($limit);
+        }
+        
+        $notifications = $query->get();
 
         return response()->json([
             'success' => true,

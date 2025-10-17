@@ -74,7 +74,26 @@ function applyPremiumUX() {
 }
 
 function showUploadModal() {
-    document.getElementById('uploadModal').classList.remove('hidden');
+    // Clean up any leftover duplicate resolution modals
+    const existingDuplicateModal = document.getElementById('duplicateResolutionModal');
+    if (existingDuplicateModal) {
+        existingDuplicateModal.remove();
+    }
+    
+    const uploadModal = document.getElementById('uploadModal');
+    uploadModal.classList.remove('hidden');
+    
+    // Ensure upload button is properly reset when modal opens
+    const uploadBtn = document.getElementById('uploadBtn');
+    const fileInput = document.getElementById('fileInput');
+    
+    // If there's already a file selected, enable the button
+    if (fileInput && fileInput.files && fileInput.files.length > 0) {
+        if (uploadBtn) uploadBtn.disabled = false;
+    } else {
+        // No file selected, keep button disabled
+        if (uploadBtn) uploadBtn.disabled = true;
+    }
 }
 
 function hideUploadModal() {
@@ -194,6 +213,31 @@ async function handleUpload() {
         }
     }
 
+    // Check for duplicate files before uploading
+    const currentFolderIdEl = document.getElementById('currentFolderId');
+    const parentId = normalizeParentId(currentFolderIdEl?.value);
+    
+    try {
+        const duplicateCheck = await checkForDuplicate(currentUploadFile.name, parentId);
+        
+        if (duplicateCheck.duplicate_exists) {
+            // Show duplicate resolution modal
+            showDuplicateResolutionModal(duplicateCheck, () => {
+                // User chose to proceed with upload
+                proceedWithUpload();
+            });
+            return;
+        }
+    } catch (error) {
+        console.error('Duplicate check failed:', error);
+        // Continue with upload even if duplicate check fails
+    }
+    
+    // No duplicate found, proceed with upload
+    await proceedWithUpload();
+}
+
+async function proceedWithUpload(replaceExisting = false) {
     const uploadBtn = document.getElementById('uploadBtn');
     const progressContainer = document.getElementById('uploadProgress');
     const progressBar = document.getElementById('progressBar');
@@ -215,13 +259,13 @@ async function handleUpload() {
         // Route to different upload endpoints based on processing type
         switch (processingType) {
             case 'standard':
-                uploadResult = await handleStandardUpload(onProgress);
+                uploadResult = await handleStandardUpload(onProgress, replaceExisting);
                 break;
             case 'vectorize':
-                uploadResult = await handleAiVectorizeUpload(onProgress);
+                uploadResult = await handleAiVectorizeUpload(onProgress, replaceExisting);
                 break;
             default:
-                uploadResult = await handleStandardUpload(onProgress);
+                uploadResult = await handleStandardUpload(onProgress, replaceExisting);
         }
 
         showNotification(uploadResult.message || 'File uploaded successfully!', 'success');
@@ -254,7 +298,7 @@ async function handleUpload() {
 
 // Separate upload handlers for different processing types
 
-async function handleStandardUpload(onProgress) {
+async function handleStandardUpload(onProgress, replaceExisting = false) {
     if (!currentUploadFile) {
         throw new Error('No file selected for upload');
     }
@@ -270,7 +314,8 @@ async function handleStandardUpload(onProgress) {
         file_size: currentUploadFile.size,
         file_type: 'file',
         mime_type: currentUploadFile.type || 'application/octet-stream',
-        parent_id: parentId
+        parent_id: parentId,
+        replace_existing: replaceExisting
     };
 
     const response = await fetch('/files/upload/standard', {
@@ -292,7 +337,7 @@ async function handleStandardUpload(onProgress) {
 }
 
 
-async function handleAiVectorizeUpload(onProgress) {
+async function handleAiVectorizeUpload(onProgress, replaceExisting = false) {
     if (!currentUploadFile) {
         throw new Error('No file selected for upload');
     }
@@ -308,7 +353,8 @@ async function handleAiVectorizeUpload(onProgress) {
         file_size: currentUploadFile.size,
         file_type: 'file',
         mime_type: currentUploadFile.type || 'application/octet-stream',
-        parent_id: parentId
+        parent_id: parentId,
+        replace_existing: replaceExisting
     };
 
     const response = await fetch('/files/upload/ai-vectorize', {
@@ -584,6 +630,134 @@ function formatFileSize(bytes) {
     }
     
     return `${size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+// Duplicate file checking and resolution
+async function checkForDuplicate(fileName, parentId) {
+    const response = await fetch('/files/check-duplicate', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            file_name: fileName,
+            parent_id: parentId
+        })
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+        throw new Error(result.message || 'Duplicate check failed');
+    }
+
+    return result;
+}
+
+function showDuplicateResolutionModal(duplicateInfo, onProceed) {
+    // Create modal overlay
+    const modalOverlay = document.createElement('div');
+    modalOverlay.id = 'duplicateResolutionModal';
+    modalOverlay.className = 'fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-[9999]';
+    
+    const existingFile = duplicateInfo.existing_file;
+    const suggestedName = duplicateInfo.suggested_name;
+    
+    modalOverlay.innerHTML = `
+        <div class="bg-gray-800 rounded-lg shadow-2xl max-w-md w-full mx-4 border border-gray-700">
+            <div class="p-6">
+                <h3 class="text-xl font-semibold text-white mb-4">Upload options</h3>
+                <p class="text-gray-300 mb-6">
+                    <span class="font-medium text-white">${existingFile.name}</span> already exists in this location. 
+                    Do you want to replace the existing file with a new version or keep both files? 
+                    Replacing the file won't change sharing settings.
+                </p>
+                
+                <!-- Existing file info -->
+                <div class="bg-gray-900/50 rounded-lg p-3 mb-6 border border-gray-700">
+                    <div class="flex items-center justify-between text-sm">
+                        <span class="text-gray-400">Existing file:</span>
+                        <span class="text-gray-300">${formatFileSize(existingFile.size)}</span>
+                    </div>
+                    <div class="flex items-center justify-between text-sm mt-1">
+                        <span class="text-gray-400">Last modified:</span>
+                        <span class="text-gray-300">${existingFile.updated_at}</span>
+                    </div>
+                </div>
+                
+                <!-- Options -->
+                <div class="space-y-3 mb-6">
+                    <label class="flex items-center p-4 bg-gray-900/30 rounded-lg border-2 border-gray-700 hover:border-blue-500 cursor-pointer transition-colors">
+                        <input type="radio" name="duplicateAction" value="replace" checked class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500">
+                        <div class="ml-3">
+                            <div class="text-white font-medium">Replace existing file</div>
+                            <div class="text-sm text-gray-400">Update the existing file with the new version</div>
+                        </div>
+                    </label>
+                    
+                    <label class="flex items-center p-4 bg-gray-900/30 rounded-lg border-2 border-gray-700 hover:border-blue-500 cursor-pointer transition-colors">
+                        <input type="radio" name="duplicateAction" value="keep" class="w-4 h-4 text-blue-600 bg-gray-700 border-gray-600 focus:ring-blue-500">
+                        <div class="ml-3">
+                            <div class="text-white font-medium">Keep both files</div>
+                            <div class="text-sm text-gray-400">New file will be named: <span class="text-blue-400">${suggestedName}</span></div>
+                        </div>
+                    </label>
+                </div>
+                
+                <!-- Actions -->
+                <div class="flex gap-3">
+                    <button id="duplicateCancelBtn" class="flex-1 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg transition-colors">
+                        Cancel
+                    </button>
+                    <button id="duplicateUploadBtn" class="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors font-medium">
+                        Upload
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(modalOverlay);
+    
+    // Event listeners
+    const cancelBtn = modalOverlay.querySelector('#duplicateCancelBtn');
+    const uploadBtn = modalOverlay.querySelector('#duplicateUploadBtn');
+    
+    const cleanup = () => {
+        modalOverlay.remove();
+    };
+    
+    cancelBtn.addEventListener('click', () => {
+        cleanup();
+        hideUploadModal(); // Also close the upload modal when cancelling
+    });
+    
+    uploadBtn.addEventListener('click', () => {
+        const selectedAction = modalOverlay.querySelector('input[name="duplicateAction"]:checked').value;
+        const replaceExisting = selectedAction === 'replace';
+        
+        cleanup();
+        proceedWithUpload(replaceExisting);
+    });
+    
+    // Close on overlay click
+    modalOverlay.addEventListener('click', (e) => {
+        if (e.target === modalOverlay) {
+            cleanup();
+            hideUploadModal(); // Also close the upload modal
+        }
+    });
+    
+    // Close on Escape key
+    const escapeHandler = (e) => {
+        if (e.key === 'Escape') {
+            cleanup();
+            hideUploadModal(); // Also close the upload modal
+            document.removeEventListener('keydown', escapeHandler);
+        }
+    };
+    document.addEventListener('keydown', escapeHandler);
 }
 
 export function initializeUploadModal() {
