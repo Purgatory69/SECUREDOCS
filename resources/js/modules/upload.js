@@ -2,7 +2,7 @@ import { showNotification } from './ui.js';
 
 // --- Upload Modal ---
 
-let currentUploadFile = null;
+let currentUploadFiles = [];
 let fetchedPremiumOnce = false;
 let isPremiumUser = null;
 
@@ -74,14 +74,36 @@ function applyPremiumUX() {
 }
 
 function showUploadModal() {
+    console.log('🔵 [UPLOAD] showUploadModal called');
+    
+    // Close the "New" dropdown when opening upload modal
+    const newDropdown = document.getElementById('newDropdown');
+    if (newDropdown) {
+        newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
+        newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
+        console.log('🔵 [UPLOAD] Closed new dropdown');
+    }
+    
     // Clean up any leftover duplicate resolution modals
     const existingDuplicateModal = document.getElementById('duplicateResolutionModal');
     if (existingDuplicateModal) {
         existingDuplicateModal.remove();
+        console.log('🔵 [UPLOAD] Removed existing duplicate modal');
     }
     
     const uploadModal = document.getElementById('uploadModal');
+    if (!uploadModal) {
+        console.error('❌ [UPLOAD] Upload modal element not found!');
+        return;
+    }
+    
+    console.log('🔵 [UPLOAD] Modal element found, current classes:', uploadModal.className);
+    console.log('🔵 [UPLOAD] Modal has hidden class:', uploadModal.classList.contains('hidden'));
+    
     uploadModal.classList.remove('hidden');
+    
+    console.log('🔵 [UPLOAD] After removing hidden, classes:', uploadModal.className);
+    console.log('🔵 [UPLOAD] Modal display style:', window.getComputedStyle(uploadModal).display);
     
     // Ensure upload button is properly reset when modal opens
     const uploadBtn = document.getElementById('uploadBtn');
@@ -90,15 +112,30 @@ function showUploadModal() {
     // If there's already a file selected, enable the button
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
         if (uploadBtn) uploadBtn.disabled = false;
+        console.log('🔵 [UPLOAD] Upload button enabled (files already selected)');
     } else {
         // No file selected, keep button disabled
         if (uploadBtn) uploadBtn.disabled = true;
+        console.log('🔵 [UPLOAD] Upload button disabled (no files selected)');
     }
+    
+    console.log('✅ [UPLOAD] Modal should now be visible');
 }
 
 function hideUploadModal() {
-    document.getElementById('uploadModal').classList.add('hidden');
+    console.log('🔴 [UPLOAD] hideUploadModal called');
+    const uploadModal = document.getElementById('uploadModal');
+    if (!uploadModal) {
+        console.error('❌ [UPLOAD] Upload modal element not found in hideUploadModal!');
+        return;
+    }
+    
+    console.log('🔴 [UPLOAD] Before hiding, classes:', uploadModal.className);
+    uploadModal.classList.add('hidden');
+    console.log('🔴 [UPLOAD] After hiding, classes:', uploadModal.className);
+    
     resetUploadForm();
+    console.log('✅ [UPLOAD] Modal hidden and form reset');
 }
 
 function resetUploadForm() {
@@ -128,7 +165,13 @@ function resetUploadForm() {
         processingOptions.style.display = 'none';
         document.getElementById('standardUpload').checked = true;
     }
-    currentUploadFile = null;
+    currentUploadFiles = [];
+    
+    // Clear file list display
+    const fileListContainer = document.getElementById('fileList');
+    if (fileListContainer) {
+        fileListContainer.innerHTML = '';
+    }
 }
 
 function handleDragOver(e) {
@@ -152,59 +195,133 @@ function handleDrop(e) {
 
 async function handleFiles(files) {
     if (files.length > 0) {
-        const file = files[0];
+        // Validate all files
+        currentUploadFiles = [];
+        for (let i = 0; i < files.length; i++) {
+            const file = files[i];
+            if (!file || typeof file.size !== 'number' || !file.name) {
+                console.error('Invalid file object received:', file);
+                showNotification('Some files are invalid and were skipped.', 'warning');
+                continue;
+            }
+            currentUploadFiles.push(file);
+        }
         
-        // Validate file object before using it
-        if (!file || typeof file.size !== 'number' || !file.name) {
-            console.error('Invalid file object received:', file);
-            showNotification('Invalid file selected. Please try again.', 'error');
+        if (currentUploadFiles.length === 0) {
+            showNotification('No valid files selected. Please try again.', 'error');
             resetUploadForm();
             return;
         }
         
-        currentUploadFile = file;
+        // Update drop zone to show file count
         const dropZoneContent = document.getElementById('dropZoneContent');
         if (dropZoneContent) {
-            const fileSize = file.size || 0;
-            const fileSizeMB = (fileSize / 1024 / 1024).toFixed(2);
+            const totalSize = currentUploadFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+            const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
             dropZoneContent.innerHTML = `
                 <div class="text-3xl mb-2">📄</div>
-                <p class="text-sm text-white truncate max-w-[90%] mx-auto">${file.name || 'Unknown'}</p>
-                <p class="text-xs text-gray-400">${fileSizeMB} MB</p>
+                <p class="text-sm text-white font-medium">${currentUploadFiles.length} file${currentUploadFiles.length > 1 ? 's' : ''} selected</p>
+                <p class="text-xs text-gray-400">Total: ${totalSizeMB} MB</p>
             `;
         }
+        
+        // Show file list
+        displayFileList(currentUploadFiles);
         
         // Show processing options and run validation (if processing UI exists)
         showProcessingOptions();
         await ensurePremiumStatus();
         applyPremiumUX();
-        try { await validateProcessingOptions(file); } catch (_) { /* noop */ }
+        try { await validateProcessingOptions(currentUploadFiles[0]); } catch (_) { /* noop */ }
         document.getElementById('uploadBtn').disabled = false;
     } else {
         resetUploadForm();
     }
 }
 
-async function handleUpload() {
-    if (!currentUploadFile) {
-        showNotification('No file selected for upload', 'error');
+function displayFileList(files) {
+    const fileListContainer = document.getElementById('fileList');
+    if (!fileListContainer) return;
+    
+    if (files.length === 0) {
+        fileListContainer.innerHTML = '';
         return;
     }
     
-    // Validate the file object has required properties
-    if (!currentUploadFile.name || currentUploadFile.size === undefined) {
-        console.error('Invalid file object:', currentUploadFile);
-        showNotification('Invalid file selected. Please try again.', 'error');
+    const fileItems = files.map((file, index) => {
+        const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+        return `
+            <div class="flex items-center justify-between p-3 bg-[#1F2235] rounded-lg border border-[#3C3F58] mb-2">
+                <div class="flex items-center gap-3 flex-1 min-w-0">
+                    <div class="text-2xl">📄</div>
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm text-white truncate">${file.name}</p>
+                        <p class="text-xs text-gray-400">${fileSizeMB} MB</p>
+                    </div>
+                </div>
+                <button onclick="window.removeFileFromUpload(${index})" class="ml-2 p-1 hover:bg-[#3C3F58] rounded transition-colors" title="Remove">
+                    <svg class="w-4 h-4 text-gray-400 hover:text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+        `;
+    }).join('');
+    
+    fileListContainer.innerHTML = `
+        <div class="mt-4">
+            <div class="text-sm font-medium text-gray-300 mb-2">Files to upload:</div>
+            ${fileItems}
+        </div>
+    `;
+}
+
+window.removeFileFromUpload = function(index) {
+    currentUploadFiles.splice(index, 1);
+    
+    if (currentUploadFiles.length === 0) {
+        resetUploadForm();
         return;
     }
+    
+    // Update UI
+    displayFileList(currentUploadFiles);
+    
+    // Update drop zone
+    const dropZoneContent = document.getElementById('dropZoneContent');
+    if (dropZoneContent) {
+        const totalSize = currentUploadFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+        const totalSizeMB = (totalSize / 1024 / 1024).toFixed(2);
+        dropZoneContent.innerHTML = `
+            <div class="text-3xl mb-2">📄</div>
+            <p class="text-sm text-white font-medium">${currentUploadFiles.length} file${currentUploadFiles.length > 1 ? 's' : ''} selected</p>
+            <p class="text-xs text-gray-400">Total: ${totalSizeMB} MB</p>
+        `;
+    }
+}
 
-    // Check storage before upload
-    if (window.storageManager && currentUploadFile && currentUploadFile.size) {
-        const storageCheck = window.storageManager.checkStorageBeforeUpload(currentUploadFile.size);
+async function handleUpload() {
+    if (!currentUploadFiles || currentUploadFiles.length === 0) {
+        showNotification('No files selected for upload', 'error');
+        return;
+    }
+    
+    // Validate all files
+    for (const file of currentUploadFiles) {
+        if (!file.name || file.size === undefined) {
+            console.error('Invalid file object:', file);
+            showNotification('Some files are invalid. Please try again.', 'error');
+            return;
+        }
+    }
+
+    // Check storage before upload (total size)
+    const totalSize = currentUploadFiles.reduce((sum, f) => sum + (f.size || 0), 0);
+    if (window.storageManager && totalSize > 0) {
+        const storageCheck = window.storageManager.checkStorageBeforeUpload(totalSize);
         if (!storageCheck.allowed) {
             showNotification(storageCheck.message, 'error');
             if (storageCheck.showUpgrade) {
-                // Show upgrade modal after a short delay
                 setTimeout(() => {
                     window.storageManager.showUpgradeModal();
                 }, 1000);
@@ -213,31 +330,12 @@ async function handleUpload() {
         }
     }
 
-    // Check for duplicate files before uploading
-    const currentFolderIdEl = document.getElementById('currentFolderId');
-    const parentId = normalizeParentId(currentFolderIdEl?.value);
-    
-    try {
-        const duplicateCheck = await checkForDuplicate(currentUploadFile.name, parentId);
-        
-        if (duplicateCheck.duplicate_exists) {
-            // Show duplicate resolution modal
-            showDuplicateResolutionModal(duplicateCheck, () => {
-                // User chose to proceed with upload
-                proceedWithUpload();
-            });
-            return;
-        }
-    } catch (error) {
-        console.error('Duplicate check failed:', error);
-        // Continue with upload even if duplicate check fails
-    }
-    
-    // No duplicate found, proceed with upload
-    await proceedWithUpload();
+    // For multiple files, skip duplicate check and proceed directly
+    // (Duplicate handling will be done per-file during upload)
+    await proceedWithMultipleUploads();
 }
 
-async function proceedWithUpload(replaceExisting = false) {
+async function proceedWithMultipleUploads() {
     const uploadBtn = document.getElementById('uploadBtn');
     const progressContainer = document.getElementById('uploadProgress');
     const progressBar = document.getElementById('progressBar');
@@ -247,39 +345,69 @@ async function proceedWithUpload(replaceExisting = false) {
     uploadBtn.disabled = true;
     progressContainer.classList.remove('hidden');
 
-    try {
-        const onProgress = (event) => {
-            const percentCompleted = Math.round((event.loaded * 100) / event.total);
-            progressBar.style.width = percentCompleted + '%';
-            progressPercentage.textContent = percentCompleted + '%';
-        };
+    const totalFiles = currentUploadFiles.length;
+    let successCount = 0;
+    let failCount = 0;
+    const errors = [];
 
-        let uploadResult;
-        
-        // Route to different upload endpoints based on processing type
-        switch (processingType) {
-            case 'standard':
-                uploadResult = await handleStandardUpload(onProgress, replaceExisting);
-                break;
-            case 'vectorize':
-                uploadResult = await handleAiVectorizeUpload(onProgress, replaceExisting);
-                break;
-            default:
-                uploadResult = await handleStandardUpload(onProgress, replaceExisting);
+    try {
+        for (let i = 0; i < currentUploadFiles.length; i++) {
+            const file = currentUploadFiles[i];
+            const fileNumber = i + 1;
+            
+            // Update progress text to show current file
+            progressPercentage.textContent = `Uploading ${fileNumber}/${totalFiles}: ${file.name}`;
+            
+            try {
+                const onProgress = (event) => {
+                    const fileProgress = Math.round((event.loaded * 100) / event.total);
+                    const overallProgress = Math.round(((i + (fileProgress / 100)) / totalFiles) * 100);
+                    progressBar.style.width = overallProgress + '%';
+                };
+
+                let uploadResult;
+                
+                // Route to different upload endpoints based on processing type
+                switch (processingType) {
+                    case 'standard':
+                        uploadResult = await handleStandardUploadSingle(file, onProgress);
+                        break;
+                    case 'vectorize':
+                        uploadResult = await handleAiVectorizeUploadSingle(file, onProgress);
+                        break;
+                    default:
+                        uploadResult = await handleStandardUploadSingle(file, onProgress);
+                }
+                
+                successCount++;
+            } catch (error) {
+                console.error(`Failed to upload ${file.name}:`, error);
+                failCount++;
+                errors.push(`${file.name}: ${error.message}`);
+            }
         }
 
-        showNotification(uploadResult.message || 'File uploaded successfully!', 'success');
+        // Show summary notification
+        if (successCount === totalFiles) {
+            showNotification(`All ${totalFiles} file${totalFiles > 1 ? 's' : ''} uploaded successfully!`, 'success');
+        } else if (successCount > 0) {
+            showNotification(`${successCount} of ${totalFiles} files uploaded. ${failCount} failed.`, 'warning');
+            if (errors.length > 0) {
+                console.error('Upload errors:', errors);
+            }
+        } else {
+            showNotification('All uploads failed. Please try again.', 'error');
+        }
+        
         hideUploadModal();
         
         // Trigger storage usage update
-        const fileSize = currentUploadFile && currentUploadFile.size ? currentUploadFile.size : 0;
+        const totalSize = currentUploadFiles.reduce((sum, f) => sum + (f.size || 0), 0);
         document.dispatchEvent(new CustomEvent('fileUploaded', { 
-            detail: { fileSize: fileSize } 
+            detail: { fileSize: totalSize } 
         }));
         
-        // Refresh file list in current folder context
-        // NEW CODE:
-        // Refresh based on current view context
+        // Refresh file list
         const currentView = window.getCurrentViewContext ? window.getCurrentViewContext() : 'documents';
         if (currentView === 'documents' && typeof window.loadUserFiles === 'function') {
             const parentId = document.getElementById('currentFolderId')?.value || null;
@@ -290,7 +418,7 @@ async function proceedWithUpload(replaceExisting = false) {
             window.loadBlockchainItems();
         }
     } catch (error) {
-        console.error('Upload failed:', error);
+        console.error('Upload process failed:', error);
         showNotification(`Upload failed: ${error.message}`, 'error');
         uploadBtn.disabled = false;
     }
@@ -298,24 +426,24 @@ async function proceedWithUpload(replaceExisting = false) {
 
 // Separate upload handlers for different processing types
 
-async function handleStandardUpload(onProgress, replaceExisting = false) {
-    if (!currentUploadFile) {
-        throw new Error('No file selected for upload');
+async function handleStandardUploadSingle(file, onProgress) {
+    if (!file) {
+        throw new Error('No file provided for upload');
     }
     
-    const filePath = await window.uploadFileToSupabase(currentUploadFile, onProgress);
+    const filePath = await window.uploadFileToSupabase(file, onProgress);
     
     const currentFolderIdEl = document.getElementById('currentFolderId');
     let parentId = normalizeParentId(currentFolderIdEl?.value);
 
     const payload = {
-        file_name: currentUploadFile.name,
+        file_name: file.name,
         file_path: filePath,
-        file_size: currentUploadFile.size,
+        file_size: file.size,
         file_type: 'file',
-        mime_type: currentUploadFile.type || 'application/octet-stream',
+        mime_type: file.type || 'application/octet-stream',
         parent_id: parentId,
-        replace_existing: replaceExisting
+        replace_existing: false
     };
 
     const response = await fetch('/files/upload/standard', {
@@ -337,24 +465,24 @@ async function handleStandardUpload(onProgress, replaceExisting = false) {
 }
 
 
-async function handleAiVectorizeUpload(onProgress, replaceExisting = false) {
-    if (!currentUploadFile) {
-        throw new Error('No file selected for upload');
+async function handleAiVectorizeUploadSingle(file, onProgress) {
+    if (!file) {
+        throw new Error('No file provided for upload');
     }
     
-    const filePath = await window.uploadFileToSupabase(currentUploadFile, onProgress);
+    const filePath = await window.uploadFileToSupabase(file, onProgress);
     
     const currentFolderIdEl = document.getElementById('currentFolderId');
     let parentId = normalizeParentId(currentFolderIdEl?.value);
 
     const payload = {
-        file_name: currentUploadFile.name,
+        file_name: file.name,
         file_path: filePath,
-        file_size: currentUploadFile.size,
+        file_size: file.size,
         file_type: 'file',
-        mime_type: currentUploadFile.type || 'application/octet-stream',
+        mime_type: file.type || 'application/octet-stream',
         parent_id: parentId,
-        replace_existing: replaceExisting
+        replace_existing: false
     };
 
     const response = await fetch('/files/upload/ai-vectorize', {
@@ -767,12 +895,36 @@ export function initializeUploadModal() {
     const fileInput = document.getElementById('fileInput');
     const uploadBtn = document.getElementById('uploadBtn');
     const cancelUploadBtn = document.getElementById('cancelUploadBtn');
+    const modalBackdrop = document.getElementById('modalBackdrop');
 
     if (!uploadModal) return;
 
     // Event Listeners
     closeModalBtn.addEventListener('click', hideUploadModal);
     cancelUploadBtn?.addEventListener('click', hideUploadModal);
+    
+    // Close modal when clicking on backdrop
+    if (modalBackdrop) {
+        modalBackdrop.addEventListener('click', (e) => {
+            console.log('🔴 [UPLOAD] Backdrop clicked');
+            e.stopPropagation();
+            hideUploadModal();
+        });
+        console.log('✅ [UPLOAD] Backdrop click listener attached');
+    } else {
+        console.warn('⚠️ [UPLOAD] Modal backdrop not found');
+    }
+    
+    // Also close when clicking outside the modal content
+    uploadModal.addEventListener('click', (e) => {
+        // Only close if clicking directly on the modal container (not its children)
+        if (e.target === uploadModal) {
+            console.log('🔴 [UPLOAD] Modal container clicked (outside content)');
+            hideUploadModal();
+        }
+    });
+    console.log('✅ [UPLOAD] Modal container click listener attached');
+    
     dropZone.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => {
         console.log('File input changed:', e.target.files);
@@ -788,6 +940,11 @@ export function initializeUploadModal() {
     dropZone.addEventListener('drop', handleDrop);
     uploadBtn.addEventListener('click', handleUpload);
 
-    // Expose showUploadModal globally for other parts of the app to use
+    // Expose functions globally for testing
+    window.initializeUploadModal = initializeUploadModal;
+    window.handleUpload = handleUpload;
     window.showUploadModal = showUploadModal;
+    
+    console.log('✅ [UPLOAD] Upload modal initialization complete');
+    console.log('✅ [UPLOAD] window.showUploadModal is available:', typeof window.showUploadModal === 'function');
 }

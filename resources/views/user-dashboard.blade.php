@@ -395,7 +395,8 @@
      style="background-color: #55597C;">
         <div>
             <div id="uploadFileOption"
-                class="flex items-center px-5 py-4 text-sm transition-colors text-white"
+                class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer"
+                onclick="console.log('🟢 [DROPDOWN] Upload File Option clicked'); if(window.showUploadModal) { console.log('🟢 [DROPDOWN] Calling showUploadModal...'); window.showUploadModal(); } else { console.error('❌ [DROPDOWN] showUploadModal not available'); }"
                 onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0.5rem 0.5rem 0 0;';"
                 onmouseout="this.style.cssText = 'border-radius: 0.5rem 0.5rem 0 0;';">
                 <img src="{{ asset('file.png') }}" alt="File" class="mr-4 w-4 h-4">

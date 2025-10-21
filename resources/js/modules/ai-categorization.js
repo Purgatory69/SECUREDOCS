@@ -20,7 +20,7 @@ class AICategorization {
         // Only initialize on user dashboard page with delay to improve page load
         if (this.shouldInitialize()) {
             setTimeout(() => {
-                console.log('Initializing AI categorization (delayed)...');
+                // console.log('Initializing AI categorization (delayed)...');
                 this.init();
             }, 5000); // 5 second delay
         }

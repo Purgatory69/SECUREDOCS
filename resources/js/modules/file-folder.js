@@ -460,7 +460,7 @@ function hideCreateFolderModal() {
 function hideNewDropdown() {
     const dd = document.getElementById('newDropdown');
     if (!dd) return;
-    dd.classList.add('hidden', 'opacity-0', 'invisible', 'translate-y-[-10px]');
+    dd.classList.add( 'opacity-0', 'invisible', 'translate-y-[-10px]');
 }
 
 // Main initializer for this module
@@ -1316,8 +1316,17 @@ function showActionsMenu(button, itemId) {
     } else {
         let menuItems = '';
 
-        // Add "Open" action for files (not folders) - place first in menu
-        if (!isFolder) {
+        // Add "Open" action
+        if (isFolder) {
+            menuItems += `
+                <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-[#2A2D47] hover:text-blue-300 flex items-center" data-action="open-folder" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Open folder" data-tooltip="Open folder">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7a2 2 0 012-2h4l2 2h6a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2V7z" />
+                    </svg>
+                    Open
+                </button>
+            `;
+        } else {
             menuItems += `
                 <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-blue-400 hover:bg-[#2A2D47] hover:text-blue-300 flex items-center" data-action="open" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Open file" data-tooltip="Open file">
                     <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1912,6 +1921,23 @@ function showActionsMenu(button, itemId) {
             cleanup();
         };
         openBtn.addEventListener('click', directOpen);
+    }
+
+    const openFolderBtn = menu.querySelector('.actions-menu-item[data-action="open-folder"]');
+    if (openFolderBtn) {
+        const directOpenFolder = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'open-folder', itemId: openFolderBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = openFolderBtn.dataset.itemId;
+            const item = findItemById(id);
+            if (item) {
+                navigateToFolder(item.id, item.file_name || item.name);
+            }
+            cleanup();
+        };
+        openFolderBtn.addEventListener('click', directOpenFolder);
     }
 
     // Direct listeners for vector actions to ensure reliability

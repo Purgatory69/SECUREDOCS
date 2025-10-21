@@ -4,7 +4,7 @@
   <meta charset="utf-8"/>
   <meta content="width=device-width, initial-scale=1" name="viewport"/>
   <title>SecureDocs</title>
-  <link rel="icon" type="image/png" href="{{ asset('logo-favicon.png') }}">
+  <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
   @vite(['resources/css/app.css'])
 

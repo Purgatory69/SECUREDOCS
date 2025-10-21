@@ -31,7 +31,7 @@ class BlockchainUpload {
     async loadStorageInfo() {
         try {
             // Skip old blockchain storage info - using new Bundlr approach
-            console.log('📱 Using new Bundlr approach - skipping old storage info');
+            // console.log('📱 Using new Bundlr approach - skipping old storage info');
             
             // Set dummy storage info for compatibility
             this.storageInfo = {
@@ -52,7 +52,7 @@ class BlockchainUpload {
             this.renderStorageInfo();
             
         } catch (error) {
-            console.log('📱 Blockchain storage info skipped (using new Bundlr approach)');
+            // console.log('📱 Blockchain storage info skipped (using new Bundlr approach)');
         }
     }
 

@@ -73,6 +73,10 @@ body {
 }
 
 /* Prevent text selection on file containers */
+#filesContainer {
+  padding-bottom: 100px;
+}
+
 #filesContainer .file-card,
 #filesContainer .file-row {
   user-select: none;

@@ -1,53 +1,40 @@
 # Louiejay's SecureDocs Module Testing
 
 ## 📋 **Test Plan Overview**
-- **Total Test Cases**: 23 (from Louiejay_Test_Plan.csv)
+- **Total Test Cases**: 23 (Updated Louiejay Test Plan)
 - **Total Points Available**: 23 points (1 point per test case)
-- **Current Progress**: 17/23 tests PASSED ✅ | 3/23 PARTIAL 🔄 | 0/23 NEEDS_FIX ⚠️ | 3/23 TBD 📝
-- **Points Earned**: 17/23 points
-- **Modules**: 2 main modules with 9 sub-modules
+- **Current Progress**: 17/23 IMPLEMENTED ✅ | 6/23 NOT INCLUDED ❌
+- **Points Earned**: 17/23 points (based on current implementation)
+- **Modules**: User Profile (5 tests) + Document Management (18 tests)
 
 ## 📊 **Progress Summary**
 
-### ✅ **PASSED (17/23)**
-**Admin Dashboard (2/2)**:
-- ✅ AD_001 - Admin dashboard loads navigation
-- ✅ AD_002 - Admin dashboard shows statistics
+### ✅ **IMPLEMENTED (17/23)**
+**User Profile (3/5)**:
+- ✅ UP-UD 001 - Dashboard loads with user stats **[MOVED & RENAMED]**
+- ✅ UP-N 002 - Main navigation menu works **[MOVED & RENAMED]**
+- ✅ UP-B 003 - Breadcrumb navigation in folders **[MOVED & RENAMED]**
+- ❌ UP-LS 004 - Language switching (EN/Filipino) **[NOT INCLUDED]**
+- ❌ UP-RD 005 - Dashboard is mobile responsive **[NOT INCLUDED]**
 
-**User Profile (8/10)**:
-- ✅ UP_001 - User dashboard loads navigation
-- ✅ UP_002 - Dashboard shows storage usage
-- ✅ UP_003 - File preview modal opens (Open button navigates to preview)
-- ✅ UP_004 - File preview handles unsupported formats
-- ✅ UP_005 - Access profile settings
-- ✅ UP_006 - Update profile information (name changed to 'premium1')
-- ✅ UP_008 - Biometric setup access
+**Document Management (14/18)**:
+- ✅ DM-FU 001 - Single file upload functionality **[MOVED & RENAMED]**
+- ✅ DM-FU 002 - Multiple file upload **[PARTIALLY IMPLEMENTED]**
+- ✅ DM-FU 003 - File type restrictions **[MOVED & RENAMED]**
+- ✅ DM-FU 004 - File size limits **[PARTIALLY IMPLEMENTED]**
+- ❌ DM-FD 005 - File download functionality **[NOT INCLUDED - PLACEHOLDER CREATED]**
+- ✅ DM-FP 006 - File preview for supported formats **[MOVED & RENAMED]**
+- ✅ DM-FR 007 - File renaming functionality **[MOVED & RENAMED]**
+- ✅ DM-FD 008 - File soft delete (move to trash) **[MOVED & RENAMED]**
+- ✅ DM-FR 009 - File restore from trash **[MOVED & RENAMED]**
+- ✅ DM-FPD 010 - Permanent file deletion **[MOVED & RENAMED]**
+- ❌ DM-FM 011-016 - Complete folder management suite (6 tests) **[NOT INCLUDED - PLACEHOLDERS CREATED]**
 
-**Document Management (7/11)**:
-- ✅ DM_001 - Single document upload
-- ✅ DM_003 - File type restrictions (premium status)
-- ✅ DM_005 - Document list display
-- ✅ DM_007 - Document sorting options (grid/list toggle)
-- ✅ DM_008 - Document rename functionality (backend state confirmed)
-- ✅ DM_011 - Document soft delete (move to trash)
-- ✅ DM_012 - Document restore from trash
-- ✅ DM_013 - Permanent document deletion
-
-### 🔄 **PARTIAL (3/23)**
-- 🔄 UP_011 - Premium purchase page (login issue)
-- 🔄 UP_012 - Premium payment flow (placeholder used)
-- 🔄 UP_013 - Premium status display (placeholder used)
-- 🔄 DM_014 - Blockchain upload availability (needs verification)
-
-### 📝 **TBD (3/23)**
-- 📝 UP_009 - WebAuthn key registration
-- 📝 UP_010 - Biometric login functionality
-- 📝 DM_002 - Multiple document upload
-- 📝 DM_004 - File size limits
-- 📝 DM_006 - Document search and filter
-- 📝 DM_009 - Document metadata editing
-- 📝 DM_015 - Blockchain upload process
-- 📝 DM_016 - Blockchain upload verification
+### ❌ **NOT INCLUDED (6/23)**
+- ❌ UP-LS 004 - Language switching (EN/Filipino)
+- ❌ UP-RD 005 - Mobile responsive design
+- ❌ DM-FD 005 - File download functionality
+- ❌ DM-FM 011-016 - Folder Management (6 tests)
 
 ## 📁 **Organized Structure**
 
@@ -59,46 +46,38 @@ tests/unit testing/
 ├── 🔧 webdriver_utils.py                        # Shared webdriver
 ├── 🔧 test_helpers.py                           # Shared helper functions
 │
-├── 01_User_Profile_Modules/ (13 tests - 8 passed, 2 partial/TBD, 3 TBD)
-│   ├── 01_User_Dashboard/
-│   │   ├── UP_001_dashboard_loads_navigation.py         ✅ PASSED
-│   │   └── UP_002_dashboard_shows_statistics.py        ✅ PASSED
-│   ├── 02_File_Preview/
-│   │   ├── UP_003_file_preview_modal_opens.py          ✅ PASSED
-│   │   └── UP_004_file_preview_unsupported_formats.py  ✅ PASSED
-│   ├── 03_Profile_Settings/
-│   │   ├── UP_005_access_profile_settings.py           ✅ PASSED
-│   │   ├── UP_006_update_profile_information.py        ✅ PASSED
-│   ├── 04_Biometrics/
-│   │   ├── UP_008_biometric_setup_access.py            ✅ PASSED
-│   │   ├── UP_009_webauthn_key_registration.py         📝 TBD
-│   │   └── UP_010_biometric_login_functionality.py     📝 TBD
-│   └── 05_Buy_Premium/
-│       ├── UP_011_premium_purchase_page.py             🔄 PARTIAL
-│       ├── UP_012_premium_payment_flow.py              🔄 PARTIAL
-│       └── UP_013_premium_status_display.py            🔄 PARTIAL
+├── User_Profile_Module/ (5 tests - 3 implemented, 2 not included)
+│   ├── UP-UD_001_dashboard_stats.py                    ✅ IMPLEMENTED
+│   ├── UP-N_002_navigation_menu.py                     ✅ IMPLEMENTED
+│   ├── UP-B_003_breadcrumb_navigation.py               ✅ IMPLEMENTED
+│   ├── UP-LS_004_language_switching.py                 ❌ NOT INCLUDED
+│   └── UP-RD_005_responsive_design.py                   ❌ NOT INCLUDED
 │
-└── 02_Document_Management_Modules/ (11 tests - 6 passed, 1 partial, 4 TBD)
-    ├── 01_Upload_Document/
-    │   ├── DM_001_single_document_upload.py            ✅ PASSED
-    │   ├── DM_002_multiple_document_upload.py          📝 TBD
-    │   ├── DM_003_file_type_restrictions.py            ✅ PASSED
-    │   └── DM_004_file_size_limits.py                  📝 TBD
-    ├── 02_View_Documents/
-    │   ├── DM_005_document_list_display.py             ✅ PASSED
-    │   ├── DM_006_document_search_filter.py            📝 TBD
-    │   └── DM_007_document_sorting_options.py          ✅ PASSED
-    ├── 03_Edit_Documents/
-    │   ├── DM_008_document_rename.py                   ✅ PASSED
-    │   ├── DM_009_document_metadata_editing.py         📝 TBD
-    ├── 04_Delete_Documents/
-    │   ├── DM_011_document_soft_delete.py              ✅ PASSED
-    │   ├── DM_012_document_restore_trash.py            ✅ PASSED
-    │   └── DM_013_permanent_document_deletion.py       ✅ PASSED
-    └── 05_Upload_to_Blockchain/
-        ├── DM_014_blockchain_upload_availability.py    🔄 PARTIAL
-        ├── DM_015_blockchain_upload_process.py         📝 TBD
-        └── DM_016_blockchain_upload_verification.py    📝 TBD
+└── Document_Management_Module/ (18 tests - 12 implemented, 6 not included)
+    ├── File_Upload/
+    │   ├── DM-FU_001_single_upload.py                   ✅ IMPLEMENTED
+    │   ├── DM-FU_002_multiple_upload.py                 ✅ PARTIALLY
+    │   ├── DM-FU_003_file_restrictions.py               ✅ IMPLEMENTED
+    │   └── DM-FU_004_file_size_limits.py                ✅ PARTIALLY
+    ├── File_Download/
+    │   └── DM-FD_005_file_download.py                   ❌ NOT INCLUDED
+    ├── File_Preview/
+    │   └── DM-FP_006_file_preview.py                    ✅ IMPLEMENTED
+    ├── File_Rename/
+    │   └── DM-FR_007_file_rename.py                     ✅ IMPLEMENTED
+    ├── File_Delete/
+    │   └── DM-FD_008_file_soft_delete.py                ✅ IMPLEMENTED
+    ├── File_Restore/
+    │   └── DM-FR_009_file_restore.py                    ✅ IMPLEMENTED
+    ├── File_Permanent_Delete/
+    │   └── DM-FPD_010_permanent_deletion.py             ✅ IMPLEMENTED
+    └── Folder_Management/
+        ├── DM-FM_011_folder_creation.py                  ❌ NOT INCLUDED
+        ├── DM-FM_012_folder_navigation.py                ❌ NOT INCLUDED
+        ├── DM-FM_013_folder_renaming.py                  ❌ NOT INCLUDED
+        ├── DM-FM_014_empty_folder_delete.py              ❌ NOT INCLUDED
+        ├── DM-FM_015_non_empty_folder_delete.py          ❌ NOT INCLUDED
+        └── DM-FM_016_move_files_between_folders.py       ❌ NOT INCLUDED
 ```
 
 ## 🚀 **Running Your Tests**
@@ -328,56 +307,28 @@ You now have a complete, organized test structure ready for implementation and t
 ## ✅ **Implementation Status**
 
 ### **Fully Implemented & Tested (17/23)**
-- ✅ AD_001 - Admin dashboard loads navigation
-- ✅ AD_002 - Admin dashboard shows statistics  
-- ✅ UP_001 - Dashboard loads navigation
-- ✅ UP_002 - Dashboard shows statistics  
-- ✅ UP_003 - File preview modal opens (Open button navigates to preview)
-- ✅ UP_004 - File preview handles unsupported formats
-- ✅ UP_005 - Access profile settings
-- ✅ UP_006 - Update profile information (name changed to 'premium1')
-- ✅ UP_008 - Biometric setup access
-- ✅ DM_001 - Single document upload
-- ✅ DM_003 - File type restrictions (premium status)
-- ✅ DM_005 - Document list display
-- ✅ DM_007 - Document sorting options (grid/list toggle)
-- ✅ DM_008 - Document rename functionality (backend state confirmed)
-- ✅ DM_011 - Document soft delete (move to trash)
-- ✅ DM_012 - Document restore from trash
-- ✅ DM_013 - Permanent document deletion
+- ✅ UP-UD 001 - Dashboard loads with user stats
+- ✅ UP-N 002 - Main navigation menu works
+- ✅ UP-B 003 - Breadcrumb navigation in folders
+- ✅ DM-FU 001 - Single file upload functionality
+- ✅ DM-FU 002 - Multiple file upload **[PARTIAL]**
+- ✅ DM-FU 003 - File type restrictions
+- ✅ DM-FU 004 - File size limits **[PARTIAL]**
+- ✅ DM-FP 006 - File preview for supported formats
+- ✅ DM-FR 007 - File renaming functionality
+- ✅ DM-FD 008 - File soft delete (move to trash)
+- ✅ DM-FR 009 - File restore from trash
+- ✅ DM-FPD 010 - Permanent file deletion
 
-### **Partially Implemented (3/23)**
-- 🔄 UP_011 - Premium purchase page (login issue)
-- 🔄 UP_012 - Premium payment flow (placeholder used)
-- 🔄 UP_013 - Premium status display (placeholder used)
-- 🔄 DM_014 - Blockchain upload availability (needs verification)
+### **Not Included (6/23)**
+- ❌ UP-LS 004 - Language switching (EN/Filipino)
+- ❌ UP-RD 005 - Mobile responsive design
+- ❌ DM-FD 005 - File download functionality
+- ❌ DM-FM 011-016 - Complete folder management suite (6 tests)
 
-### **Placeholder Implementation (4/23)**
-All remaining test cases have been created with:
-- ✅ Proper file structure and naming
-- ✅ Correct test ID and module information
-- 📝 Placeholder test logic (needs your implementation)
-
-## 🎯 **Your Task**
-
-1. **Test the implemented ones** to see if they work with your application
-2. **Implement the placeholder test logic** for the remaining 21 test cases
-3. **Customize test selectors** to match your application's HTML structure
-4. **Add specific validation logic** for each test case requirement
-
-## 🔧 **Key Features**
-
-- **Global Session Management**: Login once, use across all tests
-- **Modular Structure**: Each test in its own file
-- **Points System**: Track progress with 1 point per test
-- **Flexible Runner**: Run tests by module, sub-module, or individually
-- **Clean Organization**: Numbered folders for easy navigation
-
-## 📊 **Progress Tracking**
-
-The test runner will show:
-- Points earned per test (1 point each)
-- Module completion status
-- Overall progress toward 23/23 points
-
-You now have a complete, organized test structure ready for implementation and testing!
+### **Migration Notes**
+- **Admin Dashboard Tests** (AD_001, AD_002) - Not included in new test plan
+- **Premium Features** (UP_009-013, DM_014-016) - Not included in new test plan
+- **Biometric Tests** (UP_008-010) - Partially included (UP_008 implemented, others not in new plan)
+- **Current Implementation**: 17/23 tests working from previous system
+- **Missing Features**: 6 new tests need implementation

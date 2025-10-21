@@ -22,102 +22,80 @@ from global_session import session
 # Test modules mapping by category
 LOUIEJAY_TEST_MODULES = {
     'user_profile': {
-        'admin_dashboard': [
-            '01_User_Profile_Modules.00_Admin_Dashboard.AD_001_admin_dashboard_loads_navigation',
-            '01_User_Profile_Modules.00_Admin_Dashboard.AD_002_admin_dashboard_shows_statistics'
+        'dashboard': [
+            'User_Profile_Module.UP-UD_001_dashboard_stats',
         ],
-        'user_dashboard': [
-            '01_User_Profile_Modules.01_User_Dashboard.UP_001_dashboard_loads_navigation',
-            '01_User_Profile_Modules.01_User_Dashboard.UP_002_dashboard_shows_statistics'
+        'navigation': [
+            'User_Profile_Module.UP-N_002_navigation_menu',
         ],
-        'file_preview': [
-            '01_User_Profile_Modules.02_File_Preview.UP_003_file_preview_modal_opens',
-            '01_User_Profile_Modules.02_File_Preview.UP_004_file_preview_unsupported_formats'
+        'breadcrumbs': [
+            'User_Profile_Module.UP-B_003_breadcrumb_navigation',
         ],
-        'profile_settings': [
-            '01_User_Profile_Modules.03_Profile_Settings.UP_005_access_profile_settings',
-            '01_User_Profile_Modules.03_Profile_Settings.UP_006_update_profile_information',
-            '01_User_Profile_Modules.03_Profile_Settings.UP_007_profile_photo_upload'
-        ],
-        'biometrics': [
-            '01_User_Profile_Modules.04_Biometrics.UP_008_biometric_setup_access',
-            '01_User_Profile_Modules.04_Biometrics.UP_009_webauthn_key_registration',
-            '01_User_Profile_Modules.04_Biometrics.UP_010_biometric_login_functionality'
-        ],
-        'buy_premium': [
-            '01_User_Profile_Modules.05_Buy_Premium.UP_011_premium_purchase_page',
-            '01_User_Profile_Modules.05_Buy_Premium.UP_012_premium_payment_flow',
-            '01_User_Profile_Modules.05_Buy_Premium.UP_013_premium_status_display'
+        'language': [
+            'User_Profile_Module.UP-LS_004_language_switch',
         ]
     },
     'document_management': {
-        'upload_document': [
-            '02_Document_Management_Modules.01_Upload_Document.DM_001_single_document_upload',
-            '02_Document_Management_Modules.01_Upload_Document.DM_002_multiple_document_upload',
-            '02_Document_Management_Modules.01_Upload_Document.DM_003_file_type_restrictions',
-            '02_Document_Management_Modules.01_Upload_Document.DM_004_file_size_limits'
+        'file_upload': [
+            'Document_Management_Module.File_Upload.DM-FU_001_single_upload',
+            'Document_Management_Module.File_Upload.DM-FU_002_multiple_upload',
+            'Document_Management_Module.File_Upload.DM-FU_003_file_restrictions',
+            'Document_Management_Module.File_Upload.DM-FU_004_file_size_limits',
         ],
-        'view_documents': [
-            '02_Document_Management_Modules.02_View_Documents.DM_005_document_list_display',
-            '02_Document_Management_Modules.02_View_Documents.DM_006_document_search_filter',
-            '02_Document_Management_Modules.02_View_Documents.DM_007_document_sorting_options'
+        'file_download': [
+            'Document_Management_Module.File_Download.DM-FD_005_file_download',
         ],
-        'edit_documents': [
-            '02_Document_Management_Modules.03_Edit_Documents.DM_008_document_rename',
-            '02_Document_Management_Modules.03_Edit_Documents.DM_009_document_metadata_editing',
-            '02_Document_Management_Modules.03_Edit_Documents.DM_010_document_content_editing'
+        'file_preview': [
+            'Document_Management_Module.File_Preview.DM-FP_006_file_preview',
         ],
-        'delete_documents': [
-            '02_Document_Management_Modules.04_Delete_Documents.DM_011_document_soft_delete',
-            '02_Document_Management_Modules.04_Delete_Documents.DM_012_document_restore_trash',
-            '02_Document_Management_Modules.04_Delete_Documents.DM_013_permanent_document_deletion'
+        'file_rename': [
+            'Document_Management_Module.File_Rename.DM-FR_007_file_rename',
         ],
-        'upload_to_blockchain': [
-            '02_Document_Management_Modules.05_Upload_to_Blockchain.DM_014_blockchain_upload_availability',
-            '02_Document_Management_Modules.05_Upload_to_Blockchain.DM_015_blockchain_upload_process',
-            '02_Document_Management_Modules.05_Upload_to_Blockchain.DM_016_blockchain_upload_verification'
+        'file_delete': [
+            'Document_Management_Module.File_Delete.DM-FD_008_file_soft_delete',
+        ],
+        'file_restore': [
+            'Document_Management_Module.File_Restore.DM-FR_009_file_restore',
+        ],
+        'file_permanent_delete': [
+            'Document_Management_Module.File_Permanent_Delete.DM-FPD_010_permanent_deletion',
+        ],
+        'folder_management': [
+            'Document_Management_Module.Folder_Management.DM-FM_011_folder_creation',
+            'Document_Management_Module.Folder_Management.DM-FM_012_folder_navigation',
+            'Document_Management_Module.Folder_Management.DM-FM_013_folder_renaming',
+            'Document_Management_Module.Folder_Management.DM-FM_014_empty_folder_delete',
+            'Document_Management_Module.Folder_Management.DM-FM_015_non_empty_folder_delete',
+            'Document_Management_Module.Folder_Management.DM-FM_016_move_files_between_folders',
         ]
     }
 }
 
 # Test case ID to module mapping
 TEST_ID_MAP = {
-    # Admin Dashboard IDs
-    'AD_001': '01_User_Profile_Modules.00_Admin_Dashboard.AD_001_admin_dashboard_loads_navigation',
-    'AD_002': '01_User_Profile_Modules.00_Admin_Dashboard.AD_002_admin_dashboard_shows_statistics',
-    
-    # User Profile Module IDs
-    'UP_001': '01_User_Profile_Modules.01_User_Dashboard.UP_001_dashboard_loads_navigation',
-    'UP_002': '01_User_Profile_Modules.01_User_Dashboard.UP_002_dashboard_shows_statistics',
-    'UP_003': '01_User_Profile_Modules.02_File_Preview.UP_003_file_preview_modal_opens',
-    'UP_004': '01_User_Profile_Modules.02_File_Preview.UP_004_file_preview_unsupported_formats',
-    'UP_005': '01_User_Profile_Modules.03_Profile_Settings.UP_005_access_profile_settings',
-    'UP_006': '01_User_Profile_Modules.03_Profile_Settings.UP_006_update_profile_information',
-    'UP_007': '01_User_Profile_Modules.03_Profile_Settings.UP_007_profile_photo_upload',
-    'UP_008': '01_User_Profile_Modules.04_Biometrics.UP_008_biometric_setup_access',
-    'UP_009': '01_User_Profile_Modules.04_Biometrics.UP_009_webauthn_key_registration',
-    'UP_010': '01_User_Profile_Modules.04_Biometrics.UP_010_biometric_login_functionality',
-    'UP_011': '01_User_Profile_Modules.05_Buy_Premium.UP_011_premium_purchase_page',
-    'UP_012': '01_User_Profile_Modules.05_Buy_Premium.UP_012_premium_payment_flow',
-    'UP_013': '01_User_Profile_Modules.05_Buy_Premium.UP_013_premium_status_display',
-    
-    # Document Management Module IDs
-    'DM_001': '02_Document_Management_Modules.01_Upload_Document.DM_001_single_document_upload',
-    'DM_002': '02_Document_Management_Modules.01_Upload_Document.DM_002_multiple_document_upload',
-    'DM_003': '02_Document_Management_Modules.01_Upload_Document.DM_003_file_type_restrictions',
-    'DM_004': '02_Document_Management_Modules.01_Upload_Document.DM_004_file_size_limits',
-    'DM_005': '02_Document_Management_Modules.02_View_Documents.DM_005_document_list_display',
-    'DM_006': '02_Document_Management_Modules.02_View_Documents.DM_006_document_search_filter',
-    'DM_007': '02_Document_Management_Modules.02_View_Documents.DM_007_document_sorting_options',
-    'DM_008': '02_Document_Management_Modules.03_Edit_Documents.DM_008_document_rename',
-    'DM_009': '02_Document_Management_Modules.03_Edit_Documents.DM_009_document_metadata_editing',
-    'DM_010': '02_Document_Management_Modules.03_Edit_Documents.DM_010_document_content_editing',
-    'DM_011': '02_Document_Management_Modules.04_Delete_Documents.DM_011_document_soft_delete',
-    'DM_012': '02_Document_Management_Modules.04_Delete_Documents.DM_012_document_restore_trash',
-    'DM_013': '02_Document_Management_Modules.04_Delete_Documents.DM_013_permanent_document_deletion',
-    'DM_014': '02_Document_Management_Modules.05_Upload_to_Blockchain.DM_014_blockchain_upload_availability',
-    'DM_015': '02_Document_Management_Modules.05_Upload_to_Blockchain.DM_015_blockchain_upload_process',
-    'DM_016': '02_Document_Management_Modules.05_Upload_to_Blockchain.DM_016_blockchain_upload_verification'
+    # User Profile Module IDs (Updated)
+    'UP-UD_001': 'User_Profile_Module.UP-UD_001_dashboard_stats',
+    'UP-N_002': 'User_Profile_Module.UP-N_002_navigation_menu',
+    'UP-B_003': 'User_Profile_Module.UP-B_003_breadcrumb_navigation',
+    'UP-LS_004': 'User_Profile_Module.UP-LS_004_language_switch',
+
+    # Document Management Module IDs (Updated)
+    'DM-FU_001': 'Document_Management_Module.File_Upload.DM-FU_001_single_upload',
+    'DM-FU_002': 'Document_Management_Module.File_Upload.DM-FU_002_multiple_upload',
+    'DM-FU_003': 'Document_Management_Module.File_Upload.DM-FU_003_file_restrictions',
+    'DM-FU_004': 'Document_Management_Module.File_Upload.DM-FU_004_file_size_limits',
+    'DM-FD_005': 'Document_Management_Module.File_Download.DM-FD_005_file_download',
+    'DM-FP_006': 'Document_Management_Module.File_Preview.DM-FP_006_file_preview',
+    'DM-FR_007': 'Document_Management_Module.File_Rename.DM-FR_007_file_rename',
+    'DM-FD_008': 'Document_Management_Module.File_Delete.DM-FD_008_file_soft_delete',
+    'DM-FR_009': 'Document_Management_Module.File_Restore.DM-FR_009_file_restore',
+    'DM-FPD_010': 'Document_Management_Module.File_Permanent_Delete.DM-FPD_010_permanent_deletion',
+    'DM-FM_011': 'Document_Management_Module.Folder_Management.DM-FM_011_folder_creation',
+    'DM-FM_012': 'Document_Management_Module.Folder_Management.DM-FM_012_folder_navigation',
+    'DM-FM_013': 'Document_Management_Module.Folder_Management.DM-FM_013_folder_renaming',
+    'DM-FM_014': 'Document_Management_Module.Folder_Management.DM-FM_014_empty_folder_delete',
+    'DM-FM_015': 'Document_Management_Module.Folder_Management.DM-FM_015_non_empty_folder_delete',
+    'DM-FM_016': 'Document_Management_Module.Folder_Management.DM-FM_016_move_files_between_folders',
 }
 
 def print_header():
@@ -143,6 +121,8 @@ def run_test_case(module_path):
     try:
         # Convert module path to function name
         function_name = module_path.split('.')[-1]  # Get the last part (filename without .py)
+        # Convert hyphens to underscores for Python function names
+        function_name_python = function_name.replace('-', '_')
         
         # Import the module dynamically
         module_file_path = module_path.replace('.', os.sep) + '.py'
@@ -156,11 +136,11 @@ def run_test_case(module_path):
         test_module = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(test_module)
         
-        # Get the main test function
-        test_function = getattr(test_module, function_name)
+        # Get the main test function (try with underscores)
+        test_function = getattr(test_module, function_name_python)
         
         # Run the test
-        print(f"🧪 Executing: {function_name}")
+        print(f"[TEST] Executing: {function_name}")
         result = test_function()
         
         # Each test is worth 1 point
@@ -169,13 +149,13 @@ def run_test_case(module_path):
         return result, points
         
     except ImportError as e:
-        print(f"✗ Failed to import {module_path}: {e}")
+        print(f"[ERROR] Failed to import {module_path}: {e}")
         return False, 0
     except AttributeError as e:
-        print(f"✗ Test function not found in {module_path}: {e}")
+        print(f"[ERROR] Test function not found in {module_path}: {e}")
         return False, 0
     except Exception as e:
-        print(f"✗ Error running {module_path}: {e}")
+        print(f"[ERROR] Error running {module_path}: {e}")
         return False, 0
 
 def run_unit_tests(unit_name, module_category):
@@ -257,7 +237,7 @@ def run_all_module_tests():
     print('=' * 60)
     
     for module_name, success, points in module_results:
-        status = "✓ PASSED" if success else "✗ FAILED"
+        status = "[PASS]" if success else "[FAIL]"
         print(f"{module_name}: {status} ({points} points)")
     
     print(f"\nTotal Points Earned: {total_points}/12 points")
@@ -337,10 +317,10 @@ def main():
         sys.exit(0 if success else 1)
         
     except KeyboardInterrupt:
-        print("\n\n🛑 Tests interrupted by user")
+        print("\n\n[STOPPED] Tests interrupted by user")
         sys.exit(1)
     except Exception as e:
-        print(f"\n💥 Unexpected error: {e}")
+        print(f"\n[BOMB] Unexpected error: {e}")
         sys.exit(1)
     finally:
         # Always cleanup session

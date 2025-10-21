@@ -2642,6 +2642,9 @@ class FileController extends Controller
                     'old_name' => $oldName,
                     'new_name' => $newName
                 ]);
+
+                // Move the file in Supabase storage
+                $this->moveFileInSupabase($file->file_path, $newFilePath);
             }
 
             // Update the file record
@@ -2826,5 +2829,65 @@ class FileController extends Controller
         }
 
         return $newFileName;
+    }
+
+    /**
+     * Move/rename a file in Supabase storage
+     */
+    private function moveFileInSupabase(string $oldPath, string $newPath): void
+    {
+        $supabaseUrl = env('SUPABASE_URL');
+        $supabaseKey = config('services.supabase.service_key');
+        $bucketName = 'docs';
+
+        if (!$supabaseUrl || !$supabaseKey) {
+            Log::error('Supabase URL or Service Key is not configured for file rename');
+            throw new \Exception('Supabase configuration missing');
+        }
+
+        // Disable SSL verification for local development
+        $verifySsl = !(config('app.env') === 'local' || config('app.debug'));
+        $client = new Client([
+            'base_uri' => $supabaseUrl,
+            'verify' => $verifySsl,
+            'timeout' => 30,
+        ]);
+
+        try {
+            Log::info('Moving file in Supabase storage for rename', [
+                'from' => $oldPath,
+                'to' => $newPath
+            ]);
+
+            $response = $client->post("/storage/v1/object/move", [
+                'headers' => [
+                    'Authorization' => 'Bearer ' . $supabaseKey,
+                    'Content-Type' => 'application/json'
+                ],
+                'json' => [
+                    'bucketId' => $bucketName,
+                    'sourceKey' => $oldPath,
+                    'destinationKey' => $newPath,
+                ]
+            ]);
+
+            if ($response->getStatusCode() !== 200) {
+                throw new \Exception('Supabase move operation failed with status: ' . $response->getStatusCode());
+            }
+
+            Log::info('File successfully moved in Supabase storage', [
+                'old_path' => $oldPath,
+                'new_path' => $newPath
+            ]);
+
+        } catch (RequestException $e) {
+            Log::error('Failed to move file in Supabase storage during rename', [
+                'old_path' => $oldPath,
+                'new_path' => $newPath,
+                'status_code' => $e->hasResponse() ? $e->getResponse()->getStatusCode() : 'N/A',
+                'error' => $e->getMessage(),
+            ]);
+            throw new \Exception('Failed to rename file in storage: ' . $e->getMessage());
+        }
     }
 }

@@ -16,28 +16,28 @@ export function initializeBundlrWalletWidget() {
     // Check if widget exists (only for premium users)
     const walletBtn = document.getElementById('bundlrWalletBtn');
     if (!walletBtn) {
-        console.log('📱 Bundlr wallet widget not found (non-premium user) - skipping initialization');
+        // console.log('📱 Bundlr wallet widget not found (non-premium user) - skipping initialization');
         return;
     }
     
-    console.log('🔧 Initializing Bundlr Wallet Widget...');
+    // console.log('🔧 Initializing Bundlr Wallet Widget...');
     
     // Check library availability 
-    console.log('📚 Checking libraries:');
-    console.log('- Ethers:', typeof ethers !== 'undefined' ? '✅' : '❌');
-    console.log('- WebBundlr:', typeof WebBundlr !== 'undefined' ? '✅' : '❌');  
-    console.log('- Bundlr:', typeof Bundlr !== 'undefined' ? '✅' : '❌');
-    console.log('- window.Bundlr:', typeof window.Bundlr !== 'undefined' ? '✅' : '❌');
-    console.log('- BigNumber:', typeof BigNumber !== 'undefined' ? '✅' : '❌');
-    console.log('- MetaMask:', typeof window.ethereum !== 'undefined' ? '✅' : '❌');
+    // console.log('📚 Checking libraries:');
+    // console.log('- Ethers:', typeof ethers !== 'undefined' ? '✅' : '❌');
+    // console.log('- WebBundlr:', typeof WebBundlr !== 'undefined' ? '✅' : '❌');  
+    // console.log('- Bundlr:', typeof Bundlr !== 'undefined' ? '✅' : '❌');
+    // console.log('- window.Bundlr:', typeof window.Bundlr !== 'undefined' ? '✅' : '❌');
+    // console.log('- BigNumber:', typeof BigNumber !== 'undefined' ? '✅' : '❌');
+    // console.log('- MetaMask:', typeof window.ethereum !== 'undefined' ? '✅' : '❌');
     
     // Debug what Bundlr actually contains
-    if (typeof window.Bundlr !== 'undefined') {
-        console.log('🔍 window.Bundlr type:', typeof window.Bundlr);
-        console.log('🔍 window.Bundlr keys:', Object.keys(window.Bundlr));
-        console.log('🔍 window.Bundlr.WebBundlr:', typeof window.Bundlr.WebBundlr);
-        console.log('🔍 window.Bundlr.default:', typeof window.Bundlr.default);
-    }
+    // if (typeof window.Bundlr !== 'undefined') {
+    //     console.log('🔍 window.Bundlr type:', typeof window.Bundlr);
+    //     console.log('🔍 window.Bundlr keys:', Object.keys(window.Bundlr));
+    //     console.log('🔍 window.Bundlr.WebBundlr:', typeof window.Bundlr.WebBundlr);
+    //     console.log('🔍 window.Bundlr.default:', typeof window.Bundlr.default);
+    // }
     
     // Set up event listeners
     setupWalletWidgetListeners();
@@ -45,23 +45,23 @@ export function initializeBundlrWalletWidget() {
     // Update UI state
     updateWalletWidgetUI();
     
-    console.log('✅ Bundlr Wallet Widget initialized');
+    // console.log('✅ Bundlr Wallet Widget initialized');
 }
 
 /**
  * Set up all event listeners for the wallet widget
  */
 function setupWalletWidgetListeners() {
-    console.log('🔧 Setting up wallet widget listeners...');
+    // console.log('🔧 Setting up wallet widget listeners...');
     
     // Use direct onclick for better compatibility
     const walletBtn = document.getElementById('bundlrWalletBtn');
     if (walletBtn) {
-        console.log('✅ Found bundlr wallet button, setting up click handler');
+        // console.log('✅ Found bundlr wallet button, setting up click handler');
         walletBtn.onclick = function(e) {
             e.preventDefault();
             e.stopPropagation();
-            console.log('🔘 Bundlr wallet button clicked!');
+            // console.log('🔘 Bundlr wallet button clicked!');
             toggleWalletDropdown();
         };
     } else {

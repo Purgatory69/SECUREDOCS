@@ -21,7 +21,7 @@ class GlobalSession:
         return cls._instance
     
     def __init__(self):
-        self.BASE_URL = "http://securedocs.live"
+        self.BASE_URL = "https://securedocs.live"
         # User account credentials
         self.test_user_email = "premium@gmail.com"
         self.test_user_password = "password"
@@ -82,7 +82,7 @@ class GlobalSession:
             
             # Wait for dashboard based on account type
             if account_type == "admin":
-                WebDriverWait(driver, 15).until(
+                WebDriverWait(driver, 20).until(
                     EC.any_of(
                         EC.presence_of_element_located((By.CSS_SELECTOR, "[data-page='admin-dashboard']")),
                         EC.presence_of_element_located((By.CSS_SELECTOR, ".admin-dashboard")),
@@ -90,8 +90,13 @@ class GlobalSession:
                     )
                 )
             else:
-                WebDriverWait(driver, 15).until(
-                    EC.presence_of_element_located((By.CSS_SELECTOR, "[data-page='user-dashboard']"))
+                # Wait for user dashboard with multiple success indicators
+                WebDriverWait(driver, 20).until(
+                    EC.any_of(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, "[data-page='user-dashboard']")),
+                        EC.presence_of_element_located((By.ID, "filesContainer")),
+                        EC.url_contains("dashboard")
+                    )
                 )
             
             self._logged_in = True

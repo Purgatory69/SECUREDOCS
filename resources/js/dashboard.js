@@ -74,7 +74,7 @@ function initializeApp() {
         return;
     }
     
-    console.log('Initializing SecureDocs dashboard...');
+    // console.log('Initializing SecureDocs dashboard...');
     
     // Ensure hidden form inputs have the correct current folder ID.
     const currentFolderIdInput = document.getElementById('currentFolderId');
@@ -91,6 +91,7 @@ function initializeApp() {
     // Expose for modules (e.g., upload.js) to refresh after actions
     window.loadUserFiles = loadUserFiles;
     window.loadTrashItems = loadTrashItems;
+    // console.log('Core modules exposed to window');
     initializeUi({
         loadUserFiles,
         loadTrashItems,
@@ -105,24 +106,24 @@ function initializeApp() {
     // --- Initialize Client-Side Arweave System ---
     // Initialize the client-side Arweave modal (user pays directly with MetaMask)
     const clientArweaveModal = document.getElementById('clientArweaveModal');
-    console.log('Client Arweave modal check:', !!clientArweaveModal);
+    // console.log('Client Arweave modal check:', !!clientArweaveModal);
     
     if (clientArweaveModal) {
-        console.log('Initializing client-side Arweave modal...');
+        // console.log('Initializing client-side Arweave modal...');
         initializeClientArweaveModal();
     } else {
-        console.log('Skipping client Arweave initialization - modal not found');
+        // console.log('Skipping client Arweave initialization - modal not found');
     }
     
     // --- Initialize Bundlr Wallet Widget ---
     // Initialize the navigation wallet widget (real Bundlr integration)
-    console.log('Initializing Bundlr wallet widget...');
+    // console.log('Initializing Bundlr wallet widget...');
     initializeBundlrWalletWidget();
     
     // --- Delayed Initialization (10 seconds) ---
     // Delay heavy API calls to improve initial page load performance
     setTimeout(() => {
-        console.log('Initializing delayed services...');
+        // console.log('Initializing delayed services...');
         
         // --- Initialize Notification System ---
         // Initialize the notification bell and dropdown functionality
@@ -135,7 +136,7 @@ function initializeApp() {
             window.storageManager = new StorageUsageManager();
         }
         
-        console.log('Delayed services initialized!');
+        // console.log('Delayed services initialized!');
     }, 5000); // 5 second delay
     
     // --- Initial Data Load ---
@@ -147,7 +148,7 @@ function initializeApp() {
     
     // Mark as initialized
     appInitialized = true;
-    console.log('SecureDocs dashboard initialization complete!');
+    // console.log('SecureDocs dashboard initialization complete!');
 }
 
 // --- Event Listeners for Initialization ---
