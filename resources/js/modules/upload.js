@@ -195,16 +195,54 @@ function handleDrop(e) {
 
 async function handleFiles(files) {
     if (files.length > 0) {
+        // Define allowed file types and size limits (matching backend)
+        const allowedExtensions = [
+            'pdf', 'doc', 'docx', 'txt', 'rtf', 'odt',
+            'xls', 'xlsx', 'csv', 'ods',
+            'ppt', 'pptx', 'odp',
+            'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg',
+            'mp4', 'avi', 'mov', 'wmv', 'flv', 'webm',
+            'mp3', 'wav', 'flac', 'aac', 'ogg',
+            'zip', 'rar', '7z', 'tar', 'gz',
+            'json', 'xml', 'html', 'css', 'js', 'md'
+        ];
+        const maxFileSize = 104857600; // 100MB in bytes
+
         // Validate all files
         currentUploadFiles = [];
+        const rejectedFiles = [];
+        
         for (let i = 0; i < files.length; i++) {
             const file = files[i];
             if (!file || typeof file.size !== 'number' || !file.name) {
                 console.error('Invalid file object received:', file);
-                showNotification('Some files are invalid and were skipped.', 'warning');
+                rejectedFiles.push(`${file?.name || 'Unknown'}: Invalid file object`);
                 continue;
             }
+
+            // Check file extension
+            const fileExtension = file.name.split('.').pop()?.toLowerCase();
+            if (!fileExtension || !allowedExtensions.includes(fileExtension)) {
+                rejectedFiles.push(`${file.name}: File type '.${fileExtension}' is not supported`);
+                continue;
+            }
+
+            // Check file size
+            if (file.size > maxFileSize) {
+                const fileSizeMB = (file.size / 1024 / 1024).toFixed(2);
+                rejectedFiles.push(`${file.name}: File size (${fileSizeMB}MB) exceeds 100MB limit`);
+                continue;
+            }
+
             currentUploadFiles.push(file);
+        }
+
+        // Show rejection notifications
+        if (rejectedFiles.length > 0) {
+            const message = rejectedFiles.length === 1 
+                ? rejectedFiles[0]
+                : `${rejectedFiles.length} files were rejected:\n${rejectedFiles.slice(0, 3).join('\n')}${rejectedFiles.length > 3 ? '\n...' : ''}`;
+            showNotification(message, 'error');
         }
         
         if (currentUploadFiles.length === 0) {
@@ -394,6 +432,11 @@ async function proceedWithMultipleUploads() {
             showNotification(`${successCount} of ${totalFiles} files uploaded. ${failCount} failed.`, 'warning');
             if (errors.length > 0) {
                 console.error('Upload errors:', errors);
+                // Show the first specific error message
+                const firstError = errors[0];
+                if (firstError.includes('File type') || firstError.includes('File size')) {
+                    showNotification(firstError, 'error');
+                }
             }
         } else {
             showNotification('All uploads failed. Please try again.', 'error');

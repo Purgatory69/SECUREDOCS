@@ -832,10 +832,24 @@ class FileController extends Controller
             $user = Auth::user();
             Log::info('Standard upload request received', ['user_id' => $user->id]);
 
+            // Define allowed file types and size limits
+            $allowedExtensions = [
+                'pdf', 'doc', 'docx', 'txt', 'rtf', 'odt',
+                'xls', 'xlsx', 'csv', 'ods',
+                'ppt', 'pptx', 'odp',
+                'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg',
+                'mp4', 'avi', 'mov', 'wmv', 'flv', 'webm',
+                'mp3', 'wav', 'flac', 'aac', 'ogg',
+                'zip', 'rar', '7z', 'tar', 'gz',
+                'json', 'xml', 'html', 'css', 'js', 'md'
+            ];
+            
+            $maxFileSize = 104857600; // 100MB in bytes
+
             $validated = $request->validate([
                 'file_name' => 'required|string|max:255',
                 'file_path' => 'required|string',
-                'file_size' => 'required|integer',
+                'file_size' => 'required|integer|max:' . $maxFileSize,
                 'file_type' => 'required|string',
                 'mime_type' => 'required|string',
                 'parent_id' => 'nullable|integer|exists:files,id',
@@ -844,6 +858,24 @@ class FileController extends Controller
 
             $fileName = $validated['file_name'];
             $parentId = $validated['parent_id'] ?? null;
+            
+            // Validate file extension
+            $fileExtension = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+            
+            if (!in_array($fileExtension, $allowedExtensions)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "File type '.{$fileExtension}' is not supported. Allowed types: " . implode(', ', $allowedExtensions)
+                ], 422);
+            }
+
+            // Additional file size check
+            if ($validated['file_size'] > $maxFileSize) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'File size exceeds the maximum limit of 100MB'
+                ], 422);
+            }
             $replaceExisting = $validated['replace_existing'] ?? false;
 
             // Check for duplicate and handle accordingly

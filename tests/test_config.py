@@ -7,7 +7,7 @@ all dependent tests pick up the new target automatically.
 import os
 
 # Primary test document metadata used across document-management tests
-TARGET_FILE_ID = "189"
+TARGET_FILE_ID = "192"
 TARGET_FILE_NAME = "Louiejay_Test_Plan.csv"
 
 # Primary test folder metadata used across document-management tests
@@ -17,7 +17,7 @@ TARGET_FOLDER_NAME = "PDF's"
 # Computed helpers
 TARGET_FILE_SELECTOR = f"[data-item-id='{TARGET_FILE_ID}']"
 TARGET_FOLDER_SELECTOR = f"[data-item-id='{TARGET_FOLDER_ID}']"
-TARGET_FILE_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), TARGET_FILE_NAME))
+
 
 __all__ = [
     "TARGET_FILE_ID",

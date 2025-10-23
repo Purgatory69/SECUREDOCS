@@ -40,7 +40,7 @@ def pause_if_requested(marker):
 
 def DM_FU_001_single_upload():
     """DM-FU 001: Test single file upload functionality"""
-    test_id = "DM-FU 001"
+    test_id = "DM-FU_001"
     print(f"\n[TEST] Running {test_id}: Single File Upload")
     print("[INFO] Module: Document Management - File Upload")
     print("[INFO] Priority: High | Points: 1")
