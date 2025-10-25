@@ -778,4 +778,45 @@ Route::middleware([
         Route::delete('/{id}', [App\Http\Controllers\NotificationController::class, 'destroy'])->name('destroy');
         Route::delete('/', [App\Http\Controllers\NotificationController::class, 'deleteAll'])->name('delete_all');
     });
+
+    // Arweave client-side upload routes
+    Route::prefix('arweave-client')->name('arweave-client.')->group(function () {
+        Route::post('/save-upload', [App\Http\Controllers\ArweaveController::class, 'saveClientUpload'])->name('save-upload');
+        Route::get('/files', [App\Http\Controllers\ArweaveController::class, 'getUserFiles'])->name('files');
+        Route::post('/files/{fileId}/verify-access', [App\Http\Controllers\ArweaveController::class, 'verifyFileAccess'])->name('verify-access');
+        Route::delete('/files/{fileId}', [App\Http\Controllers\ArweaveController::class, 'deleteFileRecord'])->name('delete-file');
+        Route::get('/stats', [App\Http\Controllers\ArweaveController::class, 'getFileStats'])->name('stats');
+    });
+
+    // Public sharing routes (authenticated users)
+    Route::prefix('share')->name('share.')->group(function () {
+        Route::post('/create', [App\Http\Controllers\PublicShareController::class, 'create'])->name('create');
+        Route::get('/my-shares', [App\Http\Controllers\PublicShareController::class, 'getUserShares'])->name('my-shares');
+        Route::delete('/{shareId}', [App\Http\Controllers\PublicShareController::class, 'delete'])->name('delete');
+        Route::post('/{token}/save-to-my-files', [App\Http\Controllers\PublicShareController::class, 'saveToMyFiles'])->name('save-to-my-files');
+    });
+
+    // API routes for shared files
+    Route::prefix('api')->name('api.')->group(function () {
+        Route::get('/shared-with-me', [App\Http\Controllers\PublicShareController::class, 'getSharedWithMe'])->name('shared-with-me');
+    });
 });
+
+// Public share routes (no authentication required)
+Route::prefix('s')->name('public.')->group(function () {
+    Route::get('/{token}', [App\Http\Controllers\PublicShareController::class, 'show'])->name('share.show');
+    Route::post('/{token}/verify-password', [App\Http\Controllers\PublicShareController::class, 'verifyPassword'])->name('share.verify-password');
+    Route::get('/{token}/download', [App\Http\Controllers\PublicShareController::class, 'download'])->name('share.download');
+    Route::post('/{token}/save', [App\Http\Controllers\PublicShareController::class, 'saveToMyFiles'])->name('share.save');
+    
+    // Individual file routes within shared folders
+    Route::get('/{token}/file/{fileId}', [App\Http\Controllers\PublicShareController::class, 'showFile'])->name('share.file.show');
+    Route::get('/{token}/file/{fileId}/download', [App\Http\Controllers\PublicShareController::class, 'downloadFile'])->name('share.file.download');
+    Route::post('/{token}/file/{fileId}/save', [App\Http\Controllers\PublicShareController::class, 'saveFileToMyFiles'])->name('share.file.save');
+    
+    // Nested folder navigation within shared folders
+    Route::get('/{token}/folder/{folderId}', [App\Http\Controllers\PublicShareController::class, 'showFolder'])->name('share.folder.show');
+});
+
+// API route for generating individual share tokens
+Route::post('/api/get-or-create-share-token', [App\Http\Controllers\PublicShareController::class, 'getOrCreateShareToken'])->name('api.get-or-create-share-token');

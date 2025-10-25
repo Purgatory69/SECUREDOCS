@@ -1,6 +1,11 @@
 {
     "private": true,
     "type": "module",
+    "name": "securedocs",
+    "description": "SecureDocs - Secure File Management System with blockchain integration",
+    "version": "1.0.0",
+    "author": "SecureDocs Team",
+    "license": "MIT",
     "scripts": {
         "build": "vite build",
         "dev": "vite"

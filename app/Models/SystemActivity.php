@@ -62,6 +62,7 @@ class SystemActivity extends Model
     const ACTION_UPLOADED = 'uploaded';
     const ACTION_COMMENTED = 'commented';
     const ACTION_RESTORED = 'restored';
+    const ACTION_COPIED = 'copied';
     const ACTION_LOGIN = 'login';
     const ACTION_LOGOUT = 'logout';
 

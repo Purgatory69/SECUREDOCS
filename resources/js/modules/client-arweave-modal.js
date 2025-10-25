@@ -1,13 +1,16 @@
 /**
- * Client-Side Arweave Upload Modal
+ * Client-Side Arweave Upload Modal with Encryption Support
  * Direct user uploads to Arweave via their own MetaMask wallet
  */
 
-// Using the new bundlr-wallet-widget.js instead of old client-side-bundlr.js
-// All Bundlr functionality now comes from the navigation widget
+// Import encryption modules
+import EncryptedArweaveUpload from './encrypted-arweave-upload.js';
+import EncryptedFileAccess from './encrypted-file-access.js';
 
 let currentFile = null;
 let uploadCost = 0;
+let encryptedUploader = null;
+let fileAccessManager = null;
 
 /**
  * Initialize the client-side Arweave modal
@@ -22,14 +25,21 @@ export function initializeClientArweaveModal() {
         return;
     }
 
+    // Initialize encryption systems
+    encryptedUploader = new EncryptedArweaveUpload();
+    fileAccessManager = new EncryptedFileAccess();
+    
+    if (!encryptedUploader.init() || !fileAccessManager.init()) {
+        console.error('Failed to initialize encryption systems');
+        return;
+    }
+
     // Make openClientArweaveModal available globally
     window.openClientArweaveModal = openClientArweaveModal;
 
     // Set up event listeners
     setupEventListeners();
-    
-
-    
+    setupPrivacyControls();
 
 }
 
@@ -275,6 +285,17 @@ async function handleFileSelection(event) {
     
     currentFile = file;
     updateFileInfo(`${file.name} (${formatFileSize(file.size)})`);
+    
+    // Set file in encrypted uploader
+    if (encryptedUploader) {
+        encryptedUploader.setCurrentFile(file);
+    }
+    
+    // Show privacy controls
+    const privacyControls = document.getElementById('privacyControls');
+    if (privacyControls) {
+        privacyControls.classList.remove('hidden');
+    }
     
     // Update file name in upload step
     const uploadFileNameEl = document.getElementById('uploadFileName');
@@ -897,6 +918,47 @@ function formatFileSize(bytes) {
     const sizes = ['Bytes', 'KB', 'MB', 'GB'];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+}
+
+/**
+ * Setup privacy controls for file encryption
+ */
+function setupPrivacyControls() {
+    const privacyToggle = document.getElementById('filePrivacyToggle');
+    const privacyToggleLabel = document.getElementById('privacyToggleLabel');
+    const publicOption = document.getElementById('publicOption');
+    const privateOption = document.getElementById('privateOption');
+    
+    if (!privacyToggle || !privacyToggleLabel || !publicOption || !privateOption) {
+        console.warn('Privacy control elements not found');
+        return;
+    }
+
+    // Handle privacy toggle
+    privacyToggle.addEventListener('change', function() {
+        const isPrivate = this.checked;
+        
+        // Update label
+        privacyToggleLabel.textContent = isPrivate ? 'Private' : 'Public';
+        
+        // Update visual indicators
+        if (isPrivate) {
+            publicOption.className = 'p-3 border border-gray-600 bg-gray-600/10 rounded-lg';
+            privateOption.className = 'p-3 border border-blue-500 bg-blue-500/10 rounded-lg';
+            privateOption.querySelector('.font-medium').className = 'font-medium text-blue-400';
+        } else {
+            publicOption.className = 'p-3 border border-green-500 bg-green-500/10 rounded-lg';
+            privateOption.className = 'p-3 border border-gray-600 bg-gray-600/10 rounded-lg';
+            privateOption.querySelector('.font-medium').className = 'font-medium text-gray-400';
+        }
+        
+        // Notify encrypted uploader
+        if (encryptedUploader) {
+            encryptedUploader.handlePrivacyToggle(isPrivate);
+        }
+    });
+
+    console.log('✅ Privacy controls initialized');
 }
 
 // Export functions for global use

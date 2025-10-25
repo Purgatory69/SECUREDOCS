@@ -1,61 +1,255 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SecureDocs - Secure File Management System 🔐📁
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A modern, secure file management system built with Laravel that provides enterprise-grade document storage, collaboration, and blockchain-backed permanent archiving.
 
-## About Laravel
+## 🚀 Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+### Core File Management
+- **📁 Hierarchical Folder Structure**: Organize files in nested folders with drag-and-drop support
+- **📤 Advanced Upload System**: Multi-file uploads with progress tracking and resumable uploads
+- **🔍 Smart Search**: Full-text search across all documents with AI-powered suggestions
+- **🗂️ File Organization**: Automatic categorization using AI/ML algorithms
+- **📋 Batch Operations**: Select multiple files for bulk actions (move, delete, share)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+### Security & Authentication
+- **🔐 Multi-Factor Authentication**: WebAuthn biometric authentication + TOTP
+- **👥 Role-Based Access Control**: User, Record Admin, and Admin roles
+- **📊 Activity Tracking**: Comprehensive audit logs for all user actions
+- **🔔 Real-Time Notifications**: Email and in-app notifications for security events
+- **🌍 Session Management**: Trusted devices and suspicious activity detection
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Premium Features
+- **🤖 AI-Powered Features**: Automatic file categorization and content analysis
+- **⛓️ Blockchain Storage**: Permanent archiving on Arweave, Pinata, and Filecoin
+- **💎 Premium Subscriptions**: Enhanced storage limits and advanced features
+- **🔒 Encrypted Storage**: End-to-end encryption for sensitive documents
 
-## Learning Laravel
+### Collaboration & Sharing
+- **👥 File Sharing**: Share files and folders with granular permissions
+- **💬 Comments & Annotations**: Collaborate with team members on documents
+- **📈 Version History**: Track file changes and restore previous versions
+- **👁️ File Preview**: Preview multiple file formats directly in browser
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+### Administration
+- **👨‍💼 Admin Dashboard**: User management, analytics, and system monitoring
+- **📊 Usage Analytics**: Storage usage, activity reports, and performance metrics
+- **⚙️ System Configuration**: Database schema visualization and API endpoints
+- **🔧 Maintenance Tools**: Automated cleanup and optimization scripts
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## 🛠️ Technology Stack
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- **Backend**: Laravel 12.x (PHP 8.2+)
+- **Frontend**: JavaScript ES6+, TailwindCSS, Livewire
+- **Database**: PostgreSQL with Supabase
+- **Authentication**: Laravel Jetstream + WebAuthn
+- **Storage**: Local storage + Blockchain (Arweave/Pinata/Filecoin)
+- **AI/ML**: Custom categorization engine
+- **Deployment**: Docker + Cloudflare Tunnels
 
-## Laravel Sponsors
+## 📋 Requirements
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+- PHP 8.2 or higher
+- PostgreSQL 13+
+- Node.js 18+ with npm
+- Composer
+- Supabase account (for production database)
 
-### Premium Partners
+## 🚀 Installation
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd securedocs
+   ```
 
-## Contributing
+2. **Install PHP dependencies**
+   ```bash
+   composer install
+   ```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+3. **Install Node.js dependencies**
+   ```bash
+   npm install
+   ```
 
-## Code of Conduct
+4. **Environment Configuration**
+   ```bash
+   cp .env.example .env
+   # Edit .env with your database and service configurations
+   php artisan key:generate
+   ```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+5. **Database Setup**
+   ```bash
+   php artisan migrate
+   php artisan db:seed
+   ```
 
-## Security Vulnerabilities
+6. **Build Assets**
+   ```bash
+   npm run build
+   ```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+7. **Start Development Servers**
+   ```bash
+   # Terminal 1: Laravel server
+   php artisan serve
 
-## License
+   # Terminal 2: Vite dev server
+   npm run dev
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+   # Terminal 3: Queue worker (optional)
+   php artisan queue:work
+   ```
+
+## 🔧 Configuration
+
+### Environment Variables
+
+Key configuration options in `.env`:
+
+```env
+# Application
+APP_NAME=SecureDocs
+APP_ENV=local
+APP_DEBUG=true
+
+# Database (Supabase)
+DB_CONNECTION=pgsql
+DB_HOST=db.your-project.supabase.co
+DB_PORT=5432
+DB_DATABASE=postgres
+DB_USERNAME=postgres
+DB_PASSWORD=your-password
+
+# Blockchain Storage
+ARWEAVE_API_KEY=your-arweave-key
+PINATA_API_KEY=your-pinata-key
+FILECOIN_API_KEY=your-filecoin-key
+
+# AI Features
+OPENAI_API_KEY=your-openai-key
+
+# Notifications
+MAIL_MAILER=smtp
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USERNAME=your-email@gmail.com
+MAIL_PASSWORD=your-app-password
+```
+
+### Database Schema
+
+The application uses a comprehensive PostgreSQL schema with the following main tables:
+- `users` - User accounts and profiles
+- `files` - File metadata and storage information
+- `folders` - Hierarchical folder structure
+- `file_versions` - Version history tracking
+- `user_sessions` - Authentication sessions
+- `notifications` - User notifications
+- `activity_logs` - Audit trail
+
+View the complete schema documentation in `docs/schema/DATABASE_SCHEMA_FULL.md`.
+
+## 📖 Usage
+
+### User Registration & Authentication
+1. Register a new account or login with existing credentials
+2. Set up 2FA using WebAuthn (biometric) or TOTP app
+3. Verify your email address for full access
+
+### File Management
+1. **Upload Files**: Click "Upload" or drag files to the upload area
+2. **Create Folders**: Right-click in file area or use the "New Folder" button
+3. **Organize Files**: Drag files between folders or use batch operations
+4. **Search**: Use the search bar to find files by name or content
+
+### Premium Features
+1. **Upgrade to Premium**: Access subscription management in your profile
+2. **AI Categorization**: Enable automatic file organization
+3. **Blockchain Storage**: Archive important files permanently
+
+### Administration (Admin Users Only)
+1. Access admin dashboard at `/admin`
+2. Manage users, view analytics, and configure system settings
+3. Monitor activity logs and security events
+
+## 🔒 Security Features
+
+- **End-to-End Encryption**: Files encrypted before storage
+- **Access Control**: Granular permissions for files and folders
+- **Audit Logging**: All actions tracked with timestamps and user context
+- **Suspicious Activity Detection**: Automated monitoring for security threats
+- **Secure Authentication**: WebAuthn biometric authentication support
+- **Session Security**: Automatic logout on suspicious activity
+
+## 🌐 API Endpoints
+
+The application provides a RESTful API for integrations:
+
+- `GET /api/files` - List user files
+- `POST /api/files` - Upload new file
+- `GET /api/files/{id}` - Download file
+- `PATCH /api/files/{id}` - Update file metadata
+- `DELETE /api/files/{id}` - Delete file
+- `POST /api/files/{id}/share` - Share file with permissions
+
+View complete API documentation in the routes files.
+
+## 🧪 Testing
+
+Run the test suite:
+```bash
+php artisan test
+```
+
+Run specific test categories:
+```bash
+php artisan test --filter FileManagement
+php artisan test --filter Authentication
+```
+
+## 🚀 Deployment
+
+### Docker Deployment
+```bash
+docker-compose up -d
+```
+
+### Production Deployment
+1. Configure production environment variables
+2. Run database migrations
+3. Build and optimize assets: `npm run build`
+4. Set up web server (Nginx/Apache) with PHP-FPM
+5. Configure SSL certificates
+6. Set up background job processing
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch: `git checkout -b feature/your-feature`
+3. Make your changes and add tests
+4. Run the test suite: `php artisan test`
+5. Submit a pull request
+
+## 📝 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## 🆘 Support
+
+For support and questions:
+- 📧 Email: support@securedocs.com
+- 📖 Documentation: [docs/](docs/)
+- 🐛 Bug Reports: [GitHub Issues](https://github.com/your-repo/issues)
+
+## 🙏 Acknowledgments
+
+- Laravel Framework - The foundation of this application
+- Supabase - Database and real-time features
+- Arweave/Pinata/Filecoin - Decentralized storage solutions
+- WebAuthn - Modern authentication standard
+
+---
+
+**SecureDocs** - Where security meets simplicity in document management.

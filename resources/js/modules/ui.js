@@ -366,14 +366,14 @@ function initializeLanguageDropdown() {
 }
 
 export function initializeUi(dependencies) {
-    const { loadUserFiles, loadTrashItems, loadBlockchainItems, state } = dependencies;
+    const { loadUserFiles, loadTrashItems, loadSharedFiles, loadBlockchainItems, state } = dependencies;
     
     initializeNewDropdown();
     initializeUserProfile();
     initializeModalSystem();
     initializeBreadcrumbsDropdown();
     initializeLanguageDropdown();
-    initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, state);
+    initializeViewToggling(loadUserFiles, loadTrashItems, loadSharedFiles, loadBlockchainItems, state);
     
     // Global click handler to close all dropdowns when clicking outside
     document.addEventListener('click', function(e) {
@@ -402,7 +402,7 @@ export function initializeUi(dependencies) {
     });
 }
 
-export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockchainItems, stateObj) {
+export function initializeViewToggling(loadUserFiles, loadTrashItems, loadSharedFiles, loadBlockchainItems, stateObj) {
     // Function to get translated text, checking multiple times if needed
     const getMyDocumentsText = () => {
         return window.I18N?.dbMyDocuments || 
@@ -411,6 +411,7 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
     };
     
     const myDocumentsLink = document.getElementById('my-documents-link');
+    const sharedWithMeLink = document.getElementById('shared-with-me-link');
     const trashLink = document.getElementById('trash-link');
     const blockchainLink = document.getElementById('blockchain-storage-link');
     const newButton = document.getElementById('new-button-container');
@@ -418,6 +419,7 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
 
     function clearActiveStates() {
         myDocumentsLink?.classList.remove('bg-primary', 'text-white');
+        sharedWithMeLink?.classList.remove('bg-primary', 'text-white');
         trashLink?.classList.remove('bg-primary', 'text-white');
         blockchainLink?.classList.remove('bg-primary', 'text-white');
     }
@@ -520,6 +522,19 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadBlockc
         showBreadcrumbsForView('main');
         // Use the state object to get the last search query
         loadUserFiles(stateObj.lastMainSearch, 1, null);
+    });
+
+    sharedWithMeLink?.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (headerTitle) headerTitle.textContent = 'Shared with Me';
+        if (newButton) newButton.style.display = 'none';
+        clearActiveStates();
+        sharedWithMeLink.classList.add('bg-primary', 'text-white');
+        // Hide navigation elements for shared view
+        hideNavigationElements();
+        // Show breadcrumbs for shared view
+        showBreadcrumbsForView('shared');
+        loadSharedFiles();
     });
 
     trashLink?.addEventListener('click', (e) => {

@@ -181,6 +181,8 @@ function updateSelectionUI() {
     const moveBtn = document.getElementById('selectionMoveBtn');
     const restoreBtn = document.getElementById('selectionRestoreBtn');
     const deleteBtn = document.getElementById('selectionDeleteBtn');
+    const shareBtn = document.getElementById('selectionShareBtn');
+    const downloadBtn = document.getElementById('selectionDownloadBtn');
     const deleteLabel = deleteBtn?.querySelector('.btn-label');
     const container = document.getElementById('filesContainer');
     const inTrashView = container?.dataset.view === 'trash';
@@ -204,12 +206,16 @@ function updateSelectionUI() {
         openBtn?.classList.add('hidden');
         moveBtn?.classList.add('hidden');
         renameBtn?.classList.add('hidden');
+        shareBtn?.classList.add('hidden');
+        downloadBtn?.classList.add('hidden');
         restoreBtn?.classList.remove('hidden');
         if (deleteLabel) deleteLabel.textContent = 'Delete permanently';
     } else {
         openBtn?.classList.remove('hidden');
         moveBtn?.classList.remove('hidden');
         renameBtn?.classList.remove('hidden');
+        shareBtn?.classList.remove('hidden');
+        downloadBtn?.classList.remove('hidden');
         restoreBtn?.classList.add('hidden');
         if (deleteLabel) deleteLabel.textContent = 'Delete';
 
@@ -221,6 +227,11 @@ function updateSelectionUI() {
         // Disable Rename button if multiple items selected (can only rename one)
         if (renameBtn) {
             renameBtn.disabled = count > 1;
+        }
+
+        // Disable Share button if multiple items selected (can only share one at a time)
+        if (shareBtn) {
+            shareBtn.disabled = count > 1;
         }
     }
 }
@@ -648,6 +659,8 @@ export function initializeFileFolderManagement(initialState) {
         document.getElementById('selectionRestoreBtn')?.addEventListener('click', handleSelectionRestore);
         document.getElementById('selectionMoveBtn')?.addEventListener('click', handleSelectionMove);
         document.getElementById('selectionRenameBtn')?.addEventListener('click', handleSelectionRename);
+        document.getElementById('selectionShareBtn')?.addEventListener('click', handleSelectionShare);
+        document.getElementById('selectionDownloadBtn')?.addEventListener('click', handleSelectionDownload);
         document.getElementById('selectionClearBtn')?.addEventListener('click', clearSelection);
     }
 }
@@ -690,6 +703,39 @@ async function handleCreateFolder(folderName) {
     }
 }
 
+
+export async function loadSharedFiles() {
+    try {
+        showLoadingState();
+        
+        const response = await fetch('/api/shared-with-me', {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to load shared files');
+        }
+
+        const data = await response.json();
+        
+        if (data.success) {
+            renderSharedFiles(data.shared_files || []);
+            updateBreadcrumbsDisplay([{ id: null, name: 'Shared with Me' }]);
+        } else {
+            throw new Error(data.message || 'Failed to load shared files');
+        }
+    } catch (error) {
+        console.error('Failed to load shared files:', error);
+        showNotification('Failed to load shared files', 'error');
+        renderSharedFiles([]);
+    }
+}
 
 export async function loadTrashItems() {
     const itemsContainer = document.getElementById('filesContainer');
@@ -1358,6 +1404,17 @@ function showActionsMenu(button, itemId) {
             </button>
         `;
 
+        // Add Share option (for both files and folders)
+        menuItems += `
+            <div class="border-t border-[#4A4D6A] my-1"></div>
+            <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-indigo-400 hover:bg-[#2A2D47] hover:text-indigo-300 flex items-center" data-action="share" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Share publicly" data-tooltip="Share publicly">
+                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                </svg>
+                Share
+            </button>
+        `;
+
         // Add OTP Security option for files (not folders)
         if (!isFolder) {
             menuItems += `
@@ -1712,6 +1769,21 @@ function showActionsMenu(button, itemId) {
         otpSecurityBtn.addEventListener('click', directOtpSecurity);
     }
 
+    // Direct listener for share action
+    const shareBtn = menu.querySelector('.actions-menu-item[data-action="share"]');
+    if (shareBtn) {
+        const directShare = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'share', itemId: shareBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = shareBtn.dataset.itemId;
+            showShareModal(id);
+            cleanup();
+        };
+        shareBtn.addEventListener('click', directShare);
+    }
+
     // Direct listeners for restore and force-delete in Trash view
     const restoreBtn = menu.querySelector('.actions-menu-item[data-action="restore"]');
     if (restoreBtn) {
@@ -1907,22 +1979,6 @@ function showActionsMenu(button, itemId) {
         renameBtn.addEventListener('click', directRename);
     }
 
-    // Direct listener for open action (redirects to preview URL)
-    const openBtn = menu.querySelector('.actions-menu-item[data-action="open"]');
-    if (openBtn) {
-        const directOpen = (ev) => {
-            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'open', itemId: openBtn.dataset.itemId });
-            ev.preventDefault();
-            ev.stopPropagation();
-            ev.stopImmediatePropagation?.();
-            const id = openBtn.dataset.itemId;
-            // Redirect to preview URL
-            window.location.href = `/files/${id}/preview`;
-            cleanup();
-        };
-        openBtn.addEventListener('click', directOpen);
-    }
-
     const openFolderBtn = menu.querySelector('.actions-menu-item[data-action="open-folder"]');
     if (openFolderBtn) {
         const directOpenFolder = (ev) => {
@@ -1938,6 +1994,21 @@ function showActionsMenu(button, itemId) {
             cleanup();
         };
         openFolderBtn.addEventListener('click', directOpenFolder);
+    }
+
+    const openBtn = menu.querySelector('.actions-menu-item[data-action="open"]');
+    if (openBtn) {
+        const directOpen = (ev) => {
+            console.debug('[actions-menu-item][direct] event', ev.type, { action: 'open', itemId: openBtn.dataset.itemId });
+            ev.preventDefault();
+            ev.stopPropagation();
+            ev.stopImmediatePropagation?.();
+            const id = openBtn.dataset.itemId;
+            // Use new MediaFire-style modal instead of direct redirect
+            handleFilePreview(id);
+            cleanup();
+        };
+        openBtn.addEventListener('click', directOpen);
     }
 
     // Direct listeners for vector actions to ensure reliability
@@ -3453,8 +3524,8 @@ async function handleFilePreview(fileId) {
             // File requires OTP verification - show OTP prompt
             showOtpVerificationModal(fileId, result.file_name, 'preview');
         } else if (result.success !== false) {
-            // No OTP required or already verified - proceed to preview
-            window.location.href = `/files/${fileId}/preview`;
+            // No OTP required or already verified - show MediaFire-style modal
+            showFileActionModal(fileId, result.file || {});
         } else {
             throw new Error(result.message || 'Failed to access file');
         }
@@ -3880,6 +3951,711 @@ async function renameItem(fileId, newName) {
     }
 }
 
+/**
+ * Show share modal for creating public share links
+ */
+function showShareModal(fileId) {
+    const item = findItemById(fileId);
+    if (!item) {
+        showNotification('File not found', 'error');
+        return;
+    }
+
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-[#1F2235] rounded-lg shadow-xl max-w-md w-full p-6 border border-[#4A4D6A]">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Share ${item.is_folder ? 'Folder' : 'File'}</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-300" onclick="this.closest('.fixed').remove()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex items-center space-x-3 p-3 bg-[#2A2D47] rounded-lg border border-[#4A4D6A]">
+                    <div class="w-10 h-10 bg-[#f89c00] rounded-lg flex items-center justify-center">
+                        ${item.is_folder ? '📁' : '📄'}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-white truncate">${escapeHtml(item.file_name)}</p>
+                        <p class="text-sm text-gray-400">${item.is_folder ? 'Folder' : 'File'}</p>
+                    </div>
+                </div>
+            </div>
+
+            <div id="shareOptions" class="space-y-4">
+                <div>
+                    <label class="flex items-center space-x-2">
+                        <input type="checkbox" id="isOneTime" class="rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]">
+                        <span class="text-sm text-gray-300">One-time download link</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-1">Expires in (days)</label>
+                    <select id="expiresIn" class="w-full border border-[#4A4D6A] bg-[#2A2D47] text-white rounded-md px-3 py-2 text-sm focus:ring-[#f89c00] focus:border-[#f89c00]">
+                        <option value="">Never expires</option>
+                        <option value="1">1 day</option>
+                        <option value="7" selected>1 week</option>
+                        <option value="30">1 month</option>
+                        <option value="90">3 months</option>
+                    </select>
+                </div>
+
+                <div id="passwordSection">
+                    <label class="flex items-center space-x-2 mb-2">
+                        <input type="checkbox" id="passwordProtected" class="rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]">
+                        <span class="text-sm text-gray-300">Password protection</span>
+                        <span class="text-xs bg-[#f89c00] text-black px-2 py-1 rounded-full font-medium">Premium</span>
+                    </label>
+                    <input type="password" id="sharePassword" placeholder="Enter password" 
+                           class="w-full border border-[#4A4D6A] bg-[#2A2D47] text-white rounded-md px-3 py-2 text-sm focus:ring-[#f89c00] focus:border-[#f89c00] placeholder-gray-500 hidden">
+                </div>
+
+                <div id="errorMessage" class="hidden p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
+                    <div class="flex items-center space-x-2">
+                        <svg class="w-4 h-4 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <span class="text-sm text-red-300" id="errorText"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex space-x-3 mt-6">
+                <button type="button" onclick="this.closest('.fixed').remove()" 
+                        class="flex-1 px-4 py-2 text-sm font-medium text-gray-300 bg-[#3C3F58] border border-[#4A4D6A] rounded-md hover:bg-[#55597C] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f89c00]">
+                    Cancel
+                </button>
+                <button type="button" id="createShareBtn"
+                        class="flex-1 px-4 py-2 text-sm font-medium text-black bg-[#f89c00] border border-transparent rounded-md hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f89c00] font-semibold">
+                    Create Share Link
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Handle password protection checkbox
+    const passwordCheckbox = modal.querySelector('#passwordProtected');
+    const passwordInput = modal.querySelector('#sharePassword');
+    
+    passwordCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            // Check if user is premium
+            if (!window.userIsPremium) {
+                // Show premium alert
+                alert('You need to be a Premium user to create password-protected share links. Please upgrade to Premium to use this feature.');
+                this.checked = false;
+                return;
+            }
+            passwordInput.classList.remove('hidden');
+            passwordInput.focus();
+        } else {
+            passwordInput.classList.add('hidden');
+            passwordInput.value = '';
+        }
+    });
+
+    // Handle create share button
+    const createBtn = modal.querySelector('#createShareBtn');
+    createBtn.addEventListener('click', async function() {
+        const isOneTime = modal.querySelector('#isOneTime').checked;
+        const expiresIn = modal.querySelector('#expiresIn').value;
+        const passwordProtected = modal.querySelector('#passwordProtected').checked;
+        const password = modal.querySelector('#sharePassword').value;
+        const errorMessage = modal.querySelector('#errorMessage');
+        const errorText = modal.querySelector('#errorText');
+
+        // Validate password if protection is enabled
+        if (passwordProtected && !password.trim()) {
+            errorText.textContent = 'Please enter a password';
+            errorMessage.classList.remove('hidden');
+            return;
+        }
+
+        // Hide error message
+        errorMessage.classList.add('hidden');
+
+        // Show loading state
+        createBtn.disabled = true;
+        createBtn.textContent = 'Creating...';
+
+        try {
+            const response = await fetch('/share/create', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRF-TOKEN': getCsrfToken()
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    file_id: fileId,
+                    is_one_time: isOneTime,
+                    expires_in_days: expiresIn ? parseInt(expiresIn) : null,
+                    ...(passwordProtected && password ? { password: password } : {})
+                })
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                // Show success modal with share link
+                showShareSuccessModal(result.share);
+                modal.remove();
+            } else {
+                if (result.requires_otp_disable) {
+                    errorText.textContent = 'Cannot share files with OTP protection. Please disable OTP first.';
+                } else if (result.requires_premium) {
+                    errorText.textContent = 'Password protection requires Premium. Upgrade to use this feature.';
+                } else {
+                    errorText.textContent = result.message || 'Failed to create share link';
+                }
+                errorMessage.classList.remove('hidden');
+            }
+        } catch (error) {
+            console.error('Share creation failed:', error);
+            errorText.textContent = 'Failed to create share link. Please try again.';
+            errorMessage.classList.remove('hidden');
+        } finally {
+            createBtn.disabled = false;
+            createBtn.textContent = 'Create Share Link';
+        }
+    });
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+/**
+ * Show success modal with the created share link
+ */
+function showShareSuccessModal(share) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    modal.innerHTML = `
+        <div class="bg-[#1F2235] rounded-lg shadow-xl max-w-md w-full p-6 border border-[#4A4D6A]">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">Share Link Created</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-300" onclick="this.closest('.fixed').remove()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-4">
+                <div class="flex items-center space-x-2 mb-2">
+                    <svg class="w-5 h-5 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                    </svg>
+                    <span class="text-sm font-medium text-[#f89c00]">Share link created successfully!</span>
+                </div>
+                
+                <div class="bg-[#2A2D47] rounded-lg p-3 border border-[#4A4D6A]">
+                    <label class="block text-xs font-medium text-gray-300 mb-1">Share URL</label>
+                    <div class="flex items-center space-x-2">
+                        <input type="text" id="shareUrl" value="${share.url}" readonly
+                               class="flex-1 text-sm bg-[#3C3F58] border border-[#4A4D6A] text-white rounded px-2 py-1 font-mono">
+                        <button type="button" id="copyUrlBtn"
+                                class="px-3 py-1 text-xs font-medium text-black bg-[#f89c00] border border-transparent rounded hover:brightness-110 font-semibold">
+                            Copy
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-2 text-sm text-gray-300 mb-4">
+                <div class="flex justify-between">
+                    <span>Type:</span>
+                    <span class="font-medium text-white">${share.type === 'folder' ? 'Folder' : 'File'}</span>
+                </div>
+                ${share.is_one_time ? '<div class="flex justify-between"><span>Access:</span><span class="font-medium text-[#f89c00]">One-time only</span></div>' : ''}
+                ${share.password_protected ? '<div class="flex justify-between"><span>Protection:</span><span class="font-medium text-[#f89c00]">Password protected</span></div>' : ''}
+                ${share.expires_at ? `<div class="flex justify-between"><span>Expires:</span><span class="font-medium text-white">${new Date(share.expires_at).toLocaleDateString()}</span></div>` : ''}
+            </div>
+
+            <div class="flex space-x-3">
+                <button type="button" onclick="this.closest('.fixed').remove()" 
+                        class="flex-1 px-4 py-2 text-sm font-medium text-gray-300 bg-[#3C3F58] border border-[#4A4D6A] rounded-md hover:bg-[#55597C]">
+                    Close
+                </button>
+                <button type="button" id="openLinkBtn"
+                        class="flex-1 px-4 py-2 text-sm font-medium text-black bg-[#f89c00] border border-transparent rounded-md hover:brightness-110 font-semibold">
+                    Open Link
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Handle copy URL button
+    const copyBtn = modal.querySelector('#copyUrlBtn');
+    const urlInput = modal.querySelector('#shareUrl');
+    
+    copyBtn.addEventListener('click', async function() {
+        try {
+            await navigator.clipboard.writeText(urlInput.value);
+            copyBtn.textContent = 'Copied!';
+            copyBtn.classList.remove('text-blue-600', 'bg-blue-50', 'border-blue-200', 'hover:bg-blue-100');
+            copyBtn.classList.add('text-green-600', 'bg-green-50', 'border-green-200');
+            
+            setTimeout(() => {
+                copyBtn.textContent = 'Copy';
+                copyBtn.classList.remove('text-green-600', 'bg-green-50', 'border-green-200');
+                copyBtn.classList.add('text-blue-600', 'bg-blue-50', 'border-blue-200', 'hover:bg-blue-100');
+            }, 2000);
+        } catch (error) {
+            // Fallback for older browsers
+            urlInput.select();
+            document.execCommand('copy');
+            copyBtn.textContent = 'Copied!';
+        }
+    });
+
+    // Handle open link button
+    const openBtn = modal.querySelector('#openLinkBtn');
+    openBtn.addEventListener('click', function() {
+        window.open(share.url, '_blank');
+    });
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+
+/**
+ * Render shared files in the container
+ */
+function renderSharedFiles(sharedFiles) {
+    const container = document.getElementById('filesContainer');
+    if (!container) return;
+
+    // Set view to shared
+    container.dataset.view = 'shared';
+    
+    // Hide trash banner if visible
+    hideTrashBanner();
+    
+    if (sharedFiles.length === 0) {
+        container.innerHTML = `
+            <div class="bg-[#1F2235] rounded-lg border border-[#4A4D6A] overflow-hidden">
+                <div class="flex flex-col items-center justify-center py-16 text-center">
+                    <div class="w-24 h-24 bg-[#2A2D47] rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-12 h-12 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-medium text-white mb-2">No shared files</h3>
+                    <p class="text-gray-400 max-w-sm">Files that others share with you will appear here. You can save them to your account from public share links.</p>
+                </div>
+            </div>
+        `;
+        return;
+    }
+
+    // Render shared files in MediaFire-style table
+    const filesHtml = sharedFiles.map(sharedFile => {
+        const file = sharedFile.copied_file;
+        const originalShare = sharedFile.original_share;
+        const sharedBy = originalShare.user;
+        const fileSize = file.file_size ? formatFileSize(parseInt(file.file_size, 10)) : '';
+        const modifiedDate = new Date(sharedFile.copied_at).toLocaleDateString();
+        
+        return `
+            <tr class="file-row hover:bg-[#2A2D47] border-b border-[#4A4D6A] cursor-pointer" 
+                data-item-id="${file.id}" data-file-id="${file.id}" data-is-folder="${file.is_folder}">
+                <td class="px-4 py-3">
+                    <div class="flex items-center space-x-3">
+                        <input type="checkbox" class="file-checkbox rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]" 
+                               data-item-id="${file.id}">
+                        <div class="w-8 h-8 flex items-center justify-center">
+                            ${getFileIconSvg(file.file_name, file.is_folder)}
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <div class="text-sm font-medium text-white truncate">${escapeHtml(file.file_name)}</div>
+                            <div class="text-xs text-gray-400">
+                                Shared by ${escapeHtml(sharedBy.name)} • ${fileSize}
+                            </div>
+                        </div>
+                    </div>
+                </td>
+                <td class="px-4 py-3 text-sm text-gray-300 text-right">
+                    <div class="flex items-center justify-end space-x-2">
+                        <span>${modifiedDate}</span>
+                        <button class="actions-menu-btn p-1 hover:bg-[#3C3F58] rounded" 
+                                data-item-id="${file.id}" aria-expanded="false" title="More actions">
+                            <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="bg-[#1F2235] rounded-lg border border-[#4A4D6A] overflow-hidden">
+            <!-- Header -->
+            <div class="bg-[#2A2D47] border-b border-[#4A4D6A] px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-[#f89c00] rounded flex items-center justify-center">
+                            <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold text-white">Shared with Me</h2>
+                            <p class="text-sm text-gray-400">${sharedFiles.length} files</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button class="px-3 py-1.5 bg-[#f89c00] text-black text-sm font-medium rounded hover:brightness-110">
+                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            DOWNLOAD
+                        </button>
+                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                            </svg>
+                        </button>
+                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                        </button>
+                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Table -->
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead class="bg-[#2A2D47] border-b border-[#4A4D6A]">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                <div class="flex items-center space-x-2">
+                                    <input type="checkbox" class="select-all-checkbox rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]">
+                                    <span>NAME</span>
+                                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </th>
+                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
+                                <div class="flex items-center justify-end space-x-1">
+                                    <span>MODIFIED</span>
+                                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                    </svg>
+                                </div>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-[#4A4D6A]">
+                        ${filesHtml}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+
+    // Attach event listeners
+    attachEventListeners(container);
+}
+
+/**
+ * Get SVG icon for file type
+ */
+function getFileIconSvg(fileName, isFolder) {
+    if (isFolder) {
+        return `
+            <svg class="w-6 h-6 text-[#f89c00]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M10 4H4c-1.11 0-2 .89-2 2v12c0 1.11.89 2 2 2h16c1.11 0 2-.89 2-2V8c0-1.11-.89-2-2-2h-8l-2-2z"/>
+            </svg>
+        `;
+    }
+    
+    const extension = fileName.split('.').pop()?.toLowerCase() || '';
+    
+    // Document files
+    if (['doc', 'docx', 'txt', 'rtf'].includes(extension)) {
+        return `
+            <svg class="w-6 h-6 text-blue-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+            </svg>
+        `;
+    }
+    
+    // Spreadsheet files
+    if (['xls', 'xlsx', 'csv'].includes(extension)) {
+        return `
+            <svg class="w-6 h-6 text-green-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+            </svg>
+        `;
+    }
+    
+    // PDF files
+    if (extension === 'pdf') {
+        return `
+            <svg class="w-6 h-6 text-red-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+            </svg>
+        `;
+    }
+    
+    // Image files
+    if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'svg', 'webp'].includes(extension)) {
+        return `
+            <svg class="w-6 h-6 text-purple-500" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M8.5,13.5L11,16.5L14.5,12L19,18H5M21,19V5C21,3.89 20.1,3 19,3H5A2,2 0 0,0 3,5V19A2,2 0 0,0 5,21H19A2,2 0 0,0 21,19Z"/>
+            </svg>
+        `;
+    }
+    
+    // Default file icon
+    return `
+        <svg class="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
+            <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z"/>
+        </svg>
+    `;
+}
+
+/**
+ * Show loading state
+ */
+function showLoadingState() {
+    const container = document.getElementById('filesContainer');
+    if (!container) return;
+
+    container.innerHTML = `
+        <div class="bg-[#1F2235] rounded-lg border border-[#4A4D6A] overflow-hidden">
+            <div class="flex items-center justify-center py-16">
+                <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f89c00]"></div>
+                <span class="ml-3 text-gray-300">Loading shared files...</span>
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Handle sharing selected items from toolbar
+ */
+function handleSelectionShare() {
+    const selectedItems = Array.from(state.selectedItems);
+    
+    if (selectedItems.length === 0) {
+        showNotification('No items selected', 'error');
+        return;
+    }
+    
+    if (selectedItems.length > 1) {
+        showNotification('Please select only one item to share', 'error');
+        return;
+    }
+    
+    const itemId = selectedItems[0];
+    showShareModal(itemId);
+}
+
+/**
+ * Handle downloading selected items from toolbar
+ */
+function handleSelectionDownload() {
+    const selectedItems = Array.from(state.selectedItems);
+    
+    if (selectedItems.length === 0) {
+        showNotification('No items selected', 'error');
+        return;
+    }
+    
+    // Download each selected item
+    selectedItems.forEach(itemId => {
+        const item = findItemById(itemId);
+        if (item) {
+            downloadFile(itemId, item.file_name);
+        }
+    });
+    
+    if (selectedItems.length > 1) {
+        showNotification(`Downloading ${selectedItems.length} files...`, 'success');
+    }
+}
+
+/**
+ * Download a file using the existing download endpoint
+ */
+async function downloadFile(fileId, fileName) {
+    try {
+        const response = await fetch(`/files/${fileId}/download`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/octet-stream',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+
+        if (!response.ok) {
+            throw new Error('Download failed');
+        }
+
+        // Create blob and download
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.style.display = 'none';
+        a.href = url;
+        a.download = fileName || 'download';
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+
+    } catch (error) {
+        console.error('Download failed:', error);
+        showNotification(`Failed to download ${fileName}`, 'error');
+    }
+}
+
+/**
+ * Show MediaFire-style file action modal with download and preview options
+ */
+function showFileActionModal(fileId, fileData) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    
+    // Get file extension for icon
+    const fileName = fileData.file_name || 'Unknown File';
+    const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
+    const fileSize = formatFileSize(fileData.file_size || 0);
+    
+    modal.innerHTML = `
+        <div class="bg-[#1F2235] rounded-lg shadow-xl max-w-md w-full p-6 border border-[#4A4D6A]">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="text-lg font-semibold text-white">${escapeHtml(fileName)}</h3>
+                <button type="button" class="text-gray-400 hover:text-gray-300" onclick="this.closest('.fixed').remove()">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                    </svg>
+                </button>
+            </div>
+
+            <div class="mb-6">
+                <div class="flex items-center space-x-3 p-4 bg-[#2A2D47] rounded-lg border border-[#4A4D6A]">
+                    <div class="w-12 h-12 bg-[#f89c00] rounded-lg flex items-center justify-center">
+                        <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-white truncate">${escapeHtml(fileName)}</p>
+                        <p class="text-sm text-gray-400">Document (.${fileExtension.toUpperCase()})</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mb-4">
+                <div class="grid grid-cols-2 gap-3 text-sm text-gray-300">
+                    <div class="flex justify-between">
+                        <span>File size:</span>
+                        <span class="font-medium text-white">${fileSize}</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Uploaded:</span>
+                        <span class="font-medium text-white">${new Date(fileData.created_at || Date.now()).toLocaleDateString()}</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-3">
+                <button type="button" id="downloadFileBtn" 
+                        class="w-full px-4 py-3 text-sm font-semibold text-black bg-[#f89c00] border border-transparent rounded-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f89c00] flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                    </svg>
+                    <span>DOWNLOAD FILE</span>
+                </button>
+                
+                <button type="button" id="previewFileBtn" 
+                        class="w-full px-4 py-3 text-sm font-medium text-gray-300 bg-[#3C3F58] border border-[#4A4D6A] rounded-lg hover:bg-[#55597C] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f89c00] flex items-center justify-center space-x-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
+                    <span>Preview File</span>
+                </button>
+            </div>
+
+            <div class="mt-4 p-3 bg-[#2A2D47] rounded-lg border border-[#4A4D6A]">
+                <p class="text-xs text-gray-400 mb-2">Can be opened with</p>
+                <div class="flex items-center space-x-2">
+                    <div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
+                        <span class="text-xs text-white font-bold">W</span>
+                    </div>
+                    <span class="text-sm text-gray-300">Microsoft Word</span>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Handle download button
+    const downloadBtn = modal.querySelector('#downloadFileBtn');
+    downloadBtn.addEventListener('click', function() {
+        downloadFile(fileId, fileName);
+        modal.remove();
+    });
+
+    // Handle preview button
+    const previewBtn = modal.querySelector('#previewFileBtn');
+    previewBtn.addEventListener('click', function() {
+        window.location.href = `/files/${fileId}/preview`;
+        modal.remove();
+    });
+
+    // Close modal when clicking outside
+    modal.addEventListener('click', function(e) {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
 // Export functions to global scope for testing and external access
 window.showRenameModal = showRenameModal;
+window.showShareModal = showShareModal;
 window.renameItem = renameItem;
+window.loadSharedFiles = loadSharedFiles;

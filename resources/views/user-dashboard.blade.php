@@ -435,6 +435,14 @@
             <span class="text-sm">{{ __('auth.db_my_documents') }}</span>
         </li>
 
+        <li id="shared-with-me-link" 
+            class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4 
+            bg-[#141326] text-white hover:brightness-110 active:bg-[#2B2C61]">
+            <svg class="mr-4 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+            </svg>
+            <span class="text-sm">{{ __('auth.db_shared_with_me') }}</span>
+        </li>
 
         <li id="trash-link" 
             class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4 
@@ -556,6 +564,18 @@
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
                 </svg>
                 <span class="btn-label">Rename</span>
+            </button>
+            <button id="selectionShareBtn" class="flex items-center gap-2 px-3 py-2 bg-[#f89c00] hover:brightness-110 rounded-lg text-sm transition-colors text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                </svg>
+                <span class="btn-label">Share</span>
+            </button>
+            <button id="selectionDownloadBtn" class="flex items-center gap-2 px-3 py-2 bg-[#f89c00] hover:brightness-110 rounded-lg text-sm transition-colors text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span class="btn-label">Download</span>
             </button>
         </div>
         <button id="selectionClearBtn" class="flex items-center gap-1 px-2 py-1 bg-transparent hover:bg-[#4A4D6A] rounded text-white text-sm transition-colors ml-2">

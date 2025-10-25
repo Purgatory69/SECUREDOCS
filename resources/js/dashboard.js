@@ -8,7 +8,7 @@
 import { initializeN8nChat } from './modules/n8n.js';
 import { initializeUploadModal } from './modules/upload.js';
 import { initializeUi, updateBreadcrumbsDisplay, initializeTooltips } from './modules/ui.js';
-import { loadUserFiles, loadTrashItems, initializeFileFolderManagement } from './modules/file-folder.js';
+import { loadUserFiles, loadTrashItems, loadSharedFiles, initializeFileFolderManagement } from './modules/file-folder.js';
 import './modules/upload.js';
 import './modules/blockchain-upload.js';
 import './modules/client-arweave-modal.js';
@@ -91,10 +91,12 @@ function initializeApp() {
     // Expose for modules (e.g., upload.js) to refresh after actions
     window.loadUserFiles = loadUserFiles;
     window.loadTrashItems = loadTrashItems;
+    window.loadSharedFiles = loadSharedFiles;
     // console.log('Core modules exposed to window');
     initializeUi({
         loadUserFiles,
         loadTrashItems,
+        loadSharedFiles,
         loadBlockchainItems,
         state: { lastMainSearch: state.lastMainSearch }
     });
