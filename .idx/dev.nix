@@ -4,6 +4,8 @@
     pkgs.nodejs_20
     pkgs.php82
     pkgs.php82Packages.composer
+    pkgs.python-launcher
+    pkgs.python3
   ];
   idx.extensions = [
     "svelte.svelte-vscode"

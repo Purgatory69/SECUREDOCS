@@ -1,176 +1,179 @@
 @extends('layouts.app')
-
 @section('title', 'Passwordless Login - WebAuthn')
-
 @section('content')
-<div class="min-h-screen bg-gradient-to-br from-[#1a1a2e] via-[#16213e] to-[#0f0f23] flex items-center justify-center">
-    <div class="max-w-md w-full space-y-8 p-8">
-        <!-- Logo and Title -->
-        <div class="text-center animate-fade-in">
-            <div class="mx-auto h-20 w-20 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center mb-6 shadow-2xl animate-pulse-slow">
-                <svg class="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
-                </svg>
-            </div>
-            <h2 class="text-4xl font-bold text-white mb-3 bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent">
-                Passwordless Login
-            </h2>
-            <p class="text-gray-400 text-lg">Sign in with your security key or biometrics</p>
-            <div class="mt-4 inline-flex items-center px-3 py-1 bg-green-500/20 text-green-300 rounded-full text-sm">
-                <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Secure & Fast
-            </div>
+
+<!-- Back Button - Fixed Position Top Left -->
+<div class="fixed top-6 left-6 z-50 pt-4 pl-2">
+    <button id="back-button" class="pl-4 ml-4 text-white p-3 rounded-full shadow-lg transition-colors">
+        <img src="{{ asset('back-arrow.png') }}" alt="Back" class="w-5 h-5">
+    </button>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const backButton = document.getElementById('back-button');
+
+        // Hide button if there's no history to go back to
+        if (window.history.length <= 1) {
+            backButton.style.display = 'none';
+        }
+
+        backButton.addEventListener('click', function() {
+            // Check if there's a previous page in history
+            if (document.referrer && document.referrer !== window.location.href) {
+                window.history.back();
+            } else {
+                // Fallback to home page if no referrer
+                window.location.href = "{{ url('/') }}";
+            }
+        });
+    });
+</script>
+
+<!-- Language Toggle Button - Fixed Position Bottom Right -->
+<div class="fixed bottom-6 right-6 z-50">
+    <div class="relative">
+        <!-- Toggle Button -->
+        <button id="language-toggle" class="bg-[#3c3f58] text-white p-3 rounded-full shadow-lg transition
+            style="transition: background-color 0.2s;"
+            onmouseover="this.style.backgroundColor='#55597C';"
+            onmouseout="this.style.backgroundColor='';">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+            </svg>
+        </button>
+
+        <!-- Dropdown Menu -->
+        <div id="language-dropdown" style="background-color: #3c3f58; border: 3px solid #1F1F33" class="absolute bottom-full right-0 mb-2 hidden bg-[#3c3f58] rounded-lg shadow-xl overflow-hidden min-w-[140px]">
+            <a href="{{ route('language.switch', 'en') }}"
+                class="flex items-center px-4 py-3 text-sm transition-colors {{ app()->getLocale() == 'en' ? 'bg-[#f89c00] text-black font-bold' : 'text-white' }}"
+                @if(app()->getLocale() != 'en')
+                    style="transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#55597C';"
+                    onmouseout="this.style.backgroundColor='';"
+                @endif>
+                <span class="mr-2">🇺🇸</span>
+                English
+            </a>
+            <a href="{{ route('language.switch', 'fil') }}"
+                class="flex items-center px-4 py-3 text-sm transition-colors {{ app()->getLocale() == 'fil' ? 'bg-[#f89c00] text-black font-bold' : 'text-white' }}"
+                @if(app()->getLocale() != 'fil')
+                    style="transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#55597C';"
+                    onmouseout="this.style.backgroundColor='';"
+                @endif>
+                <span class="mr-2">🇵🇭</span>
+                Filipino
+            </a>
+        </div>
+    </div>
+</div>
+
+<script>
+        // Language Dropdown Toggle
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleButton = document.getElementById('language-toggle');
+            const dropdown = document.getElementById('language-dropdown');
+
+            if (toggleButton && dropdown) {
+                toggleButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                });
+
+                // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!toggleButton.contains(e.target) && !dropdown.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                    }
+                });
+            }
+        });
+</script>
+
+<div style="background-color: #141326;" class="min-h-screen flex flex-col items-center justify-center text-white px-4">
+    <div style="margin-top: -20px;" class="w-full max-w-2xl">
+
+    <header class="mb-8 flex flex-col items-center">
+        <div class="flex items-center space-x-3">
+            <img src="{{ asset('logo-white.png') }}" alt="SecureDocs logo" class="w-12 h-12">
+            <h1 class="text-white text-xl font-bold">SECURE<span class="text-[#f89c00]">DOCS</span></h1>
+        </div>
+    </header>
+
+    <div class="text-center mb-12">
+        <h2 class="text-[#f89c00] text-xl font-semibold tracking-wide">Biometric Login</h2>
+        <p class="text-white text-sm mt-2">Sign up with your security keys for a password-less authentication!</p>
+    </div>
+
+    <div class="bg-[#3c3f58] mx-auto max-w-lg rounded-xl p-8">
+    <form id="webauthnLoginForm">
+        @csrf
+        <div>
+            <label for="email" class="block text-sm font-medium text-white mb-2">EMAIL</label>
+            <input id="email" name="email" type="email" 
+                class="w-full px-4 py-2 bg-white border-transparent rounded-full text-black placeholder-gray-500 focus:outline-none"
+                onfocus="this.style.boxShadow = '0 0 0 2px #55597C'" onblur="this.style.boxShadow = 'none'">
         </div>
 
-        <!-- Login Form -->
-        <div class="bg-[#1F2235] rounded-xl border border-[#4A4D6A] p-8">
-            <form id="webauthnLoginForm" class="space-y-6">
-                @csrf
-                
-                <!-- Email Input -->
-                <div>
-                    <label for="email" class="block text-sm font-medium text-gray-300 mb-2">
-                        Email Address
-                    </label>
-                    <input 
-                        id="email" 
-                        name="email" 
-                        type="email" 
-                        required 
-                        class="w-full px-4 py-3 bg-[#2A2D47] border border-[#4A4D6A] rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                        placeholder="Enter your email address"
-                    >
-                </div>
+        <button type="submit" id="loginButton" class="flex justify-center items-center px-10 py-2 bg-[#9ba0f9] hover:brightness-110 rounded-full font-bold text-black transition-all duration-200 shadow-lg mt-6" style="width: fit-content; margin-left: auto; margin-right: auto;">
+            <span id="buttonText">LOGIN WITH SECURITY KEY</span>
+        </button>
+    </form>
+</div>
 
-                <!-- Login Button -->
-                <button 
-                    type="submit" 
-                    id="loginButton"
-                    class="w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg font-medium text-white transition-all duration-200 transform hover:scale-105 shadow-lg"
-                >
-                    <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
-                    </svg>
-                    <span id="buttonText">Sign In with Security Key</span>
-                </button>
-            </form>
+<div class="mt-16 text-center">
+    <h3 class="text-lg font-semibold text-white mt-[20px] mb-6">Supported Authentications</h3>
+    <div class="flex w-full items-start text-center">
 
-            <!-- Error Display -->
-            <div id="errorDisplay" class="hidden mt-4 p-4 bg-red-900/30 border border-red-500 rounded-lg">
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                    </svg>
-                    <span id="errorMessage" class="text-red-300 text-sm"></span>
-                </div>
-            </div>
-
-            <!-- Divider -->
-            <div class="mt-6 pt-6 border-t border-[#4A4D6A]">
-                <div class="text-center">
-                    <button onclick="window.location.href='{{ route('login') }}'" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2.5 px-6 rounded-lg transition-colors">
-                        ← Back to Normal Login
-                    </button>
-                </div>
-            </div>
+        <div class="flex-1 flex flex-col items-center">
+            <img src="{{ asset('padlock-gold.png') }}" class="w-6 h-6 mb-2">
+            <p class="text-sm text-[#f89c00] font-semibold">Windows Hello</p>
         </div>
 
-        <!-- Info Section -->
-        <div class="bg-[#1F2235] rounded-xl border border-[#4A4D6A] p-6">
-            <h3 class="text-lg font-semibold text-white mb-4">Supported Authenticators</h3>
-            <div class="grid grid-cols-2 gap-4">
-                <div class="text-center">
-                    <div class="w-12 h-12 mx-auto mb-2 bg-blue-500/20 rounded-lg flex items-center justify-center">
-                        <span class="text-2xl">🔒</span>
-                    </div>
-                    <p class="text-sm text-gray-400">Windows Hello</p>
-                </div>
-                <div class="text-center">
-                    <div class="w-12 h-12 mx-auto mb-2 bg-green-500/20 rounded-lg flex items-center justify-center">
-                        <span class="text-2xl">🔑</span>
-                    </div>
-                    <p class="text-sm text-gray-400">Security Keys</p>
-                </div>
-                <div class="text-center">
-                    <div class="w-12 h-12 mx-auto mb-2 bg-purple-500/20 rounded-lg flex items-center justify-center">
-                        <span class="text-2xl">👆</span>
-                    </div>
-                    <p class="text-sm text-gray-400">Touch ID</p>
-                </div>
-                <div class="text-center">
-                    <div class="w-12 h-12 mx-auto mb-2 bg-yellow-500/20 rounded-lg flex items-center justify-center">
-                        <span class="text-2xl">👤</span>
-                    </div>
-                    <p class="text-sm text-gray-400">Face ID</p>
-                </div>
-            </div>
+        <div class="flex-1 flex flex-col items-center">
+            <img src="{{ asset('key-gold.png') }}" class="w-6 h-6 mb-2">
+            <p class="text-sm text-[#f89c00] font-semibold">Security Keys</p>
         </div>
+
+        <div class="flex-1 flex flex-col items-center">
+            <img src="{{ asset('fingerprint-gold.png') }}" class="w-6 h-6 mb-2">
+            <p class="text-sm text-[#f89c00] font-semibold">Touch ID</p>
+        </div>
+
+        <div class="flex-1 flex flex-col items-center">
+            <img src="{{ asset('face-id-gold.png') }}" class="w-6 h-6 mb-2">
+            <p class="text-sm text-[#f89c00] font-semibold">Face ID</p>
+        </div>
+
+    </div>
+</div>
+
     </div>
 </div>
 
 <!-- Authentication Modal -->
 <div id="authModal" class="fixed inset-0 z-50 hidden overflow-y-auto">
     <div class="flex items-center justify-center min-h-screen px-4">
-        <div class="fixed inset-0 bg-black opacity-50"></div>
-        <div class="relative bg-[#1F2235] rounded-xl border border-[#4A4D6A] max-w-md w-full p-6">
+        <div style="background-color: #141326; opacity: 0.8;" class="fixed inset-0"></div>
+        <div style="background-color: #24243B;" class="relative rounded-xl max-w-md w-full p-6">
             <div class="text-center">
-                <div class="w-16 h-16 mx-auto mb-4 bg-blue-500/20 rounded-full flex items-center justify-center">
-                    <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
-                    </svg>
+                <div class="w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                    <img src="{{ asset('key-gold.png') }}" class="w-12 h-12">
                 </div>
                 <h3 class="text-lg font-semibold text-white mb-2">Authenticate</h3>
-                <p id="authMessage" class="text-gray-400 mb-6">Please use your security key or biometric authentication when prompted.</p>
+                <p id="authMessage" style="color: #9CA3AF;" class="text-sm mb-6">Please use your security key or biometric authentication when prompted.</p>
                 
                 <div id="authSpinner" class="mb-4">
-                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-400 mx-auto"></div>
+                    <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-[#f89c00] mx-auto"></div>
                 </div>
             </div>
         </div>
     </div>
 </div>
 
-@push('styles')
-<style>
-@keyframes fade-in {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes pulse-slow {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-}
-
-@keyframes float {
-    0%, 100% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-}
-
-.animate-fade-in {
-    animation: fade-in 0.8s ease-out;
-}
-
-.animate-pulse-slow {
-    animation: pulse-slow 3s ease-in-out infinite;
-}
-
-.animate-float {
-    animation: float 6s ease-in-out infinite;
-}
-
-.glass-effect {
-    backdrop-filter: blur(10px);
-    background: rgba(31, 34, 53, 0.8);
-}
-</style>
-@endpush
 
 @push('scripts')
-<script src="{{ asset('vendor/webauthn/webauthn.js') }}" defer></script>
-@vite(['resources/js/webauthn-handler.js'])
 <script>
 // Helper functions
 function base64urlToArrayBuffer(base64url) {
@@ -200,32 +203,6 @@ function showAuthModal(message = 'Please use your security key or biometric auth
 
 function hideAuthModal() {
     document.getElementById('authModal').classList.add('hidden');
-}
-
-function showError(message) {
-    const errorDisplay = document.getElementById('errorDisplay');
-    const errorMessage = document.getElementById('errorMessage');
-    errorMessage.textContent = message;
-    errorDisplay.classList.remove('hidden');
-    
-    // Auto-hide after 10 seconds
-    setTimeout(() => {
-        errorDisplay.classList.add('hidden');
-    }, 10000);
-}
-
-function resetButton() {
-    const button = document.getElementById('loginButton');
-    const buttonText = document.getElementById('buttonText');
-    
-    // Reset button to original state
-    button.disabled = false;
-    button.className = 'w-full flex justify-center items-center px-4 py-3 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 rounded-lg font-medium text-white transition-all duration-200 transform hover:scale-105 shadow-lg';
-    buttonText.textContent = 'Sign In with Security Key';
-    
-    // Hide error display
-    const errorDisplay = document.getElementById('errorDisplay');
-    errorDisplay.classList.add('hidden');
 }
 
 // Main login function
@@ -326,12 +303,14 @@ async function performWebAuthnLogin(email) {
             errorMessage = error.message;
         }
         
-        // Show error in UI instead of alert
-        showError(errorMessage);
+        alert(errorMessage);
         console.error('WebAuthn login error:', error);
         
-        // Reset button with original styling
-        resetButton();
+        // Reset button
+        const button = document.getElementById('loginButton');
+        const buttonText = document.getElementById('buttonText');
+        button.disabled = false;
+        buttonText.textContent = 'Sign In with Security Key';
     }
 }
 
@@ -341,7 +320,7 @@ document.getElementById('webauthnLoginForm').addEventListener('submit', async fu
     
     const email = document.getElementById('email').value.trim();
     if (!email) {
-        showError('Please enter your email address');
+        alert('Please enter your email address');
         return;
     }
     
@@ -355,19 +334,11 @@ document.getElementById('webauthnLoginForm').addEventListener('submit', async fu
     await performWebAuthnLogin(email);
 });
 
-// Reset button and errors when user starts typing email
-document.getElementById('email').addEventListener('input', function() {
-    const errorDisplay = document.getElementById('errorDisplay');
-    if (!errorDisplay.classList.contains('hidden')) {
-        resetButton();
-    }
-});
-
 // Check WebAuthn support
 if (!window.PublicKeyCredential) {
     document.getElementById('loginButton').disabled = true;
     document.getElementById('buttonText').textContent = 'WebAuthn Not Supported';
-    showError('Your browser does not support WebAuthn. Please use a modern browser or try password login.');
+    alert('Your browser does not support WebAuthn. Please use a modern browser or try password login.');
 }
 </script>
 @endpush

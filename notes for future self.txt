@@ -26,3 +26,12 @@ php artisan ai:complete-categorization 18 --progress=
 after the first time verify otp it should be set instead of starting all over again
 
   "query": "-- Add encryption support to arweave_urls table\nALTER TABLE public.arweave_urls ADD COLUMN IF NOT EXISTS is_encrypted boolean DEFAULT false;\nALTER TABLE public.arweave_urls ADD COLUMN IF NOT EXISTS encryption_method varchar(50) DEFAULT NULL;\nALTER TABLE public.arweave_urls ADD COLUMN IF NOT EXISTS password_hash varchar(255) DEFAULT NULL;\nALTER TABLE public.arweave_urls ADD COLUMN IF NOT EXISTS salt varchar(255) DEFAULT NULL;\nALTER TABLE public.arweave_urls ADD COLUMN IF NOT EXISTS iv varchar(255) DEFAULT NULL;\nALTER TABLE public.arweave_urls ADD COLUMN IF NOT EXISTS access_count integer DEFAULT 0;\nALTER TABLE public.arweave_urls ADD COLUMN IF NOT EXISTS last_accessed_at timestamptz DEFAULT NULL;\n\n-- Add index for encrypted files lookup\nCREATE INDEX IF NOT EXISTS idx_arweave_urls_encrypted ON public.arweave_urls(user_id, is_encrypted);\n\n-- Add comments for clarity\nCOMMENT ON COLUMN public.arweave_urls.is_encrypted IS 'Whether the file is encrypted before upload to Arweave';\nCOMMENT ON COLUMN public.arweave_urls.encryption_method IS 'Encryption method used (e.g., AES-256-GCM)';\nCOMMENT ON COLUMN public.arweave_urls.password_hash IS 'Hashed password for file access (bcrypt)';\nCOMMENT ON COLUMN public.arweave_urls.salt IS 'Salt used for key derivation';\nCOMMENT ON COLUMN public.arweave_urls.iv IS 'Initialization vector for encryption';\nCOMMENT ON COLUMN public.arweave_urls.access_count IS 'Number of times file has been accessed';\nCOMMENT ON COLUMN public.arweave_urls.last_accessed_at IS 'Last time file was accessed';"
+
+
+
+for the running of the test
+#1
+chmod +x .venv/bin/activate
+#2
+.venv/bin/activate
+

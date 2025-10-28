@@ -7,6 +7,7 @@
 /storage/pail
 /vendor
 .env
+.venv
 .env.backup
 .env.production
 .env.local
@@ -42,3 +43,10 @@ test-automation/test-output/
 test-automation/.idea/
 test-automation/.vscode/
 test-automation/*.iml
+tests/unit testing/__pycache__/global_session.cpython-311.pyc
+tests/unit testing/__pycache__/webdriver_utils.cpython-311.pyc
+tests/unit testing/webdriver_utils.py
+tests/unit testing/User_Profile_Module/__pycache__/UP-B_003_breadcrumb_navigation.cpython-311.pyc
+tests/unit testing/User_Profile_Module/UP-B_003_breadcrumb_navigation.py
+tests/unit testing/__pycache__/webdriver_utils.cpython-311.pyc
+tests/unit testing/__pycache__/global_session.cpython-311.pyc

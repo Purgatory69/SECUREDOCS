@@ -73,13 +73,13 @@
                 <<link rel="icon" href="{{ asset('logo-favicon.png') }}" type="image/png"/>
             </head>
             <a href="{{ url('/') }}">
-                <header class="-mt-2 mb-2 flex flex-col items-center py-8">
+                <header style="margin-top: -30px;" class="-mt-2 mb-2 flex flex-col items-center py-8">
                     <div class="flex items-center space-x-3">
                         <img src="{{ asset('logo-white.png') }}" alt="SecureDocs logo" class="w-12 h-12">
                         <h1 class="text-white text-xl font-bold">SECURE<span class="text-[#f89c00]">DOCS</span></h1>
                     </div>
             </a>
-            <div class="mt-8 text-center">
+            <div style="margin-top: 20px;" class="text-center">
                 <p class="text-[#f89c00] text-xl font-semibold tracking-wide">{{ __('auth.login_title') }}</p>
             </div>
             </header>
@@ -126,7 +126,7 @@
         </div>
         @endsession
 
-        <form method="POST" action="{{ route('login') }}" class="bg-[#3c3f58] rounded-4xl w-full px-8 py-2 space-y-8 flex flex-col items-center">
+        <form method="POST" action="{{ route('login') }}" style="margin-top: -5px; padding-bottom: -5px;" class="bg-[#3c3f58] rounded-4xl w-full px-8 py-2 space-y-8 flex flex-col items-center">
             @csrf
 
             <div class="w-4/6 min-w-[420px]">
@@ -166,9 +166,10 @@
                 <button type="submit" class="bg-[#f89c00] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">{{ __('auth.login') }}</button>
             </div>
 
-            <button type="button" id="biometric-login-button" class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">
+            <button type="button" id="biometric-login-button" style="margin-bottom: -5px;" class="w-1/2 min-w-[320px] bg-[#9ba0f9] text-black font-extrabold text-base rounded-full py-2.5 px-10 tracking-wide hover:brightness-110 transition">
                 {{ __('auth.login_biometrics') }}
             </button>
+            <p id="biometric-login-status" class="text-sm text-red-600 mt-2 text-center"></p>
 
         </form>
 
@@ -205,14 +206,24 @@
             }
         });
 
-        // Biometric Login - Redirect to WebAuthn login page
+        // Biometric Login
         document.addEventListener('DOMContentLoaded', function() {
+            const emailInput = document.getElementById('email');
             const biometricButton = document.getElementById('biometric-login-button');
+            const statusDisplay = document.getElementById('biometric-login-status');
 
             if (biometricButton) {
-                biometricButton.addEventListener('click', function() {
-                    // Redirect to the WebAuthen login page
-                    window.location.href = '{{ route("webauthn.login") }}';
+                biometricButton.addEventListener('click', async function() {
+                    if (!emailInput.value.trim()) {
+                        statusDisplay.textContent = 'Please enter your email address first.';
+                        return;
+                    }
+
+                    if (window.handleBiometricLogin) {
+                        window.handleBiometricLogin(emailInput.value, biometricButton, statusDisplay);
+                    } else {
+                        statusDisplay.textContent = 'Biometric login script not loaded correctly.';
+                    }
                 });
             }
         });
