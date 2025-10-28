@@ -27,10 +27,10 @@ class ArweaveController extends Controller
                 'arweave_url' => 'required|url',
                 'file_name' => 'required|string|max:255',
                 'is_encrypted' => 'boolean',
-                'encryption_method' => 'nullable|string|max:50',
-                'password_hash' => 'nullable|string|max:255',
-                'salt' => 'nullable|array',
-                'iv' => 'nullable|array',
+                'encryption_method' => 'required_if:is_encrypted,true|nullable|string|max:50',
+                'password_hash' => 'required_if:is_encrypted,true|nullable|string|max:255',
+                'salt' => 'required_if:is_encrypted,true|array',
+                'iv' => 'required_if:is_encrypted,true|array',
                 // Cost tracking fields
                 'upload_cost_matic' => 'nullable|numeric|min:0',
                 'upload_cost_usd' => 'nullable|numeric|min:0',
@@ -57,16 +57,22 @@ class ArweaveController extends Controller
                 'url' => $data['arweave_url'],
                 'file_name' => $data['file_name'],
                 'created_at' => now(),
-                'is_encrypted' => (bool) ($data['is_encrypted'] ?? false), // Explicit boolean conversion for PostgreSQL
+                'is_encrypted' => DB::raw((!empty($data['is_encrypted']) && $data['is_encrypted']) ? 'true' : 'false'), // Ensure proper boolean for PostgreSQL
                 'access_count' => 0
             ];
 
             // Add encryption metadata if file is encrypted
-            if ((bool) ($data['is_encrypted'] ?? false)) {
+            if (!empty($data['is_encrypted']) && $data['is_encrypted']) {
                 $insertData['encryption_method'] = $data['encryption_method'] ?? 'AES-256-GCM';
-                $insertData['password_hash'] = $data['password_hash'];
-                $insertData['salt'] = json_encode($data['salt']);
-                $insertData['iv'] = json_encode($data['iv']);
+                $insertData['password_hash'] = $data['password_hash'] ?? null;
+                $insertData['salt'] = isset($data['salt']) ? json_encode($data['salt']) : null;
+                $insertData['iv'] = isset($data['iv']) ? json_encode($data['iv']) : null;
+            } else {
+                // Set default values for non-encrypted files
+                $insertData['encryption_method'] = null;
+                $insertData['password_hash'] = null;
+                $insertData['salt'] = null;
+                $insertData['iv'] = null;
             }
 
             // Add cost tracking data
@@ -190,7 +196,7 @@ class ArweaveController extends Controller
             $file = DB::table('arweave_urls')
                 ->where('id', $fileId)
                 ->where('user_id', $user->id)
-                ->where('is_encrypted', true)
+                ->where('is_encrypted', DB::raw('true'))
                 ->first();
 
             if (!$file) {

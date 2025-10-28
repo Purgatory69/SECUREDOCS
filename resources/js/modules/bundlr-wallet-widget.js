@@ -72,7 +72,20 @@ function setupWalletWidgetListeners() {
     setTimeout(() => {
         const initBtn = document.getElementById('initializeBundlrBtn');
         if (initBtn) {
-            initBtn.onclick = handleInitializeBundlr;
+            initBtn.onclick = async function(e) {
+                e.preventDefault();
+                // Pre-confirmation: ensure user acknowledges MetaMask login
+                const proceed = confirm(
+                    '🦊 MetaMask Check\n\n' +
+                    'Have you already logged in to your MetaMask wallet?\n\n' +
+                    'Click OK to initialize Bundlr, or Cancel to abort.'
+                );
+                if (!proceed) {
+                    return; // User chose not to proceed
+                }
+                // Proceed with the usual initialization
+                await handleInitializeBundlr();
+            };
         }
         
         const fundBtn = document.getElementById('fundBundlrBtn');

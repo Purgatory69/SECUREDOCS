@@ -434,10 +434,15 @@ async function handleUploadToArweave() {
             throw new Error(result.error || 'Upload failed');
         }
         
-        // Create simple upload data for saving
+        // Create simple upload data for saving (non-encrypted)
         const uploadData = {
             arweave_url: result.url,
-            file_name: currentFile.name
+            file_name: currentFile.name,
+            is_encrypted: false, // Non-encrypted upload
+            transaction_id: result.transactionId || null,
+            file_size_bytes: currentFile.size,
+            mime_type: currentFile.type,
+            upload_cost_matic: uploadCost
         };
         
         // Save to database (optional)
@@ -505,8 +510,25 @@ async function saveUploadRecord(uploadData) {
             return;
         }
         
-        // Try to save, but don't fail the whole upload if this fails
-        const walletAddress = window.ethereum.selectedAddress;
+        // Prepare the payload with all required fields
+        const payload = {
+            arweave_url: uploadData.arweave_url,
+            file_name: uploadData.file_name,
+            is_encrypted: uploadData.is_encrypted || false, // Always send boolean
+            transaction_id: uploadData.transaction_id || null,
+            file_size_bytes: uploadData.file_size_bytes || null,
+            mime_type: uploadData.mime_type || null,
+            upload_cost_matic: uploadData.upload_cost_matic || null
+        };
+
+        // Remove null values to keep payload clean
+        Object.keys(payload).forEach(key => {
+            if (payload[key] === null) {
+                delete payload[key];
+            }
+        });
+        
+        console.log('📤 Sending upload record to backend:', payload);
         
         const saveResponse = await fetch('/arweave-client/save-upload', {
             method: 'POST',
@@ -514,16 +536,15 @@ async function saveUploadRecord(uploadData) {
                 'Content-Type': 'application/json',
                 'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
             },
-            body: JSON.stringify({
-                arweave_url: uploadData.arweave_url,
-                file_name: uploadData.file_name
-            })
+            body: JSON.stringify(payload)
         });
 
         if (saveResponse.ok) {
-            console.log('✅ Upload record saved to database');
+            const result = await saveResponse.json();
+            console.log('✅ Upload record saved to database:', result);
         } else {
-            console.warn('⚠️ Failed to save upload record, but upload succeeded');
+            const errorData = await saveResponse.json();
+            console.warn('⚠️ Failed to save upload record:', errorData);
         }
         
     } catch (error) {

@@ -16,6 +16,7 @@ use App\Http\Controllers\AdminController;
 use App\Http\Controllers\PermanentStorageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SchemaController;
+use App\Http\Controllers\TestArweaveController;
 use Illuminate\Http\Request;
 
 Route::get('/', function () {
@@ -830,3 +831,6 @@ Route::prefix('s')->name('public.')->group(function () {
 
 // API route for generating individual share tokens (public access, no auth required)
 Route::post('/api/get-or-create-share-token', [App\Http\Controllers\PublicShareController::class, 'getOrCreateShareToken'])->name('api.get-or-create-share-token');
+
+// Test route for Arweave boolean fix verification
+Route::get('/test-arweave', [TestArweaveController::class, 'showTestPage'])->name('test.arweave');
