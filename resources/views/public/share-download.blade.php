@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>{{ $file->file_name }} - SecureDocs</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @vite(['resources/css/app.css'])
@@ -161,6 +162,30 @@
                     </button>
                 </div>
             </div>
+
+            <!-- OTP Files Warning -->
+            @if(isset($otpInfo) && $otpInfo['has_otp_files'])
+            <div class="max-w-7xl mx-auto px-4 mb-4">
+                <div class="bg-yellow-900/50 border border-yellow-600 rounded-lg p-4 flex items-start gap-3">
+                    <svg class="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                    </svg>
+                    <div class="flex-1">
+                        <h3 class="text-yellow-400 font-medium text-sm mb-1">
+                            Some Files Are Not Available
+                        </h3>
+                        <p class="text-yellow-200 text-sm">
+                            This folder contains {{ $otpInfo['otp_count'] }} {{ $otpInfo['otp_count'] === 1 ? 'file' : 'files' }} marked as one-time access that cannot be shared publicly.
+                            @if(count($otpInfo['otp_files']) <= 3)
+                                <span class="block mt-1 text-yellow-300">
+                                    Hidden {{ $otpInfo['otp_count'] === 1 ? 'file' : 'files' }}: {{ implode(', ', $otpInfo['otp_files']) }}
+                                </span>
+                            @endif
+                        </p>
+                    </div>
+                </div>
+            </div>
+            @endif
 
             <!-- Main Content -->
             <div class="max-w-7xl mx-auto p-4">
@@ -494,15 +519,52 @@
         });
 
         // File interaction functions
-        function openFile(fileId, fileName, isFolder) {
-            if (isFolder) {
-                // Navigate into the folder
-                const folderUrl = '{{ route("public.share.folder.show", [$share->share_token, "FOLDER_ID"]) }}'.replace('FOLDER_ID', fileId);
-                window.location.href = folderUrl;
-            } else {
-                // For files, open in new tab with individual file URL
-                const fileUrl = '{{ route("public.share.file.show", [$share->share_token, "FILE_ID"]) }}'.replace('FILE_ID', fileId);
-                window.open(fileUrl, '_blank');
+        async function openFile(fileId, fileName, isFolder) {
+            try {
+                // Get or create individual share token for this file/folder
+                const response = await fetch('{{ route("api.get-or-create-share-token") }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                    },
+                    body: JSON.stringify({
+                        file_id: fileId,
+                        parent_token: '{{ $share->share_token }}'
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('Failed to get share token');
+                }
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Use the individual share token to access the file/folder
+                    const shareUrl = '{{ route("public.share.show", "SHARE_TOKEN") }}'.replace('SHARE_TOKEN', data.share_token);
+                    
+                    if (isFolder) {
+                        // Navigate to the folder
+                        window.location.href = shareUrl;
+                    } else {
+                        // Open file in new tab
+                        window.open(shareUrl, '_blank');
+                    }
+                } else {
+                    console.error('Failed to create share token:', data.message);
+                    alert('Unable to access this item. Please try again.');
+                }
+            } catch (error) {
+                console.error('Error opening file:', error);
+                // Fallback to old method
+                if (isFolder) {
+                    const folderUrl = '{{ route("public.share.folder.show", [$share->share_token, "FOLDER_ID"]) }}'.replace('FOLDER_ID', fileId);
+                    window.location.href = folderUrl;
+                } else {
+                    const fileUrl = '{{ route("public.share.file.show", [$share->share_token, "FILE_ID"]) }}'.replace('FILE_ID', fileId);
+                    window.open(fileUrl, '_blank');
+                }
             }
         }
 
@@ -731,8 +793,17 @@
                 if (e.target.tagName === 'A' && e.target.dataset.folderId) {
                     e.preventDefault();
                     const folderId = e.target.dataset.folderId;
-                    const folderName = e.target.textContent;
-                    navigateToFolder(folderId, folderName);
+                    
+                    // Handle root navigation
+                    if (folderId === 'root') {
+                        window.location.href = '{{ route("public.share.show", $share->share_token) }}';
+                        return;
+                    }
+                    
+                    // Use the URL from the breadcrumb data if available
+                    if (e.target.dataset.url) {
+                        window.location.href = e.target.dataset.url;
+                    }
                 }
             });
         }
@@ -762,7 +833,7 @@
                         allBreadcrumbs.push({
                             id: crumb.id,
                             name: crumb.name,
-                            url: '{{ route("public.share.folder.show", [$share->share_token, "FOLDER_ID"]) }}'.replace('FOLDER_ID', crumb.id)
+                            url: crumb.url || '{{ route("public.share.folder.show", [$share->share_token, "FOLDER_ID"]) }}'.replace('FOLDER_ID', crumb.id)
                         });
                     }
                 });
@@ -784,6 +855,7 @@
                     item.textContent = truncateText(crumb.name, 30);
                     item.title = crumb.name;
                     item.dataset.folderId = crumb.id;
+                    item.dataset.url = crumb.url;
                     dropdownMenu.appendChild(item);
                 });
                 
@@ -814,6 +886,7 @@
                 const link = document.createElement('a');
                 link.href = '#';
                 link.dataset.folderId = crumb.id;
+                link.dataset.url = crumb.url;
                 link.title = crumb.name;
                 
                 // Style current (last) breadcrumb differently

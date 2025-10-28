@@ -3997,9 +3997,9 @@ function showShareModal(fileId) {
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-1">Expires in (days)</label>
                     <select id="expiresIn" class="w-full border border-[#4A4D6A] bg-[#2A2D47] text-white rounded-md px-3 py-2 text-sm focus:ring-[#f89c00] focus:border-[#f89c00]">
-                        <option value="">Never expires</option>
+                        <option value="" selected>Never expires</option>
                         <option value="1">1 day</option>
-                        <option value="7" selected>1 week</option>
+                        <option value="7">1 week</option>
                         <option value="30">1 month</option>
                         <option value="90">3 months</option>
                     </select>

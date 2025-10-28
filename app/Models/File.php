@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 /**
  * @property int $id
@@ -19,6 +20,10 @@ use Illuminate\Support\Facades\DB;
  * @property string|null $file_path
  * @property int|null $file_size
  * @property int|null $parent_id
+ * @property string|null $uuid
+ * @property string|null $share_token
+ * @property string|null $url_slug
+ * @property string|null $full_path
  * @property bool $is_folder
  * @property bool $is_arweave
  * @property string|null $arweave_url
@@ -44,6 +49,10 @@ class File extends Model
         'file_path',
         'file_size',
         'parent_id',
+        'uuid',
+        'share_token',
+        'url_slug',
+        'full_path',
         'is_folder',
         'is_arweave',
         'arweave_url',
@@ -234,5 +243,100 @@ class File extends Model
             'vectorized' => $this->isVectorized(),
             'vectorized_at' => $this->vectorized_at?->format('Y-m-d H:i:s'),
         ];
+    }
+
+    /**
+     * Get or generate UUID for this file
+     */
+    public function getUuid(): string
+    {
+        if (empty($this->uuid)) {
+            $this->uuid = Str::uuid();
+            $this->save();
+        }
+        
+        return $this->uuid;
+    }
+
+    /**
+     * Get or generate share token for this file
+     */
+    public function getShareToken(): string
+    {
+        if (empty($this->share_token)) {
+            $this->share_token = Str::uuid();
+            $this->save();
+        }
+        
+        return $this->share_token;
+    }
+
+    /**
+     * Get public share URL for this file
+     */
+    public function getPublicShareUrl(): string
+    {
+        $token = $this->getShareToken();
+        return url("/s/{$token}");
+    }
+
+    /**
+     * Get public UUID-based share URL
+     */
+    public function getUuidShareUrl(): string
+    {
+        $uuid = $this->getUuid();
+        return url("/s/{$uuid}");
+    }
+
+    /**
+     * Get dashboard URL for this file/folder
+     */
+    public function getDashboardUrl(): string
+    {
+        if ($this->is_folder) {
+            return route('dashboard.folder.show', $this->id);
+        } else {
+            return route('dashboard.file.show', $this->id);
+        }
+    }
+
+    /**
+     * Generate URL slug from file name
+     */
+    public function generateUrlSlug(): string
+    {
+        if (empty($this->url_slug)) {
+            $this->url_slug = Str::slug($this->file_name);
+            $this->save();
+        }
+        
+        return $this->url_slug;
+    }
+
+    /**
+     * Check if user owns this file
+     */
+    public function isOwnedBy(User $user): bool
+    {
+        return $this->user_id === $user->id;
+    }
+
+    /**
+     * Boot method to auto-generate UUID and share token on creation
+     */
+    protected static function booted()
+    {
+        static::creating(function ($file) {
+            if (empty($file->uuid)) {
+                $file->uuid = Str::uuid();
+            }
+            if (empty($file->share_token)) {
+                $file->share_token = Str::uuid();
+            }
+            if (empty($file->url_slug)) {
+                $file->url_slug = Str::slug($file->file_name);
+            }
+        });
     }
 }

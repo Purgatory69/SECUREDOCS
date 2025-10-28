@@ -87,7 +87,12 @@ function initializeApp() {
 
     
     // Modules requiring dependencies are initialized here.
-    initializeSearch(loadUserFiles);
+    initializeSearch({
+        loadUserFiles,
+        loadTrashItems,
+        loadSharedFiles,
+        loadBlockchainItems
+    });
     // Expose for modules (e.g., upload.js) to refresh after actions
     window.loadUserFiles = loadUserFiles;
     window.loadTrashItems = loadTrashItems;
@@ -98,7 +103,7 @@ function initializeApp() {
         loadTrashItems,
         loadSharedFiles,
         loadBlockchainItems,
-        state: { lastMainSearch: state.lastMainSearch }
+        state
     });
     initializeFileFolderManagement({
         currentParentId: state.currentParentId,

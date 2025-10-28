@@ -51,7 +51,7 @@
                         <a href="{{ route('webauthn.index') }}" class="btn btn-primary">
                             {{ __('Manage Biometric Devices') }}
                         </a>
-                        <a href="{{ route('dashboard') }}" class="btn btn-secondary ml-2">
+                        <a href="{{ route('user.dashboard') }}" class="btn btn-secondary ml-2">
                             {{ __('Return to Dashboard') }}
                         </a>
                     </div>

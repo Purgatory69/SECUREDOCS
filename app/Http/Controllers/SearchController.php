@@ -19,7 +19,8 @@ class SearchController extends Controller
         $query = $request->input('q', '');
         $filters = $request->only([
             'type', 'size_min', 'size_max', 'date_from', 'date_to', 
-            'owner', 'shared', 'folder_id', 'sort_by', 'sort_order'
+            'owner', 'shared', 'folder_id', 'sort_by', 'sort_order',
+            'match_type', 'case_sensitive', 'whole_word', 'view_context'
         ]);
 
         // Start with user's files (sharing removed)
@@ -30,7 +31,6 @@ class SearchController extends Controller
 
         // Add search suggestions if query is provided
         $suggestions = $query ? $this->getSearchSuggestions($user, $query) : [];
-
 
         return response()->json([
             'files' => $files->items(),
@@ -52,15 +52,89 @@ class SearchController extends Controller
     private function buildSearchQuery($user, $query, $filters)
     {
         $filesQuery = File::query()
-            ->where('user_id', $user->id)
-            ->whereNull('deleted_at'); // Exclude soft-deleted files
+            ->where('user_id', $user->id);
 
-        // Text search in file names and content (if indexed)
+        // Handle view context for tab-specific search
+        $viewContext = $filters['view_context'] ?? 'main';
+        switch ($viewContext) {
+            case 'trash':
+                $filesQuery->onlyTrashed();
+                break;
+            case 'shared':
+                // For shared files, we'll use the shared_file_copies table
+                $filesQuery->join('shared_file_copies', 'files.id', '=', 'shared_file_copies.copied_file_id')
+                          ->where('shared_file_copies.copied_by_user_id', $user->id)
+                          ->whereNull('deleted_at');
+                break;
+            case 'blockchain':
+                $filesQuery->whereNull('deleted_at')
+                          ->where(function($q) {
+                              $q->where('is_arweave', DB::raw('true'))
+                                ->orWhere('file_path', 'like', 'ipfs://%');
+                          });
+                break;
+            case 'main':
+            default:
+                $filesQuery->whereNull('deleted_at')
+                          ->where(function($q) {
+                              $q->whereNull('file_path')
+                                ->orWhere('file_path', 'not like', 'ipfs://%');
+                          });
+                break;
+        }
+
+        // Advanced text search with match options
         if ($query) {
-            $filesQuery->where(function($q) use ($query) {
-                $q->whereRaw('LOWER(file_name) LIKE ?', ['%' . strtolower($query) . '%'])
-                  ->orWhereRaw('LOWER(file_type) LIKE ?', ['%' . strtolower($query) . '%'])
-                  ->orWhereRaw('LOWER(mime_type) LIKE ?', ['%' . strtolower($query) . '%']);
+            $matchType = $filters['match_type'] ?? 'contains';
+            $caseSensitive = $filters['case_sensitive'] ?? 'insensitive';
+            $wholeWord = $filters['whole_word'] ?? false;
+
+            $filesQuery->where(function($q) use ($query, $matchType, $caseSensitive, $wholeWord) {
+                if ($caseSensitive === 'sensitive') {
+                    // Case-sensitive search
+                    switch ($matchType) {
+                        case 'exact':
+                            $q->where('file_name', '=', $query);
+                            break;
+                        case 'starts_with':
+                            $q->where('file_name', 'LIKE BINARY', $query . '%');
+                            break;
+                        case 'ends_with':
+                            $q->where('file_name', 'LIKE BINARY', '%' . $query);
+                            break;
+                        case 'contains':
+                        default:
+                            if ($wholeWord) {
+                                $q->where('file_name', 'REGEXP', '[[:<:]]' . preg_quote($query, '/') . '[[:>:]]');
+                            } else {
+                                $q->where('file_name', 'LIKE BINARY', '%' . $query . '%');
+                            }
+                            break;
+                    }
+                } else {
+                    // Case-insensitive search (default)
+                    switch ($matchType) {
+                        case 'exact':
+                            $q->whereRaw('LOWER(file_name) = ?', [strtolower($query)]);
+                            break;
+                        case 'starts_with':
+                            $q->where('file_name', 'ILIKE', $query . '%');
+                            break;
+                        case 'ends_with':
+                            $q->where('file_name', 'ILIKE', '%' . $query);
+                            break;
+                        case 'contains':
+                        default:
+                            if ($wholeWord) {
+                                $q->whereRaw('file_name ~* ?', ['\\m' . preg_quote($query, '/') . '\\M']);
+                            } else {
+                                $q->where('file_name', 'ILIKE', '%' . $query . '%')
+                                  ->orWhere('file_type', 'ILIKE', '%' . $query . '%')
+                                  ->orWhere('mime_type', 'ILIKE', '%' . $query . '%');
+                            }
+                            break;
+                    }
+                }
             });
         }
 
@@ -87,22 +161,24 @@ class SearchController extends Controller
                     $filesQuery->where('mime_type', 'LIKE', 'audio/%');
                     break;
                 case 'folders':
-                    $filesQuery->where('is_folder', true);
+                    $filesQuery->where('is_folder', DB::raw('true'));
                     break;
                 case 'files':
-                    $filesQuery->where('is_folder', false);
+                    $filesQuery->where('is_folder', DB::raw('false'));
                     break;
                 default:
                     $filesQuery->where('file_type', $type);
             }
         }
 
-        // File size filters
+        // File size filters (convert MB to bytes and cast varchar to numeric)
         if (!empty($filters['size_min'])) {
-            $filesQuery->where('file_size', '>=', (int)$filters['size_min']);
+            $sizeMinBytes = (float)$filters['size_min'] * 1024 * 1024;
+            $filesQuery->whereRaw('CAST(file_size AS BIGINT) >= ?', [$sizeMinBytes]);
         }
         if (!empty($filters['size_max'])) {
-            $filesQuery->where('file_size', '<=', (int)$filters['size_max']);
+            $sizeMaxBytes = min((float)$filters['size_max'], 100) * 1024 * 1024; // Cap at 100MB
+            $filesQuery->whereRaw('CAST(file_size AS BIGINT) <= ?', [$sizeMaxBytes]);
         }
 
         // Date range filters
@@ -186,17 +262,24 @@ class SearchController extends Controller
         $user = Auth::user();
         
         $stats = [
-            'total_files' => File::where('user_id', $user->id)->where('is_folder', false)->count(),
-            'total_folders' => File::where('user_id', $user->id)->where('is_folder', true)->count(),
+            'total_files' => File::where('user_id', $user->id)->where('is_folder', DB::raw('false'))->count(),
+            'total_folders' => File::where('user_id', $user->id)->where('is_folder', DB::raw('true'))->count(),
             'file_types' => File::where('user_id', $user->id)
-                ->where('is_folder', false)
+                ->where('is_folder', DB::raw('false'))
                 ->groupBy('file_type')
                 ->selectRaw('file_type, count(*) as count')
                 ->orderBy('count', 'desc')
                 ->get(),
             'size_stats' => [
-                'total_size' => File::where('user_id', $user->id)->sum('file_size'),
-                'avg_size' => File::where('user_id', $user->id)->where('is_folder', false)->avg('file_size'),
+                'total_size' => File::where('user_id', $user->id)
+                    ->whereRaw('file_size IS NOT NULL AND file_size != \'\'')
+                    ->selectRaw('SUM(CAST(file_size AS BIGINT))')
+                    ->value('sum') ?? 0,
+                'avg_size' => File::where('user_id', $user->id)
+                    ->where('is_folder', DB::raw('false'))
+                    ->whereRaw('file_size IS NOT NULL AND file_size != \'\'')
+                    ->selectRaw('AVG(CAST(file_size AS BIGINT))')
+                    ->value('avg') ?? 0,
             ],
             'recent_activity' => File::where('user_id', $user->id)
                 ->orderBy('updated_at', 'desc')

@@ -1,5 +1,5 @@
 <!-- Client-Side Arweave Upload Modal -->
-<div id="clientArweaveModal" class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50 hidden">
+<div id="clientArweaveModal" class="fixed inset-0 z-[49] flex items-center justify-center bg-black bg-opacity-50 hidden">
     <div class="relative z-10 bg-[#0D0E2F] text-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
         
         <!-- Header -->
@@ -109,6 +109,14 @@
                             </div>
                         </div>
                     </div>
+                </div>
+                
+                <!-- Continue Button (shown after file selection) -->
+                <div id="continueFromFileSelection" class="hidden text-center">
+                    <button onclick="showStep('walletConnection')" 
+                            class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                        Continue to Wallet Connection →
+                    </button>
                 </div>
             </div>
 
@@ -428,8 +436,33 @@
                     </div>
                     
                     <!-- Arweave Info Panel -->
-                    <!-- Mining Wait Notice -->
-                    <div class="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 mb-4">
+                    <!-- Auto Status Checker -->
+                    <div id="arweaveStatusChecker" class="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4 mb-4">
+                        <div class="flex items-start">
+                            <div id="statusIcon" class="text-blue-400 mr-3 mt-0.5 flex-shrink-0">🔍</div>
+                            <div class="flex-1">
+                                <h5 class="text-sm font-semibold text-blue-300 mb-1">
+                                    <span id="statusTitle">🔍 Checking File Status...</span>
+                                </h5>
+                                <p class="text-xs text-blue-200 mb-2" id="statusMessage">
+                                    Automatically checking if your file is ready on Arweave gateways...
+                                </p>
+                                <div class="flex items-center gap-2 text-xs">
+                                    <div id="statusProgress" class="flex gap-1">
+                                        <span id="gateway1" class="px-2 py-1 bg-gray-600 rounded">Gateway 1</span>
+                                        <span id="gateway2" class="px-2 py-1 bg-gray-600 rounded">Gateway 2</span>
+                                        <span id="gateway3" class="px-2 py-1 bg-gray-600 rounded">Gateway 3</span>
+                                    </div>
+                                    <button id="manualCheckBtn" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs">
+                                        Check Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mining Wait Notice (shown if not ready) -->
+                    <div id="miningWaitNotice" class="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 mb-4 hidden">
                         <div class="flex items-start">
                             <svg class="w-5 h-5 text-yellow-400 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                                 <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"/>
@@ -437,7 +470,7 @@
                             <div>
                                 <h5 class="text-sm font-semibold text-yellow-300 mb-1">⏳ Block Mining in Progress</h5>
                                 <p class="text-xs text-yellow-200">
-                                    Your file has been uploaded successfully! However, it may take <strong>5-30 minutes</strong> for the block to be mined and your file to become accessible on all Arweave gateways. Please be patient.
+                                    Your file is still being processed. This usually takes <strong>5-30 minutes</strong>. We'll keep checking automatically every 2 minutes.
                                 </p>
                             </div>
                         </div>
