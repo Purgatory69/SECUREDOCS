@@ -2,6 +2,8 @@
 
 // Import closeAllActionsMenus from file-folder module
 import { closeAllActionsMenus } from './file-folder.js';
+// Import blockchain cleanup function
+import { cleanupBlockchainUI } from './blockchain-page.js';
 
 /**
  * Creates and displays a notification toast.
@@ -511,6 +513,9 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadShared
 
     myDocumentsLink?.addEventListener('click', (e) => {
         e.preventDefault();
+        // Clean up blockchain UI elements when switching away
+        cleanupBlockchainUI();
+        
         const dbMyDocuments = getMyDocumentsText(); // Get fresh value on click
         if (headerTitle) headerTitle.textContent = dbMyDocuments;
         if (newButton) newButton.style.display = 'block';
@@ -526,6 +531,9 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadShared
 
     sharedWithMeLink?.addEventListener('click', (e) => {
         e.preventDefault();
+        // Clean up blockchain UI elements when switching away
+        cleanupBlockchainUI();
+        
         if (headerTitle) headerTitle.textContent = 'Shared with Me';
         if (newButton) newButton.style.display = 'none';
         clearActiveStates();
@@ -539,6 +547,9 @@ export function initializeViewToggling(loadUserFiles, loadTrashItems, loadShared
 
     trashLink?.addEventListener('click', (e) => {
         e.preventDefault();
+        // Clean up blockchain UI elements when switching away
+        cleanupBlockchainUI();
+        
         if (headerTitle) headerTitle.textContent = 'Trash';
         if (newButton) newButton.style.display = 'none';
         clearActiveStates();

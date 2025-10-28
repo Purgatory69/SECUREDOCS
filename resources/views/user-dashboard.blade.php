@@ -72,14 +72,29 @@
                             Need MATIC in your wallet to fund Bundlr
                         </div>
                         <div class="flex gap-2">
-                            <select id="fundAmountSelect" class="flex-1 px-3 py-2 bg-[#3C3F58] rounded text-sm">
+                            <select id="fundAmountSelect" class="flex-1 px-3 py-2 bg-[#3C3F58] rounded text-sm" onchange="handleFundAmountChange()">
                                 <option value="0.01">0.01 MATIC</option>
                                 <option value="0.05">0.05 MATIC</option>
                                 <option value="0.1">0.1 MATIC</option>
+                                <option value="0.5">0.5 MATIC</option>
+                                <option value="1">1 MATIC</option>
+                                <option value="custom">Custom Amount</option>
                             </select>
                             <button id="fundBundlrBtn" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors" disabled>
                                 Fund
                             </button>
+                        </div>
+                        <div id="customAmountContainer" class="hidden">
+                            <input type="number" 
+                                   id="customAmountInput" 
+                                   placeholder="Enter MATIC amount (e.g., 0.25)" 
+                                   min="0.001" 
+                                   max="100" 
+                                   step="0.001"
+                                   class="w-full px-3 py-2 bg-[#3C3F58] border border-[#55597C] rounded text-sm text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none">
+                            <div class="text-xs text-gray-400 mt-1">
+                                Minimum: 0.001 MATIC • Maximum: 100 MATIC
+                            </div>
                         </div>
                         <button id="refreshBalanceBtn" class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition-colors" disabled>
                             Refresh Balance
@@ -771,8 +786,9 @@
                 
                 <div>
                     <label class="block text-sm font-medium mb-2">Max Size (MB)</label>
-                    <input id="searchSizeMax" type="number" min="0" step="0.1" placeholder="1000" 
+                    <input id="searchSizeMax" type="number" min="0" max="100" step="0.1" placeholder="100" 
                            class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400" />
+                    <small class="text-gray-400 text-xs mt-1">Maximum: 100MB</small>
                 </div>
                 
                 
@@ -856,6 +872,36 @@
         email: "{{ auth()->user()->email }}",
         is_premium: {{ auth()->user()->is_premium ? 'true' : 'false' }}
     };
+    
+    // Handle folder navigation from share redirects
+    @if(session('navigate_to_folder'))
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for the file-folder module to be loaded
+            setTimeout(function() {
+                if (window.__files && window.__files.navigateToFolder) {
+                    console.log('Navigating to folder from share redirect:', {{ session('navigate_to_folder') }});
+                    window.__files.navigateToFolder({{ session('navigate_to_folder') }}, "{{ session('folder_name', 'Folder') }}");
+                } else {
+                    console.error('navigateToFolder function not available');
+                }
+            }, 2000);
+        });
+    @endif
+    
+    @if(session('navigate_to_parent'))
+        document.addEventListener('DOMContentLoaded', function() {
+            // Wait for the file-folder module to be loaded
+            setTimeout(function() {
+                if (window.__files && window.__files.navigateToFolder) {
+                    console.log('Navigating to parent folder from share redirect:', {{ session('navigate_to_parent') }});
+                    window.__files.navigateToFolder({{ session('navigate_to_parent') ?? 'null' }}, "Parent Folder");
+                    // TODO: Select the specific file after navigation
+                } else {
+                    console.error('navigateToFolder function not available');
+                }
+            }, 2000); // Increased timeout to ensure module is loaded
+        });
+    @endif
 </script>
 
 

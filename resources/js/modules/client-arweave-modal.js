@@ -40,6 +40,7 @@ export function initializeClientArweaveModal() {
     // Set up event listeners
     setupEventListeners();
     setupPrivacyControls();
+    setupManualStatusCheck();
 
 }
 
@@ -297,6 +298,12 @@ async function handleFileSelection(event) {
         privacyControls.classList.remove('hidden');
     }
     
+    // Show continue button
+    const continueBtn = document.getElementById('continueFromFileSelection');
+    if (continueBtn) {
+        continueBtn.classList.remove('hidden');
+    }
+    
     // Update file name in upload step
     const uploadFileNameEl = document.getElementById('uploadFileName');
     if (uploadFileNameEl) {
@@ -316,7 +323,8 @@ async function handleFileSelection(event) {
     
     console.log('📄 File selected:', file.name, 'Size:', formatFileSize(file.size), 'Estimated cost:', estimatedCostMatic.toFixed(6), 'MATIC');
     
-    showStep('walletConnection');
+    // Stay on file selection step to allow privacy configuration
+    // showStep('walletConnection'); // Removed - let user configure privacy first
 }
 
 /**
@@ -961,9 +969,123 @@ function setupPrivacyControls() {
     console.log('✅ Privacy controls initialized');
 }
 
+/**
+ * Auto Status Checker for Arweave uploads
+ */
+let statusCheckInterval = null;
+let currentTransactionId = null;
+
+function startAutoStatusCheck(transactionId) {
+    currentTransactionId = transactionId;
+    
+    // Initial check after 30 seconds
+    setTimeout(() => {
+        checkArweaveFileStatus();
+    }, 30000);
+    
+    // Then check every 2 minutes
+    statusCheckInterval = setInterval(() => {
+        checkArweaveFileStatus();
+    }, 120000); // 2 minutes
+}
+
+async function checkArweaveFileStatus() {
+    if (!currentTransactionId) return;
+    
+    const statusIcon = document.getElementById('statusIcon');
+    const statusTitle = document.getElementById('statusTitle');
+    const statusMessage = document.getElementById('statusMessage');
+    const gateway1 = document.getElementById('gateway1');
+    const gateway2 = document.getElementById('gateway2');
+    const gateway3 = document.getElementById('gateway3');
+    const miningNotice = document.getElementById('miningWaitNotice');
+    
+    if (!statusIcon) return;
+    
+    // Update UI to show checking
+    statusIcon.textContent = '🔍';
+    statusTitle.textContent = '🔍 Checking File Status...';
+    statusMessage.textContent = 'Testing file availability on Arweave gateways...';
+    
+    const gateways = [
+        { name: 'Arweave.net', url: `https://arweave.net/${currentTransactionId}`, element: gateway1 },
+        { name: 'Gateway.dev', url: `https://gateway.arweave.dev/${currentTransactionId}`, element: gateway2 },
+        { name: 'AR.io', url: `https://ar.io/${currentTransactionId}`, element: gateway3 }
+    ];
+    
+    let availableCount = 0;
+    
+    for (const gateway of gateways) {
+        try {
+            const response = await fetch(gateway.url, { 
+                method: 'HEAD',
+                signal: AbortSignal.timeout(8000) // 8 second timeout
+            });
+            
+            if (response.ok) {
+                gateway.element.className = 'px-2 py-1 bg-green-600 rounded';
+                gateway.element.textContent = `✅ ${gateway.name}`;
+                availableCount++;
+            } else {
+                gateway.element.className = 'px-2 py-1 bg-red-600 rounded';
+                gateway.element.textContent = `❌ ${gateway.name}`;
+            }
+        } catch (err) {
+            gateway.element.className = 'px-2 py-1 bg-yellow-600 rounded';
+            gateway.element.textContent = `⏳ ${gateway.name}`;
+        }
+    }
+    
+    // Update status based on results
+    if (availableCount >= 2) {
+        // File is ready!
+        statusIcon.textContent = '✅';
+        statusTitle.textContent = '✅ File Ready!';
+        statusMessage.textContent = `Your file is now available on ${availableCount}/3 gateways. You can access it immediately!`;
+        miningNotice.classList.add('hidden');
+        
+        // Stop checking
+        if (statusCheckInterval) {
+            clearInterval(statusCheckInterval);
+            statusCheckInterval = null;
+        }
+        
+        // Show success notification
+        if (window.showNotification) {
+            window.showNotification('🎉 Your Arweave file is now ready and accessible!', 'success');
+        }
+        
+    } else if (availableCount >= 1) {
+        // Partially ready
+        statusIcon.textContent = '🟡';
+        statusTitle.textContent = '🟡 Partially Ready';
+        statusMessage.textContent = `File available on ${availableCount}/3 gateways. Still propagating...`;
+        miningNotice.classList.remove('hidden');
+        
+    } else {
+        // Not ready yet
+        statusIcon.textContent = '⏳';
+        statusTitle.textContent = '⏳ Still Processing';
+        statusMessage.textContent = 'File not yet available. Block mining in progress...';
+        miningNotice.classList.remove('hidden');
+    }
+}
+
+// Manual check button
+function setupManualStatusCheck() {
+    const manualBtn = document.getElementById('manualCheckBtn');
+    if (manualBtn) {
+        manualBtn.addEventListener('click', () => {
+            checkArweaveFileStatus();
+        });
+    }
+}
+
 // Export functions for global use
 window.openClientArweaveModal = openClientArweaveModal;
 window.showStep = showStep;
+window.startAutoStatusCheck = startAutoStatusCheck;
+window.checkArweaveFileStatus = checkArweaveFileStatus;
 
 export default {
     initializeClientArweaveModal,

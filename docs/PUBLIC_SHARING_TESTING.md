@@ -1,25 +1,48 @@
-# Public File Sharing - Testing Guide
+# Public File Sharing System - Testing Guide
+
+This document provides comprehensive testing procedures for the SecureDocs public file sharing system, which implements MediaFire-style functionality with URL-based navigation.
 
 ## Overview
-This document provides comprehensive testing procedures for the new public file sharing system that mimics MediaFire's functionality.
 
-## Features Implemented
+The public sharing system allows users to create shareable links for files and folders that can be accessed by anyone with the link, even without an account. The system now supports both traditional sharing and direct UUID-based sharing.
 
-### ✅ Core Features
-- **Public Share Links**: Generate shareable URLs for files and folders
-- **MediaFire-style Download Page**: Clean, professional download interface
-- **OTP Integration**: Cannot share files with OTP protection enabled
-- **Password Protection**: Premium feature for secure sharing
-- **One-time Links**: Links that expire after first download
-- **Expiration Dates**: Links expire after set time periods
-- **Save to My Files**: Visitors can copy shared files to their account
-- **Folder ZIP Downloads**: Download entire folders as ZIP files (500MB limit)
-- **Share Management**: View and manage all created shares
+### Key Features
+- **Individual share links** for files and folders using UUID tokens
+- **URL-based navigation** for both dashboard and public shares
+- **MediaFire-style redirect behavior** for logged-in file owners
+- **Password protection** (Premium feature)
+- **One-time download links**
+- **Expiration dates** (1 day to 1 year)
+- **Save to My Files** functionality for visitors
+- **Folder ZIP downloads**
+- **MediaFire-style download interface**
+- **Nested folder navigation** with breadcrumbs
 
 ### ✅ Database Schema
-- `public_shares` table for managing share links
+- `files` table now includes `uuid`, `share_token` (UUID), `url_slug`, and `full_path` columns
+- `public_shares` table for managing advanced share links (legacy system)
 - `shared_file_copies` table for tracking copied files
 - Proper foreign key relationships and indexes
+
+### ✅ URL Structure
+```
+Dashboard Navigation:
+/user/dashboard                    (root folder)
+/user/dashboard/folder/123         (specific folder)
+/user/dashboard/file/456           (specific file)
+
+Public Shares:
+/s/[uuid-token]                    (direct file/folder share)
+/s/[legacy-token]                  (legacy PublicShare system)
+/s/[token]/folder/123              (nested folder navigation)
+/s/[token]/file/456                (individual file access)
+```
+
+### ✅ MediaFire-Style Behavior
+- **File owners**: When logged in and accessing their own share links, automatically redirected to dashboard
+- **Other users**: See public share interface with download/preview options
+- **Individual tokens**: Every file/folder gets a unique UUID share token on creation
+- **Persistent links**: Share tokens never change once created
 
 ## Testing Procedures
 
@@ -398,6 +421,75 @@ Use Selenium or Playwright for automated UI testing:
 - Database connection issues
 - Storage space warnings
 
+## 8. URL-Based Navigation Testing
+
+### Test 8.1: Dashboard Folder Navigation
+1. **Login** to dashboard
+2. **Navigate** to a folder by clicking it
+3. **Verify** URL changes to `/user/dashboard/folder/123`
+4. **Check** breadcrumbs update correctly
+5. **Test** browser back/forward buttons work
+
+**Expected Result**: ✅ URL-based navigation works seamlessly
+
+### Test 8.2: Direct Folder URL Access
+1. **Copy** folder URL from address bar: `/user/dashboard/folder/123`
+2. **Open** in new tab while logged in
+3. **Verify** folder opens directly
+4. **Check** breadcrumbs show correct path
+
+**Expected Result**: ✅ Direct folder URLs work
+
+### Test 8.3: MediaFire-Style Owner Redirect
+1. **Create** a file share and copy the UUID link: `/s/abc123-uuid`
+2. **While logged in as owner**, open the share link
+3. **Verify** automatically redirected to dashboard with file/folder open
+4. **Test** with both files and folders
+
+**Expected Result**: ✅ File owners get redirected to dashboard
+
+### Test 8.4: UUID Share Token Generation
+1. **Create** a new file/folder
+2. **Verify** `share_token` (UUID) is auto-generated
+3. **Check** share URL uses format: `/s/[uuid]`
+4. **Confirm** token never changes once created
+
+**Expected Result**: ✅ UUID tokens generated automatically
+
+### Test 8.5: Nested Folder Navigation in Shares
+1. **Share** a folder with nested subfolders
+2. **Open** share link as anonymous user
+3. **Navigate** into subfolders
+4. **Verify** breadcrumbs show full path
+5. **Test** breadcrumb clicks work for navigation
+
+**Expected Result**: ✅ Nested navigation works with breadcrumbs
+
+## 9. Implementation Summary
+
+### ✅ Completed Features
+- **Dual UUID System**: Every file/folder gets both `uuid` and `share_token` on creation
+- **URL-Based Navigation**: Dashboard supports `/folder/123` and `/file/456` URLs
+- **MediaFire-Style Redirects**: File owners redirected to dashboard when accessing own shares
+- **Flexible Share System**: Supports UUID shares, share_token shares, and legacy PublicShare system
+- **Database Migration**: Added `uuid`, `share_token`, `url_slug`, `full_path` columns to files table
+- **Auto-Generation**: UUIDs, share tokens and URL slugs created automatically on file creation
+- **Existing File Support**: Command to populate UUIDs for existing files
+
+### 🔧 Technical Implementation
+- **File Model**: Enhanced with share token methods and auto-generation
+- **FileController**: Added `showFolder()` and `showFile()` methods for URL navigation
+- **PublicShareController**: Updated to handle UUID shares and owner redirects
+- **Routes**: Added dashboard navigation routes with integer ID constraints
+- **Migration**: `2025_10_25_000001_add_url_navigation_to_files.php`
+
+### 📋 Migration Instructions
+1. **Run Migration**: `php artisan migrate` to add new columns
+2. **Populate Existing Files**: `php artisan files:populate-uuids` to add UUIDs to existing files
+3. **Force Update**: `php artisan files:populate-uuids --force` to regenerate all UUIDs
+4. **No Data Loss**: Existing PublicShare system continues to work
+5. **Auto-Generation**: New files automatically get UUIDs and share tokens
+
 ---
 
-**Testing completed successfully indicates the public file sharing system is ready for production use.**
+**Testing completed successfully indicates the public file sharing system with URL-based navigation is ready for production use.**

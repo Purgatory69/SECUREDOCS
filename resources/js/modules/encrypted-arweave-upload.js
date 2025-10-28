@@ -111,7 +111,7 @@ class EncryptedArweaveUpload {
      */
     showGeneratedPassword(password) {
         const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[10000]';
         modal.innerHTML = `
             <div class="bg-white rounded-lg p-6 max-w-md mx-4">
                 <h3 class="text-lg font-semibold mb-4">🔐 Generated Password</h3>
@@ -264,10 +264,17 @@ class EncryptedArweaveUpload {
                 throw new Error(result.error || 'Upload failed');
             }
             
-            // Prepare upload data for saving
+            // Prepare upload data for saving with cost tracking
             const uploadData = {
                 arweave_url: result.url,
                 file_name: this.currentFile.name, // Original filename
+                file_size_bytes: this.currentFile.size,
+                mime_type: this.currentFile.type,
+                upload_cost_matic: result.cost_matic || uploadCost,
+                upload_cost_usd: result.cost_usd,
+                transaction_id: result.transactionId || result.id,
+                bundlr_receipt: result.receipt,
+                gateway_urls: result.gatewayUrls,
                 ...encryptionMetadata
             };
             
@@ -387,8 +394,19 @@ class EncryptedArweaveUpload {
         console.log('🔗 URL:', url);
         console.log('💰 Remaining balance:', remainingBalance, 'MATIC');
         
-        // You can enhance this to show in the UI
-        alert(successMessage + `\n\nURL: ${url}`);
+        // Extract transaction ID from URL and start auto status checker
+        const transactionId = url.split('/').pop();
+        if (transactionId && window.startAutoStatusCheck) {
+            console.log('🔍 Starting auto status checker for transaction:', transactionId);
+            window.startAutoStatusCheck(transactionId);
+        }
+        
+        // Show success notification
+        if (window.showNotification) {
+            window.showNotification(successMessage, 'success');
+        } else {
+            alert(successMessage + `\n\nURL: ${url}`);
+        }
     }
 }
 

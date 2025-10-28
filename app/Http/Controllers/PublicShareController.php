@@ -75,14 +75,42 @@ class PublicShareController extends Controller
                 $options['expires_at'] = now()->addDays($request->expires_in_days);
             }
 
-            // Create the share
-            $share = PublicShare::createShare($file, $options);
+            // Check if user already has an active share for this file
+            $existingShare = PublicShare::where('user_id', $user->id)
+                ->where('file_id', $file->id)
+                ->where(function ($query) {
+                    $query->whereNull('expires_at')
+                          ->orWhere('expires_at', '>', now());
+                })
+                ->first();
 
-            // Log the activity
+            if ($existingShare) {
+                // Return existing share instead of creating a new one
+                $share = $existingShare;
+                Log::info('Returning existing share', [
+                    'share_id' => $share->id,
+                    'existing_is_one_time' => $share->is_one_time,
+                    'existing_password_protected' => $share->password_protected,
+                    'requested_options' => $options
+                ]);
+            } else {
+                // Create new share
+                $share = PublicShare::createShare($file, $options);
+                Log::info('Created new share', [
+                    'share_id' => $share->id,
+                    'new_options' => $options
+                ]);
+            }
+
+            // Log activity
+            $activityMessage = $existingShare 
+                ? "{$user->name} accessed existing share link for " . ($file->is_folder ? 'folder' : 'file') . " '{$file->file_name}'"
+                : "{$user->name} created a public share link for " . ($file->is_folder ? 'folder' : 'file') . " '{$file->file_name}'";
+                
             SystemActivity::logFileActivity(
                 SystemActivity::ACTION_SHARED,
                 $file,
-                "{$user->name} created a public share link for " . ($file->is_folder ? 'folder' : 'file') . " '{$file->file_name}'",
+                $activityMessage,
                 [
                     'share_token' => $share->share_token,
                     'share_type' => $share->share_type,
@@ -93,6 +121,7 @@ class PublicShareController extends Controller
                 SystemActivity::RISK_LOW,
                 $user
             );
+
 
             return response()->json([
                 'success' => true,
@@ -110,16 +139,23 @@ class PublicShareController extends Controller
                 ]
             ]);
 
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Handle validation errors (like password too short)
+            return response()->json([
+                'success' => false,
+                'message' => $e->validator->errors()->first(),
+                'errors' => $e->validator->errors()
+            ], 422);
         } catch (\Exception $e) {
             Log::error('Failed to create public share', [
                 'error' => $e->getMessage(),
-                'user_id' => Auth::id(),
+                'user_id' => $user->id,
                 'file_id' => $request->file_id
             ]);
 
             return response()->json([
                 'success' => false,
-                'message' => 'Failed to create share link'
+                'message' => 'Failed to create share link. Please try again.'
             ], 500);
         }
     }
@@ -130,9 +166,96 @@ class PublicShareController extends Controller
     public function show(string $token)
     {
         try {
+            // Check if token is a valid UUID format before searching UUID columns
+            $isValidUuid = $this->isValidUuid($token);
+            
+            $file = null;
+            
+            // Only search UUID columns if token is valid UUID format
+            if ($isValidUuid) {
+                $file = File::where('share_token', $token)
+                    ->orWhere('uuid', $token)
+                    ->first();
+            }
+            
+            if ($file) {
+                // Check if user is logged in and owns this file
+                if (Auth::check() && $file->isOwnedBy(Auth::user())) {
+                    // Redirect to dashboard with folder navigation parameters
+                    if ($file->is_folder) {
+                        return redirect()->route('user.dashboard')->with([
+                            'navigate_to_folder' => $file->id,
+                            'folder_name' => $file->file_name
+                        ]);
+                    } else {
+                        return redirect()->route('user.dashboard')->with([
+                            'navigate_to_parent' => $file->parent_id,
+                            'select_file' => $file->id,
+                            'file_name' => $file->file_name
+                        ]);
+                    }
+                }
+                
+                // Create temporary share object for public view
+                $share = (object) [
+                    'share_token' => $token,
+                    'file' => $file,
+                    'user' => $file->user,
+                    'share_type' => $file->is_folder ? 'folder' : 'file',
+                    'password_protected' => false,
+                    'expires_at' => null,
+                    'is_one_time' => false
+                ];
+                
+                $folderFiles = collect();
+                $otpInfo = ['has_otp_files' => false, 'otp_count' => 0, 'otp_files' => []];
+                
+                if ($file->is_folder) {
+                    $folderFiles = $this->getFolderDirectChildren($file);
+                    $otpInfo = $this->folderContainsOtpFiles($file);
+                }
+                
+                // Build proper breadcrumb path for nested folders
+                $breadcrumbs = $this->buildBreadcrumbPathForFile($file);
+                
+                Log::info('UUID share breadcrumbs generated', [
+                    'file_id' => $file->id,
+                    'file_name' => $file->file_name,
+                    'breadcrumbs_count' => count($breadcrumbs),
+                    'breadcrumbs' => $breadcrumbs,
+                    'otp_info' => $otpInfo
+                ]);
+                
+                return view('public.share-download', [
+                    'share' => $share,
+                    'file' => $file,
+                    'folderFiles' => $folderFiles,
+                    'breadcrumbs' => $breadcrumbs,
+                    'otpInfo' => $otpInfo
+                ]);
+            }
+
+            // Fallback to old PublicShare system
             $share = PublicShare::with(['file', 'user'])
                 ->where('share_token', $token)
                 ->firstOrFail();
+
+            // Check if user is logged in and owns this file (old system)
+            if (Auth::check() && $share->file->isOwnedBy(Auth::user())) {
+                // Redirect to dashboard with folder navigation parameters
+                if ($share->file->is_folder) {
+                    return redirect()->route('user.dashboard')->with([
+                        'navigate_to_folder' => $share->file->id,
+                        'folder_name' => $share->file->file_name
+                    ]);
+                } else {
+                    return redirect()->route('user.dashboard')->with([
+                        'navigate_to_parent' => $share->file->parent_id,
+                        'select_file' => $share->file->id,
+                        'file_name' => $share->file->file_name
+                    ]);
+                }
+            }
 
             // Check if share is valid
             if (!$share->isValid()) {
@@ -151,29 +274,37 @@ class PublicShareController extends Controller
 
             $folderFiles = collect();
             
-            // If it's a folder, get the folder contents
+            // If it's a folder, get the folder contents (direct children only)
+            $otpInfo = ['has_otp_files' => false, 'otp_count' => 0, 'otp_files' => []];
             if ($share->file->is_folder) {
-                $folderFiles = $this->getFolderFiles($share->file);
+                $folderFiles = $this->getFolderDirectChildren($share->file);
+                $otpInfo = $this->folderContainsOtpFiles($share->file);
             }
 
             // Build breadcrumbs for root folder
             $breadcrumbs = [[
                 'id' => $share->file->id,
                 'name' => $share->file->file_name,
-                'is_root' => true
+                'is_root' => true,
+                'share_token' => $share->share_token,
+                'url' => route('public.share.show', $share->share_token)
             ]];
 
             return view('public.share-download', [
                 'share' => $share,
                 'file' => $share->file,
                 'folderFiles' => $folderFiles,
-                'breadcrumbs' => $breadcrumbs
+                'breadcrumbs' => $breadcrumbs,
+                'otpInfo' => $otpInfo
             ]);
 
         } catch (\Exception $e) {
-            Log::error('Public share not found', [
+            Log::error('Public share error', [
                 'token' => $token,
-                'error' => $e->getMessage()
+                'token_length' => strlen($token),
+                'is_uuid_format' => $this->isValidUuid($token),
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
             ]);
 
             return view('public.share-not-found');
@@ -278,11 +409,33 @@ class PublicShareController extends Controller
                 return redirect()->away($file->arweave_url);
             }
 
-            // Download from Supabase
+            // Download from Supabase with proper error handling
             $fileUrl = "{$supabaseUrl}/storage/v1/object/public/docs/{$filePath}";
             
+            // Check if file exists and is accessible
+            $headers = @get_headers($fileUrl);
+            if (!$headers || strpos($headers[0], '200') === false) {
+                Log::error('Supabase file not accessible', [
+                    'file_url' => $fileUrl,
+                    'file_id' => $file->id,
+                    'headers' => $headers
+                ]);
+                abort(404, 'File not found or no longer available');
+            }
+            
             return response()->streamDownload(function () use ($fileUrl) {
-                $stream = fopen($fileUrl, 'r');
+                $context = stream_context_create([
+                    'http' => [
+                        'timeout' => 30,
+                        'method' => 'GET'
+                    ]
+                ]);
+                
+                $stream = fopen($fileUrl, 'r', false, $context);
+                if (!$stream) {
+                    throw new \Exception('Failed to open file stream');
+                }
+                
                 fpassthru($stream);
                 fclose($stream);
             }, $file->file_name, [
@@ -378,7 +531,7 @@ class PublicShareController extends Controller
     }
 
     /**
-     * Get all files in folder recursively
+     * Get all files in folder recursively (for ZIP downloads)
      */
     private function getFolderFiles(File $folder)
     {
@@ -389,6 +542,43 @@ class PublicShareController extends Controller
             })
             ->whereNull('deleted_at')
             ->get();
+    }
+
+    /**
+     * Get direct children of folder only (non-recursive), excluding OTP files
+     */
+    private function getFolderDirectChildren(File $folder)
+    {
+        return File::where('user_id', $folder->user_id)
+            ->where('parent_id', $folder->id)
+            ->whereNull('deleted_at')
+            ->orderByRaw('is_folder DESC')
+            ->orderBy('file_name', 'asc')
+            ->get();
+    }
+
+    /**
+     * Check if folder contains OTP files (for warning message)
+     */
+    private function folderContainsOtpFiles(File $folder): array
+    {
+        // Check for OTP files by looking at public_shares table instead
+        $otpShares = PublicShare::whereIn('file_id', function($query) use ($folder) {
+                $query->select('id')
+                      ->from('files')
+                      ->where('user_id', $folder->user_id)
+                      ->where('parent_id', $folder->id)
+                      ->whereNull('deleted_at');
+            })
+            ->where('is_one_time', DB::raw('true'))
+            ->with('file')
+            ->get();
+
+        return [
+            'has_otp_files' => $otpShares->count() > 0,
+            'otp_count' => $otpShares->count(),
+            'otp_files' => $otpShares->pluck('file.file_name')->filter()->toArray()
+        ];
     }
 
     /**
@@ -820,8 +1010,17 @@ class PublicShareController extends Controller
             // Get the specific folder
             $folder = File::where('id', $folderId)
                 ->where('user_id', $parentShare->user_id)
-                ->where('is_folder', true)
+                ->where('is_folder', DB::raw('true'))
                 ->firstOrFail();
+
+            // Check if user is logged in and owns this folder
+            if (Auth::check() && $folder->isOwnedBy(Auth::user())) {
+                // Redirect to dashboard with folder navigation
+                return redirect()->route('user.dashboard')->with([
+                    'navigate_to_folder' => $folder->id,
+                    'folder_name' => $folder->file_name
+                ]);
+            }
 
             // Verify folder is within the shared folder hierarchy
             if (!$this->isFolderWithinSharedHierarchy($folder, $parentShare->file)) {
@@ -831,13 +1030,14 @@ class PublicShareController extends Controller
             // Create or get individual share for this folder (MediaFire style)
             $folderShare = $this->getOrCreateNestedShare($folder, $parentShare);
 
-            // Get files in this nested folder
-            $folderFiles = $this->getFolderFiles($folder);
+            // Get files in this nested folder (direct children only)
+            $folderFiles = $this->getFolderDirectChildren($folder);
+            $otpInfo = $this->folderContainsOtpFiles($folder);
             
             // Build breadcrumb path
             $breadcrumbs = $this->buildBreadcrumbPath($folder, $parentShare);
 
-            return view('public.share-download', compact('folderFiles', 'breadcrumbs'))
+            return view('public.share-download', compact('folderFiles', 'breadcrumbs', 'otpInfo'))
                 ->with('share', $folderShare)
                 ->with('file', $folder);
 
@@ -865,16 +1065,16 @@ class PublicShareController extends Controller
             return $existingShare;
         }
 
-        // Create new share with inherited settings from parent
+        // Create new share with inherited settings from parent - use DB::raw for PostgreSQL boolean compatibility
         $nestedShare = PublicShare::create([
             'user_id' => $file->user_id,
             'file_id' => $file->id,
             'share_token' => PublicShare::generateUniqueToken(),
             'share_type' => $file->is_folder ? 'folder' : 'file',
-            'is_one_time' => $parentShare->is_one_time,
+            'is_one_time' => DB::raw($parentShare->is_one_time ? 'true' : 'false'),
             'max_downloads' => $parentShare->max_downloads,
             'expires_at' => $parentShare->expires_at,
-            'password_protected' => $parentShare->password_protected,
+            'password_protected' => DB::raw($parentShare->password_protected ? 'true' : 'false'),
             'password_hash' => $parentShare->password_hash,
         ]);
 
@@ -922,9 +1122,72 @@ class PublicShareController extends Controller
     }
 
     /**
+     * Build breadcrumb path for any file by finding the root share
+     */
+    private function buildBreadcrumbPathForFile(File $file): array
+    {
+        // Find the root share for this file's hierarchy
+        $rootShare = $this->findRootShareForFile($file);
+        
+        if (!$rootShare) {
+            // If no root share found, create simple breadcrumb
+            return [[
+                'id' => $file->id,
+                'name' => $file->file_name,
+                'is_root' => true,
+                'share_token' => $file->share_token ?? $file->uuid,
+                'url' => route('public.share.show', $file->share_token ?? $file->uuid)
+            ]];
+        }
+        
+        return $this->buildBreadcrumbPath($file, $rootShare);
+    }
+
+    /**
+     * Find the root share for a given file
+     */
+    private function findRootShareForFile(File $file): ?PublicShare
+    {
+        // First, check if this file itself has a share
+        $directShare = PublicShare::where('file_id', $file->id)->first();
+        if ($directShare) {
+            // Check if this is a root share (no parent shares in the hierarchy)
+            $current = $file;
+            while ($current->parent_id) {
+                $parent = File::find($current->parent_id);
+                if (!$parent) break;
+                
+                $parentShare = PublicShare::where('file_id', $parent->id)->first();
+                if ($parentShare) {
+                    // Found a parent share, so this is the root
+                    return $parentShare;
+                }
+                $current = $parent;
+            }
+            // No parent shares found, this is the root
+            return $directShare;
+        }
+        
+        // If no direct share, look for shares in parent hierarchy
+        $current = $file;
+        while ($current->parent_id) {
+            $parent = File::find($current->parent_id);
+            if (!$parent) break;
+            
+            $parentShare = PublicShare::where('file_id', $parent->id)->first();
+            if ($parentShare) {
+                return $parentShare;
+            }
+            $current = $parent;
+        }
+        
+        return null;
+    }
+
+    /**
      * Build breadcrumb path for nested navigation
      */
-    private function buildBreadcrumbPath(File $currentFolder, PublicShare $share): array
+    private function buildBreadcrumbPath(File $currentFolder, PublicShare $rootShare): array
     {
         $breadcrumbs = [];
         $current = $currentFolder;
@@ -933,13 +1196,28 @@ class PublicShareController extends Controller
 
         // Build path from current folder up to shared root
         while ($current && $depth < $maxDepth) {
+            // Get or create share token for this folder level
+            $shareToken = null;
+            if ($current->id === $rootShare->file_id) {
+                // Use root share token for the root folder
+                $shareToken = $rootShare->share_token;
+            } else {
+                // Get existing share for this folder or use root token
+                $existingShare = PublicShare::where('file_id', $current->id)
+                    ->where('user_id', $current->user_id)
+                    ->first();
+                $shareToken = $existingShare ? $existingShare->share_token : $rootShare->share_token;
+            }
+
             array_unshift($breadcrumbs, [
                 'id' => $current->id,
                 'name' => $current->file_name,
-                'is_root' => $current->id === $share->file_id
+                'is_root' => $current->id === $rootShare->file_id,
+                'share_token' => $shareToken,
+                'url' => route('public.share.show', $shareToken)
             ]);
 
-            if ($current->id === $share->file_id) {
+            if ($current->id === $rootShare->file_id) {
                 break;
             }
 
@@ -951,11 +1229,25 @@ class PublicShareController extends Controller
     }
 
     /**
+     * Check if a string is a valid UUID format
+     */
+    private function isValidUuid(string $uuid): bool
+    {
+        return preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i', $uuid) === 1;
+    }
+
+    /**
      * API: Get or create individual share token for nested items
      */
     public function getOrCreateShareToken(Request $request): JsonResponse
     {
         try {
+            Log::info('API: getOrCreateShareToken called', [
+                'file_id' => $request->input('file_id'),
+                'parent_token' => $request->input('parent_token'),
+                'request_data' => $request->all()
+            ]);
+            
             $request->validate([
                 'file_id' => 'required|integer',
                 'parent_token' => 'required|string'
@@ -972,6 +1264,18 @@ class PublicShareController extends Controller
                 ->where('user_id', $parentShare->user_id)
                 ->firstOrFail();
 
+            // Check if file has an existing OTP share (one-time access)
+            $existingOtpShare = PublicShare::where('file_id', $file->id)
+                ->where('is_one_time', DB::raw('true'))
+                ->first();
+                
+            if ($existingOtpShare) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This file is marked as one-time access and cannot be shared'
+                ], 403);
+            }
+
             // Verify file is within shared hierarchy
             if (!$this->isFolderWithinSharedHierarchy($file, $parentShare->file)) {
                 return response()->json([
@@ -986,6 +1290,7 @@ class PublicShareController extends Controller
             return response()->json([
                 'success' => true,
                 'share_token' => $individualShare->share_token,
+                'nested_token' => $individualShare->share_token, // For backward compatibility
                 'share_url' => $individualShare->getPublicUrl(),
                 'file_name' => $file->file_name,
                 'is_folder' => $file->is_folder

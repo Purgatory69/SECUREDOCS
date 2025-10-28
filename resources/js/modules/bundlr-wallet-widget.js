@@ -191,6 +191,24 @@ async function handleInitializeBundlr() {
             throw new Error('MetaMask not found. Please install MetaMask.');
         }
         
+        // Check if user is connected to MetaMask first
+        const accounts = await window.ethereum.request({ method: 'eth_accounts' });
+        if (!accounts || accounts.length === 0) {
+            // Show alert to user before attempting connection
+            const shouldConnect = confirm(
+                '🦊 MetaMask Connection Required\n\n' +
+                'You need to connect your MetaMask wallet to initialize Bundlr.\n\n' +
+                'Click OK to connect, or Cancel to abort.'
+            );
+            
+            if (!shouldConnect) {
+                throw new Error('User cancelled MetaMask connection.');
+            }
+            
+            // Request account access
+            await window.ethereum.request({ method: 'eth_requestAccounts' });
+        }
+        
         // Enable MetaMask (exact React app code)
         await window.ethereum.enable();
         
@@ -247,19 +265,63 @@ async function handleInitializeBundlr() {
 }
 
 /**
+ * Handle fund amount selection change
+ */
+function handleFundAmountChange() {
+    const amountSelect = document.getElementById('fundAmountSelect');
+    const customContainer = document.getElementById('customAmountContainer');
+    
+    if (amountSelect.value === 'custom') {
+        customContainer.classList.remove('hidden');
+        customContainer.classList.add('mt-2');
+    } else {
+        customContainer.classList.add('hidden');
+        customContainer.classList.remove('mt-2');
+    }
+}
+
+/**
+ * Get the selected fund amount (either from select or custom input)
+ */
+function getSelectedFundAmount() {
+    const amountSelect = document.getElementById('fundAmountSelect');
+    const customInput = document.getElementById('customAmountInput');
+    
+    if (amountSelect.value === 'custom') {
+        const customAmount = parseFloat(customInput.value);
+        if (!customAmount || customAmount < 0.001 || customAmount > 100) {
+            throw new Error('Custom amount must be between 0.001 and 100 MATIC');
+        }
+        return customAmount;
+    } else {
+        return parseFloat(amountSelect.value);
+    }
+}
+
+/**
  * Handle Bundlr funding (Real like React app)
  */
 async function handleFundBundlr() {
     const fundBtn = document.getElementById('fundBundlrBtn');
-    const amountSelect = document.getElementById('fundAmountSelect');
     
     if (!isInitialized || !window.bundlrInstance) {
         showNotification('Please initialize Bundlr first', 'error');
         return;
     }
-    
+
+    let amount;
     try {
-        const amount = parseFloat(amountSelect.value);
+        amount = getSelectedFundAmount();
+        if (!amount || amount <= 0) {
+            showNotification('Please select or enter a valid amount', 'error');
+            return;
+        }
+    } catch (error) {
+        showNotification(error.message, 'error');
+        return;
+    }
+
+    try {
         console.log(`💸 Funding Bundlr with ${amount} MATIC...`);
         
         // Show loading
@@ -510,9 +572,12 @@ export function isWalletReady() {
     return isInitialized;
 }
 
-// Export for global access
+// Expose functions globally
 window.initializeBundlrWalletWidget = initializeBundlrWalletWidget;
+window.handleFundBundlr = handleFundBundlr;
+window.handleRefreshBalance = handleRefreshBalance;
 window.uploadFileWithBundlr = uploadFileWithBundlr;
+window.handleFundAmountChange = handleFundAmountChange;
 window.getCurrentBalance = getCurrentBalance;
 window.isWalletReady = isWalletReady;
 

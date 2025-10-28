@@ -1936,7 +1936,7 @@ class FileController extends Controller
                 'parent_id' => [
                     'nullable',
                     'integer',
-                    Rule::exists('files', 'id')->where('user_id', $user->id)->where('is_folder', true),
+                    Rule::exists('files', 'id')->where('user_id', $user->id)->where('is_folder', DB::raw('true')),
                 ],
             ], [
                 'file_name.regex' => 'Folder name can only contain letters, numbers, spaces, underscores, dots, and hyphens.',
@@ -2417,7 +2417,7 @@ class FileController extends Controller
 
             // Validation: If new parent is specified, ensure it exists and belongs to the user
             if ($newParentId) {
-                $newParent = $user->files()->where('id', $newParentId)->where('is_folder', true)->first();
+                $newParent = $user->files()->where('id', $newParentId)->where('is_folder', DB::raw('true'))->first();
                 if (!$newParent) {
                     return response()->json([
                         'success' => false,
@@ -2921,5 +2921,65 @@ class FileController extends Controller
             ]);
             throw new \Exception('Failed to rename file in storage: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Show specific folder in dashboard (URL-based navigation)
+     */
+    public function showFolder(Request $request, int $id)
+    {
+        $user = Auth::user();
+        
+        // Get the folder - use DB::raw for PostgreSQL boolean compatibility
+        $folder = $user->files()
+            ->where('id', $id)
+            ->where('is_folder', DB::raw('true'))
+            ->whereNull('deleted_at')
+            ->firstOrFail();
+        
+        // Check if user is accessing their own share link while logged in
+        if ($request->has('share_redirect') && $folder->share_token) {
+            // Redirect to dashboard with folder open
+            return redirect()->route('user.dashboard')->with([
+                'open_folder' => $id,
+                'folder_name' => $folder->file_name
+            ]);
+        }
+        
+        // Redirect to user dashboard with folder context
+        return redirect()->route('user.dashboard')->with([
+            'current_folder' => $folder,
+            'folder_id' => $id
+        ]);
+    }
+
+    /**
+     * Show specific file in dashboard (URL-based navigation)
+     */
+    public function showFile(Request $request, int $id)
+    {
+        $user = Auth::user();
+        
+        // Get the file - use DB::raw for PostgreSQL boolean compatibility
+        $file = $user->files()
+            ->where('id', $id)
+            ->where('is_folder', DB::raw('false'))
+            ->whereNull('deleted_at')
+            ->firstOrFail();
+        
+        // Check if user is accessing their own share link while logged in
+        if ($request->has('share_redirect') && $file->share_token) {
+            // Redirect to dashboard with file selected
+            return redirect()->route('user.dashboard')->with([
+                'selected_file' => $id,
+                'file_name' => $file->file_name
+            ]);
+        }
+        
+        // Redirect to user dashboard with file context
+        return redirect()->route('user.dashboard')->with([
+            'current_file' => $file,
+            'file_id' => $id
+        ]);
     }
 }

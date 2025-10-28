@@ -13,22 +13,20 @@ A modern, secure file management system built with Laravel that provides enterpr
 
 ### Security & Authentication
 - **🔐 Multi-Factor Authentication**: WebAuthn biometric authentication + TOTP
-- **👥 Role-Based Access Control**: User, Record Admin, and Admin roles
+- **👥 Role-Based Access Control**: User, and Admin roles
 - **📊 Activity Tracking**: Comprehensive audit logs for all user actions
 - **🔔 Real-Time Notifications**: Email and in-app notifications for security events
 - **🌍 Session Management**: Trusted devices and suspicious activity detection
 
 ### Premium Features
 - **🤖 AI-Powered Features**: Automatic file categorization and content analysis
-- **⛓️ Blockchain Storage**: Permanent archiving on Arweave, Pinata, and Filecoin
+- **⛓️ Blockchain Storage**: Permanent archiving on Arweave
 - **💎 Premium Subscriptions**: Enhanced storage limits and advanced features
 - **🔒 Encrypted Storage**: End-to-end encryption for sensitive documents
 
-### Collaboration & Sharing
+### & Sharing
 - **👥 File Sharing**: Share files and folders with granular permissions
-- **💬 Comments & Annotations**: Collaborate with team members on documents
-- **📈 Version History**: Track file changes and restore previous versions
-- **👁️ File Preview**: Preview multiple file formats directly in browser
+
 
 ### Administration
 - **👨‍💼 Admin Dashboard**: User management, analytics, and system monitoring
@@ -42,9 +40,9 @@ A modern, secure file management system built with Laravel that provides enterpr
 - **Frontend**: JavaScript ES6+, TailwindCSS, Livewire
 - **Database**: PostgreSQL with Supabase
 - **Authentication**: Laravel Jetstream + WebAuthn
-- **Storage**: Local storage + Blockchain (Arweave/Pinata/Filecoin)
+- **Storage**: Local storage + Blockchain (Arweave)
 - **AI/ML**: Custom categorization engine
-- **Deployment**: Docker + Cloudflare Tunnels
+- **Deployment**: Github + Cloudflare Tunnels
 
 ## 📋 Requirements
 
@@ -144,7 +142,6 @@ The application uses a comprehensive PostgreSQL schema with the following main t
 - `users` - User accounts and profiles
 - `files` - File metadata and storage information
 - `folders` - Hierarchical folder structure
-- `file_versions` - Version history tracking
 - `user_sessions` - Authentication sessions
 - `notifications` - User notifications
 - `activity_logs` - Audit trail

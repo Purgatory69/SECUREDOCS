@@ -97,6 +97,12 @@ Route::middleware([
     Route::get('/user/dashboard', [UserController::class, 'dashboard'])
         ->middleware(['auth:sanctum', 'verified', \App\Http\Middleware\RoleMiddleware::class.':user'])
         ->name('user.dashboard');
+    
+    // Backward compatibility route for 'dashboard'
+    Route::get('/dashboard', function () {
+        return redirect()->route('user.dashboard');
+    })->middleware(['auth:sanctum', 'verified', \App\Http\Middleware\RoleMiddleware::class.':user'])
+      ->name('dashboard');
 
     // Record Admin dashboard
     Route::get('/record-admin/dashboard', function () {
@@ -766,7 +772,6 @@ Route::middleware([
         return view('simple-db-schema');
     })->middleware(['auth:sanctum', 'verified', \App\Http\Middleware\RoleMiddleware::class.':admin'])->name('simple-db-schema');
 
-    
 
     // Notifications routes
     Route::prefix('notifications')->name('notifications.')->group(function () {
@@ -783,6 +788,7 @@ Route::middleware([
     Route::prefix('arweave-client')->name('arweave-client.')->group(function () {
         Route::post('/save-upload', [App\Http\Controllers\ArweaveController::class, 'saveClientUpload'])->name('save-upload');
         Route::get('/files', [App\Http\Controllers\ArweaveController::class, 'getUserFiles'])->name('files');
+        Route::get('/files/{fileId}/details', [App\Http\Controllers\ArweaveController::class, 'getFileDetails'])->name('file-details');
         Route::post('/files/{fileId}/verify-access', [App\Http\Controllers\ArweaveController::class, 'verifyFileAccess'])->name('verify-access');
         Route::delete('/files/{fileId}', [App\Http\Controllers\ArweaveController::class, 'deleteFileRecord'])->name('delete-file');
         Route::get('/stats', [App\Http\Controllers\ArweaveController::class, 'getFileStats'])->name('stats');
@@ -800,6 +806,10 @@ Route::middleware([
     Route::prefix('api')->name('api.')->group(function () {
         Route::get('/shared-with-me', [App\Http\Controllers\PublicShareController::class, 'getSharedWithMe'])->name('shared-with-me');
     });
+    
+    // URL-based folder and file navigation (authenticated)
+    Route::get('/dashboard/folder/{id}', [App\Http\Controllers\FileController::class, 'showFolder'])->name('dashboard.folder.show')->where('id', '[0-9]+');
+    Route::get('/dashboard/file/{id}', [App\Http\Controllers\FileController::class, 'showFile'])->name('dashboard.file.show')->where('id', '[0-9]+');
 });
 
 // Public share routes (no authentication required)
@@ -818,5 +828,5 @@ Route::prefix('s')->name('public.')->group(function () {
     Route::get('/{token}/folder/{folderId}', [App\Http\Controllers\PublicShareController::class, 'showFolder'])->name('share.folder.show');
 });
 
-// API route for generating individual share tokens
+// API route for generating individual share tokens (public access, no auth required)
 Route::post('/api/get-or-create-share-token', [App\Http\Controllers\PublicShareController::class, 'getOrCreateShareToken'])->name('api.get-or-create-share-token');
