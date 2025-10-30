@@ -1,0 +1,1750 @@
+<html lang="en" charset="UTF-8"><head></head><body style="background-color: #141326;" class="h-screen grid grid-rows-[64px_1fr] grid-cols-[260px_1fr] grid-areas-layout text-text-main loaded"><div class="hidden" data-page="user-dashboard"></div>
+
+
+<header class="col-span-2 flex items-center px-4 bg-[#141326] z-10 h-18">
+    <div style="margin-bottom: 13px;" class="ml-4 flex items-center space-x-3 mr-10">
+        <img src="https://securedocs.live/logo-white.png" alt="SecureDocs logo" class="w-8 h-8" style="margin-top:20px;">
+        <div style="padding-right: 30px;" class="flex flex-col relative">
+            <div class="text-white text-l font-bold">SECURE<span class="text-[#f89c00]">DOCS</span></div>
+            <div class="absolute top-full text-xs text-gray-400">
+                Premium
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-left: -5px; outline: none;" class="flex-grow max-w-[720px] relative pl-6 flex items-center gap-2">
+        <div class="relative flex-1">
+            <img src="https://securedocs.live/magnifying-glass.png" alt="Search" class="absolute top-1/2 -translate-y-1/2 w-4 h-4" style="left: 18px;">
+            <input type="text" id="mainSearchInput" placeholder="Search in SECUREDOCS" class="w-full py-3 pl-12 pr-12 mt-4 mb-4 rounded-full border-none bg-[#3C3F58] text-base text-white focus:outline-none focus:shadow-md" style="color: white; outline: none; padding-right: 20px;" onfocus="this.style.setProperty('--placeholder-opacity', '0.5');" onblur="this.style.setProperty('--placeholder-opacity', '0.5');">
+        </div>
+        <button id="advanced-search-button" class="mt-4 mb-4 px-4 py-3 bg-[#3C3F58] hover:bg-[#55597C] text-white rounded-full text-sm font-medium transition-colors flex items-center gap-2" title="Advanced Search">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path>
+            </svg>
+            <span>Advanced</span>
+        </button>
+    </div>
+
+    <div class="flex items-center ml-auto gap-4">
+        <!-- Bundlr Wallet Widget (Premium Only) -->
+                <div class="relative">
+            <button id="bundlrWalletBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg transition-colors text-white text-sm" title="Bundlr Wallet">
+                <div class="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold">
+                    B
+                </div>
+                <div class="hidden md:block">
+                    <div class="text-xs text-gray-400">Bundlr</div>
+                    <div id="walletBalance" class="text-xs font-medium">Click to Initialize</div>
+                </div>
+            </button>
+            
+            <!-- Bundlr Wallet Dropdown -->
+            <div id="bundlrWalletDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
+                <div class="px-4 py-3 border-b border-[#4A4D6A]">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-sm font-medium">Bundlr Wallet</div>
+                        <button id="initializeBundlrBtn" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 rounded text-sm transition-colors">
+                            Initialize
+                        </button>
+                    </div>
+                    <div class="text-xs text-gray-400" id="walletStatus">Click initialize to connect</div>
+                </div>
+                <div class="p-4 space-y-3">
+                    <!-- Balance Display -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm">Balance:</span>
+                        <span id="walletBalanceDetail" class="text-sm font-medium text-green-400">-- MATIC</span>
+                    </div>
+                    
+                    <!-- Actions -->
+                    <div class="space-y-2">
+                        <div class="text-xs text-gray-400 mb-2">
+                            Need MATIC in your wallet to fund Bundlr
+                        </div>
+                        <div class="flex gap-2">
+                            <select id="fundAmountSelect" class="flex-1 px-3 py-2 bg-[#3C3F58] rounded text-sm" onchange="handleFundAmountChange()">
+                                <option value="0.01">0.01 MATIC</option>
+                                <option value="0.05">0.05 MATIC</option>
+                                <option value="0.1">0.1 MATIC</option>
+                                <option value="0.5">0.5 MATIC</option>
+                                <option value="1">1 MATIC</option>
+                                <option value="custom">Custom Amount</option>
+                            </select>
+                            <button id="fundBundlrBtn" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors" disabled="">
+                                Fund
+                            </button>
+                        </div>
+                        <div id="customAmountContainer" class="hidden">
+                            <input type="number" id="customAmountInput" placeholder="Enter MATIC amount (e.g., 0.25)" min="0.001" max="100" step="0.001" class="w-full px-3 py-2 bg-[#3C3F58] border border-[#55597C] rounded text-sm text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none">
+                            <div class="text-xs text-gray-400 mt-1">
+                                Minimum: 0.001 MATIC • Maximum: 100 MATIC
+                            </div>
+                        </div>
+                        <button id="refreshBalanceBtn" class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition-colors" disabled="">
+                            Refresh Balance
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+                
+        <div class="relative">
+            <button id="notificationBell" class="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer hover:bg-[#3C3F58] transition-colors" title="Notifications" aria-label="Notifications">
+            <img src="https://securedocs.live/notifications.png" alt="Notifications" class="w-6 h-6 object-contain">
+            </button>
+            <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
+            
+            <!-- Notification Dropdown -->
+            <div id="notificationDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
+                <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
+                    <div class="text-sm font-medium">Notifications</div>
+                    <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>
+                </div>
+                <div id="notificationsList" class="max-h-80 overflow-auto"><div class="p-4 text-center text-gray-500">No notifications</div></div>
+                <div class="px-4 py-2 border-t border-[#4A4D6A] flex items-center justify-between">
+                    <button id="deleteAllNotifications" class="flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors" title="Delete all notifications">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                        </svg>
+                        Delete all
+                    </button>
+                    <a id="viewAllNotifications" href="#" class="text-xs text-blue-400 hover:text-blue-300">View all</a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="relative inline-block mr-2">
+            <div id="userProfileBtn" class="w-10 h-10 rounded-full flex items-center justify-center text-xl mr-2 cursor-pointer transition" style="background-color: #3C3F58;" onmouseover="this.style.filter='brightness(1.1)';" onmouseout="this.style.filter='';">
+                <img src="https://securedocs.live/user-shape.png" alt="Profile" class="w-6 h-6 object-contain">
+            </div>
+            <div id="profileDropdown" class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
+                <div class="p-4 border-border-color flex items-center">
+                    <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 cursor-pointer transition" style="background-color: #55597C;">
+                        <img src="https://securedocs.live/user-shape.png" alt="Profile" class="w-6 h-6 object-contain">
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="text-base font-medium mb-1">louie Jay Bonghanoy</div>
+                        <div style="color: #B6B6B6; font-size: 12px;" class="text-sm text-text-secondary">louiejaybonghanoy43@gmail...</div>
+                    </div>
+                </div>
+                <ul class="list-none">
+                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    <li>
+                        <a href="https://securedocs.live/user/profile" class="p-4 flex items-center cursor-pointer" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#55597C';" onmouseout="this.style.backgroundColor='';">
+                        <img src="/user-shape.png" class="mr-4 w-4 h-4 ml-1" alt="Profile Settings">
+                        <span class="text-sm">Profile Settings</span>
+                        </a>
+                    </li>
+
+
+                    <li>
+                        <a href="https://securedocs.live/webauthn" class="p-4 flex items-center cursor-pointer" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#55597C';" onmouseout="this.style.backgroundColor='';">
+                        <img src="/fingerprint.png" class="mr-4 w-4 h-4 ml-1" alt="Biometric Login">
+                        <span class="text-sm">Biometrics</span>
+                        </a>
+                    </li>
+
+                    <li>
+                        <a href="https://securedocs.live/profile/sessions" class="p-4 flex items-center cursor-pointer" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#55597C';" onmouseout="this.style.backgroundColor='';">
+                        <img src="/shield.png" class="mr-4 w-4 h-4 ml-1" alt="Account Security">
+                        <span class="text-sm">Account Security</span>
+                        </a>
+                    </li>
+                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    <!-- <li class="h-px bg-border-color my-1"></li> -->
+                    <!-- ======================================= -->
+                    <!-- OPTION 2: DROPDOWN TO THE LEFT SIDE -->
+                    <li class="relative"> 
+                        <div id="headerLanguageToggle2" class="p-4 flex items-center justify-between cursor-pointer" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#55597C';" onmouseout="this.style.backgroundColor='';"> 
+                            <div class="flex items-center"> 
+                                <svg class="mr-4 w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+                                </svg>
+                                <span class="text-sm">Language</span> 
+                            </div> 
+                            <!-- Image arrow positioned at the right -->
+                            <img src="https://securedocs.live/caret-down.png" alt="dropdown arrow" class="w-2 h-2 mr-2 transition-transform duration-200" id="langCaret"> 
+                        </div> 
+                        
+                        <!-- Updated submenu with conditional hover effects -->
+                        <div id="headerLanguageSubmenu2" style="background-color: rgb(60, 63, 88); border: 3px solid rgb(31, 31, 51); pointer-events: none;" class="absolute right-0 mr-4 top-full mt-2 w-[140px] rounded-lg shadow-xl overflow-hidden transition-all duration-200 opacity-0 invisible pointer-events-none translate-y-[-10px] z-40"> 
+                            <a href="https://securedocs.live/set-language/en" class="flex items-center px-4 py-3 text-sm transition-colors bg-[#f89c00] text-black font-bold"> 
+                                <span class="mr-2">🇺🇸</span> 
+                                English 
+                            </a> 
+                            <a href="https://securedocs.live/set-language/fil" class="flex items-center px-4 py-3 text-sm transition-colors text-white" onmouseover="this.style.backgroundColor='#55597C';" onmouseout="this.style.backgroundColor='';"> 
+                                <span class="mr-2">🇵🇭</span> 
+                                Filipino 
+                            </a> 
+                        </div>
+                    </li>
+                    <li>
+                        <a href="https://securedocs.live/profile/faq " class="p-4 flex items-center cursor-pointer" style="transition: background-color 0.2s;" onmouseover="this.style.backgroundColor='#55597C';" onmouseout="this.style.backgroundColor='';">
+                        <img src="/info.png" class="mr-4 w-4 h-4 ml-1" alt="Security &amp; Privacy">
+                        <span class="text-sm">Help &amp; Support</span>
+                        </a>
+                    </li>
+                    <!--
+                    <li class="p-4 flex items-center cursor-pointer"
+                        style="transition: background-color 0.2s;"
+                        onmouseover="this.style.backgroundColor='#55597C';"
+                        onmouseout="this.style.backgroundColor='';">
+                        <img src="/pencil.png" class="mr-4 w-4 h-4 ml-1" alt="Security & Privacy">
+                        <span class="text-sm">Send Feedback</span>
+                    </li>
+                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    -->
+                    <li class="flex items-center px-4 py-2 hover:bg-[#3C3F58] cursor-pointer rounded-lg mx-2 transition-colors duration-200" onclick="window.location.href='https://securedocs.live/premium/upgrade'" onmouseover="this.style.backgroundColor='#55597C';" onmouseout="this.style.backgroundColor='';">
+                        <img src="/crown.png" class="mr-4 w-4 h-4 ml-1" alt="Premium Upgrade">
+                        <span class="text-sm">Buy Premium</span>
+                    </li>
+                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                </ul>
+                <div class="pt-2 mt-2 border-border-color text-center">
+                    <form method="POST" action="https://securedocs.live/logout">
+                        <input type="hidden" name="_token" value="2gwqRJzuh7M8MrkTwlipjJLv9k1QzAk6BKvF5unl" autocomplete="off">                        <button type="submit" class="bg-[#f89c00] px-8 text-black font-bold py-2 rounded-full cursor-pointer hover:brightness-110 transition">Logout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+
+
+
+<div id="overlay" class="fixed inset-0 bg-transparent z-[5] hidden"></div>
+
+<div id="uploadModal" class="fixed inset-0 z-50 flex  items-center justify-center hidden text-white z-[1001]">
+    <div style="background-color: #141326; opacity: 0.8;" class="fixed inset-0 transition-opacity" id="modalBackdrop"></div>
+    <div style="background-color: #24243B;" class="rounded-lg shadow-xl w-full max-w-md p-6 relative z-10 transform transition-all">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-medium text-white text-text-main">Upload New File</h3>
+            <button id="closeModalBtn" class="close-button text-text-secondary hover:text-white text-2xl focus:outline-none">
+                <img src="/close.png" class="mr-2 w-3 h-3" alt="Close">
+            </button>
+        </div>
+
+        <div class="space-y-6">
+            <div id="dropZone" style="border-width: 3px;" class="dropzone-border border-dashed rounded-lg p-8 text-center cursor-pointer">
+                <div id="dropZoneContent" class="flex flex-col items-center">
+                    <div class="dropzone-img text-3xl mb-4">
+                        <img src="/file.png" alt="File" class="opacity-50 w-12 h-12">
+                    </div>
+                    <p class="dropzone-text text-sm mb-1">Drag and drop files here or click to browse</p>
+                    <p class="dropzone-text text-xs"> Maximum file size: 100MB</p>
+                </div>
+                <input type="file" id="fileInput" class="hidden" multiple="">
+            </div>
+
+            
+
+            <div id="fileList"></div>
+            <!-- Processing Options (Standard / Premium) -->
+            <div id="processingOptions" class="space-y-4" style="display: none;">
+                <div class="text-sm font-medium">Processing Options</div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <!-- Standard -->
+                    <label class="cursor-pointer block">
+                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3">
+                            <input id="standardUpload" type="radio" name="processingType" value="standard" class="mt-1" checked="">
+                            <div>
+                                <div class="text-sm text-white font-medium">Standard Upload</div>
+                                <div class="text-xs text-gray-400">Store file in Supabase storage</div>
+                            </div>
+                        </div>
+                    </label>
+
+
+                    <!-- Vectorize (Premium) -->
+                    <label class="cursor-pointer block" data-premium-option="true">
+                        <div class="rounded-lg border border-[#3C3F58] bg-[#1F2235] p-3 flex items-start gap-3  hover:border-[#f89c00] ">
+                            <input id="vectorizeUpload" type="radio" name="processingType" value="vectorize" class="mt-1">
+                            <div>
+                                <div class="text-sm text-white font-medium flex items-center gap-2">
+                                    AI Vectorize
+                                                                    </div>
+                                <div id="descVectorize" class="text-xs text-gray-400">
+                                                                            Process with AI for advanced search capabilities
+                                                                    </div>
+                            </div>
+                        </div>
+                    </label>
+
+                </div>
+                <div id="processingValidation" class="hidden mt-2"></div>
+            </div>
+            <div id="uploadProgress" class="hidden">
+                <div class="flex justify-between text-sm mb-1">
+                    <span>Uploading...</span>
+                    <span id="progressPercentage">0%</span>
+                </div>
+                <div class="w-full rounded-full h-2">
+                    <div id="progressBar" class="bg-primary h-2 rounded-full" style="width: 0%"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-8 flex justify-end gap-3">
+            <button id="cancelUploadBtn" class="cancel-button py-2 px-4 rounded text-sm">Cancel</button>
+            <button id="uploadBtn" class="confirm-button py-2 px-4 rounded text-sm" disabled="">Upload</button>
+        </div>
+    </div>
+</div>
+
+<!-- Create Folder Modal -->
+<div id="createFolderModal" class="fixed inset-0 z-50 flex items-center justify-center hidden text-white">
+    <div style="background-color: #141326; opacity: 0.8;" class="fixed inset-0 transition-opacity"></div>
+    <div style="background-color: #24243B;" class="rounded-lg shadow-xl w-full max-w-md p-6 relative z-10 transform transition-all">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-medium text-white text-text-main">Create New Folder</h3>
+            <button id="closeCreateFolderModalBtn" class="close-button text-text-secondary hover:text-white text-2xl focus:outline-none">
+                <img src="/close.png" class="mr-2 w-3 h-3" alt="Close">
+            </button>
+        </div>
+        <form id="createFolderForm">
+            <div class="mb-4">
+                <label for="newFolderNameInput" class="block text-sm font-medium mb-2" style="color: #9CA3AF;">Folder Name</label>
+                <input type="text" id="newFolderNameInput" name="newFolderName" class="w-full py-2 px-3 rounded-lg border-none bg-[#3C3F58] text-base text-white focus:outline-none focus:shadow-md placeholder-gray-400" placeholder="Enter here" required="">
+            </div>
+            <div class="mt-6 flex justify-end gap-3">
+                <button type="button" id="cancelCreateFolderBtn" class="cancel-button py-2 px-4 rounded text-sm">Cancel</button>
+                <button type="submit" class="confirm-button py-2 px-4 rounded text-sm">Create Folder</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="bg-[#141326] py-4">
+<!-- New Button container -->
+<div class="relative mx-4 my-2">
+    <!-- Toggle button -->
+    <div id="newBtn" class="flex items-center py-4 px-6 rounded-full shadow-sm cursor-pointer transition-all duration-200 hover:bg-[#55597C]" style="background-color: #3c3f58;">
+        <img src="https://securedocs.live/add.png" alt="Add" class="mr-3 w-3 h-3">
+        <span class="text-sm text-white font-medium">Upload</span>
+        <img src="https://securedocs.live/caret-down.png" alt="dropdown arrow" class="ml-auto w-2 h-2" id="uploadIcon">
+    </div>
+
+    <!-- Dropdown Menu - Simplified Structure -->
+    <div id="newDropdown" class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C] opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200" style="background-color: #55597C;">
+        <div>
+            <div id="uploadFileOption" class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer" onclick="console.log('🟢 [DROPDOWN] Upload File Option clicked'); if(window.showUploadModal) { console.log('🟢 [DROPDOWN] Calling showUploadModal...'); window.showUploadModal(); } else { console.error('❌ [DROPDOWN] showUploadModal not available'); }" onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0.5rem 0.5rem 0 0;';" onmouseout="this.style.cssText = 'border-radius: 0.5rem 0.5rem 0 0;';">
+                <img src="https://securedocs.live/file.png" alt="File" class="mr-4 w-4 h-4">
+                <span class="font-medium">New File</span>
+            </div>
+            
+                        <div id="openClientArweaveBtn" class="flex items-center px-5 py-4 text-sm transition-colors text-white cursor-pointer" onclick="openClientArweaveModal()" onmouseover="this.style.cssText = 'background-color: #55597C;';" onmouseout="this.style.cssText = '';">
+                <span class="mr-4 text-lg">🚀</span>
+                <div class="flex-1">
+                    <div class="font-medium">Arweave Storage </div>
+                </div>
+                <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-green-500 text-white">NEW</span>
+            </div>
+                        
+            <div id="createFolderOption" class="flex items-center px-5 py-4 text-sm transition-colors text-white" onmouseover="this.style.cssText = 'background-color: #55597C; border-radius: 0 0 0.5rem 0.5rem;';" onmouseout="this.style.cssText = 'border-radius: 0 0 0.5rem 0.5rem;';">
+                <img src="https://securedocs.live/folder-closed-black-shape.png" alt="File" class="mr-4 w-4 h-4">
+                <span class="font-medium">New Folder</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+     <ul id="sidebar" class="mt-4">
+        <li id="my-documents-link" class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4 bg-primary">
+            <img src="https://securedocs.live/folder-white-shape.png" alt="Documents" class="mr-4 w-5 h-5">
+            <span class="text-sm">My Documents</span>
+        </li>
+
+        <li id="shared-with-me-link" class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4 
+            bg-[#141326] text-white hover:brightness-110 active:bg-[#2B2C61]">
+            <svg class="mr-4 w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+            </svg>
+            <span class="text-sm">Shared with Me</span>
+        </li>
+
+        <li id="trash-link" class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4 
+            bg-[#141326] text-white hover:brightness-110 active:bg-[#2B2C61]">
+            <img src="https://securedocs.live/delete.png" alt="Trash" class="mr-4 w-5 h-5">
+            <span class="text-sm">Trash</span>
+        </li>
+        <li id="blockchain-storage-link" class="py-3 px-8 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light " onclick="handleBlockchainClick(event)">
+            <img src="https://securedocs.live/link-symbol.png" alt="Blockchain" class="mr-4 w-5 h-5">
+            <span class="text-white text-sm">Blockchain</span>
+            
+                    </li>
+
+        <style>
+            /* Sidebar styles */
+            #sidebar>li{background:#141326!important;color:#fff!important;transition:filter .15s;}
+            #sidebar>li:hover{filter:brightness(1.5)!important;}
+            #sidebar>li.bg-primary{background:#2B2C61!important;color:#fff!important;}
+            #sidebar>li.bg-primary:hover{filter:none!important;}
+            #sidebar>li *{color:inherit!important;}
+
+            /* New button + dropdown */
+            #newBtn{background:#3c3f58!important;}
+            #newBtn:hover{background:#55597C!important;}
+            #newDropdown{background:#3c3f58!important;}
+        </style>
+
+
+    </ul>
+
+    <!-- Storage Usage Display -->
+    <div id="storageUsageContainer" class="mt-8 px-6">
+        <div class="w-full h-2 bg-gray-600 rounded overflow-hidden">
+            <div id="storageProgressBar" class="h-full transition-all duration-300 rounded" style="width: 0%; background-color: #3C3F58;"></div>
+        </div>
+        <div id="storageUsageText" class="text-xs text-gray-300 mt-2">0 B of 1024 MB used</div>
+        <div id="upgradePrompt" class="hidden mt-2 p-2 bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg text-xs">
+            <div class="flex items-center justify-between">
+                <span class="text-white font-medium">Storage limit reached!</span>
+                <button id="upgradeBtn" class="bg-white text-purple-600 px-2 py-1 rounded text-xs font-bold hover:bg-gray-100 transition-colors">
+                    Upgrade to Premium
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<main style="background-color: #24243B; border-top-left-radius: 32px; margin-left: 13px;" class="p-6 overflow-y-auto">
+    <input type="hidden" id="currentFolderId" value="">
+    <div id="breadcrumbsContainer" class="mt-2 mb-8 text-sm text-white flex items-center justify-between">
+        
+        <!-- Breadcrumbs will be populated by JavaScript -->
+        <div id="breadcrumbsDropdown" class="relative hidden">
+            <button id="breadcrumbsMenuBtn" class="flex items-center justify-center w-12 h-12 rounded-full hover:bg-gray-100 transition-colors mr-2">
+                <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path>
+                </svg>
+            </button>
+            <div id="breadcrumbsDropdownMenu" class="absolute top-full left-0 mt-1 bg-[#1F2235] border border-[#4A4D6A] rounded-lg shadow-lg z-50 min-w-[200px] hidden"></div>
+        </div>
+
+        <div id="breadcrumbsPath" class="flex items-center"><a href="#" class="px-2 py-1 rounded text-sm transition-colors max-w-[200px] truncate inline-block text-white font-medium bg-[#3C3F58]" title="My Documents" data-folder-id="null">My Documents</a></div>
+
+        <!-- Move view toggle buttons here -->
+        <div id="viewToggleBtns" class="flex gap-2 ml-auto">
+            <button id="btnGridLayout" data-view="grid" title="Grid view" aria-label="Grid view" class="view-toggle-btn active py-2 px-4 border rounded text-sm text-primary" aria-pressed="true">
+                <span><img src="https://securedocs.live/grid.png" alt="Documents" class="w-4 h-4"></span>
+            </button>
+            <button id="btnListLayout" data-view="list" title="List view" aria-label="List view" class="view-toggle-btn py-2 px-4 border rounded text-sm text-text-secondary" aria-pressed="false">
+                <span><img src="https://securedocs.live/list.png" alt="Documents" class="w-4 h-4"></span>
+            </button>
+        </div>
+
+    </div>
+    <!-- <h1 id="header-title" class="text-2xl text-white font-bold mb-6">My Documents</h1> -->
+
+    <!-- Selection Toolbar - Google Drive style -->
+    <div id="selectionToolbar" class="hidden mb-4 flex items-center gap-4 px-4 py-3 bg-[#2A2D47] rounded-lg border border-[#4A4D6A] shadow-lg">
+        <div class="flex items-center gap-2 text-white">
+            <span id="selectionCount">0 selected</span>
+        </div>
+        <div class="flex items-center gap-2 ml-auto">
+            <button id="selectionOpenBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path>
+                </svg>
+                <span class="btn-label">Open</span>
+            </button>
+            <button id="selectionRestoreBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors hidden">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v6h6M20 20v-6h-6M20 4l-6 6M4 20l6-6"></path>
+                </svg>
+                <span class="btn-label">Restore</span>
+            </button>
+            <button id="selectionDeleteBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                </svg>
+                <span class="btn-label">Delete</span>
+            </button>
+            <button id="selectionMoveBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path>
+                </svg>
+                <span class="btn-label">Move</span>
+            </button>
+            <button id="selectionRenameBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                </svg>
+                <span class="btn-label">Rename</span>
+            </button>
+            <button id="selectionShareBtn" class="flex items-center gap-2 px-3 py-2 bg-[#f89c00] hover:brightness-110 rounded-lg text-sm transition-colors text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"></path>
+                </svg>
+                <span class="btn-label">Share</span>
+            </button>
+            <button id="selectionDownloadBtn" class="flex items-center gap-2 px-3 py-2 bg-[#f89c00] hover:brightness-110 rounded-lg text-sm transition-colors text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span class="btn-label">Download</span>
+            </button>
+        </div>
+        <button id="selectionClearBtn" class="flex items-center gap-1 px-2 py-1 bg-transparent hover:bg-[#4A4D6A] rounded text-white text-sm transition-colors ml-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+        </button>
+    </div>
+
+    <!-- JS Localization -->
+    <div id="db-js-localization-data" class="hidden" data-my-documents="My Documents"></div>
+    <!-- Hidden file input for uploading new versions -->
+    <input type="file" id="newVersionInput" class="hidden">
+    <script>
+        window.I18N = window.I18N || {};
+        // Read the localized text from the hidden HTML element
+        const localData = document.getElementById('db-js-localization-data');
+        if (localData) {
+            window.I18N.dbMyDocuments = localData.getAttribute('data-my-documents');
+        }
+    </script>
+
+    <style>
+    /* Search placeholder text - set for lower opacity */
+    #mainSearchInput::placeholder, #newFolderNameInput::placeholder {
+        color: rgba(255, 255, 255, 0.5);
+        opacity: 1;
+    }
+
+    /* Grid View/List View button */
+    .view-toggle-btn {
+        background-color: #3C3F58 !important;
+        border-color: #55597C !important;
+        /* color: #9CA3AF; */
+        transition: filter 0.2s ease;
+    }
+    .view-toggle-btn:hover {
+        filter: brightness(1.1);
+    }
+    .view-toggle-btn.active {
+        background-color: #55597C !important;
+        border-color: #6B7280 !important;
+        color: #FFFFFF !important;
+    }
+
+    /* /close.png */
+    .close-button img, .dropzone-img img {
+        filter: brightness(0) saturate(100%) invert(30%) sepia(10%) saturate(1200%) hue-rotate(210deg) brightness(120%);
+        transition: filter 0.2s ease;
+    }
+    .close-button:hover img, .dropzone-border:hover .dropzone-img img {
+        filter: brightness(0) saturate(100%) invert(30%) sepia(10%) saturate(1200%) hue-rotate(210deg) brightness(150%); 
+    }
+
+    /* Upload dropzone */
+    .dropzone-border, .dropzone-text {
+        border-color: #605a80; color: #605a80; font-weight: 500;
+        transition: border-color 0.2s ease, color 0.2s ease;
+    }
+    .dropzone-border:hover, .dropzone-border:hover .dropzone-text {
+        border-color: #776f9e; color: #776f9e; font-weight: 500;
+    }
+
+    /* Confirm button - New Modals */
+    .confirm-button {
+        background-color: #f89c00; color: black; font-weight: 600;
+        transition: filter 0.2s ease;
+    }
+    .confirm-button:hover {
+        filter: brightness(110%);
+    }
+
+    /* Cancel button - New Modals */
+    .cancel-button {
+        background-color: #3C3F58; color: rgba(255, 255, 255, 0.5);; font-weight: 400;
+        transition: background-color 0.2s ease;
+    }
+    .cancel-button:hover {
+        background-color: #55597C;
+    }
+    </style>
+    <div id="filesContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4" data-view="main"><div class="group relative rounded-lg border border-[#4A4D6A] hover:border-[#7C7F96] hover:shadow-lg transition-all duration-200 cursor-pointer file-card" data-folder-nav-id="147" data-folder-nav-name="bruh" data-item-id="147" data-is-folder="true" data-item-name="bruh" tabindex="0" role="button" aria-label="Open folder bruh">
+        <!-- Header with OTP indicator and three-dot menu -->
+        <div class="absolute top-2 left-2 right-2 flex justify-between items-center z-9">
+            <!-- OTP Security Indicator -->
+                <div></div>
+            
+            <!-- Actions Menu Button -->
+            <button class="actions-menu-btn opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded-full hover:bg-[#4A4D6A]" data-item-id="147" data-tooltip="More actions" title="More actions" aria-label="More actions" aria-haspopup="menu" aria-expanded="false">
+                <svg viewBox="0 0 20 20" class="w-5 h-5 text-gray-300 hover:text-white" fill="currentColor">
+                    <path d="M10 6c.82 0 1.5-.68 1.5-1.5S10.82 3 10 3s-1.5.67-1.5 1.5S9.18 6 10 6zm0 5.5c.82 0 1.5-.68 1.5-1.5s-.68-1.5-1.5-1.5-1.5.68-1.5 1.5.68 1.5 1.5 1.5zm0 5.5c.82 0 1.5-.67 1.5-1.5 0-.82-.68-1.5-1.5-1.5s-1.5.68-1.5 1.5c0 .83.68 1.5 1.5 1.5z"></path>
+                </svg>
+            </button>
+        </div>
+
+    <!-- Main content area -->
+    <div class="p-4">
+        <!-- Single icon here -->
+        <div class="flex items-center justify-center h-16 mb-3">
+            <span class="text-5xl">📁</span>
+        </div>
+        
+        <!-- File info -->
+        <div class="space-y-1">
+            <div class="text-sm font-medium text-white truncate" title="bruh">
+                bruh
+            </div>
+            <div class="text-xs text-gray-400">
+                Oct 12, 2025
+            </div>
+            
+            <!-- Arweave Status Badge (for files stored on Arweave) -->
+            
+        </div>
+    </div>
+
+    <!-- Hover overlay for selection -->
+    <div class="absolute inset-0 bg-blue-500 bg-opacity-0 group-hover:bg-opacity-5 transition-all duration-200 pointer-events-none"></div>
+</div></div>
+
+    <style>
+    .file-card, .file-row {
+        background-color: #24243B !important;
+        border-style: solid !important;
+        border-width: 2px !important;
+        border-color: #3C3F58 !important;
+    }
+    .file-card.bg-white, .file-card[class*="bg-"], .file-card.bg-white, .file-card[class*="bg-"] {
+        background-color: #24243B !important;
+    }
+    .file-card:hover, .file-row:hover {
+        background-color: #3C3F58 !important;
+        border-style: solid !important;
+        border-width: 2px !important;
+        border-color: #55597C !important;
+    }
+    </style>
+    <!--  Reserved colors: 3C3F58, 24243B
+      .file-card:hover {background-color: #24243B !important;}
+    -->
+
+</main>
+
+<!-- N8N Chat floating in bottom-right -->
+<div id="n8n-chat-container" style="position:fixed;bottom:24px;right:24px;z-index:9999;" data-v-app=""><div class="chat-window-wrapper n8n-chat"><div class="chat-window" style="display: none;"><main class="chat-layout chat-wrapper"><div class="chat-header"><div class="chat-heading"><h1>Welcome!</h1><!----></div><p>Ask me anything.</p></div><div class="chat-body"><div class="chat-messages-list"><div class="chat-message chat-message-from-bot"><!----><div class="chat-message-markdown"><p>Hello, valued premium member!</p>
+</div><!----></div><div class="chat-message chat-message-from-bot"><!----><div class="chat-message-markdown"><p>My name is Tubby, your premium assistant. How can I help you today?</p>
+</div><!----></div><div class="chat-message chat-message-from-bot"><!----><div class="chat-message-markdown"><p>You have access to our premium support features.</p>
+</div><!----></div><!----></div></div><div class="chat-footer"><div data-v-66014261="" class="chat-input" style="--controls-count: 1;"><div data-v-66014261="" class="chat-inputs"><!----><textarea data-v-66014261="" data-test-id="chat-input" placeholder="Enter your message here..." style="height: 0px;"></textarea><div data-v-66014261="" class="chat-inputs-controls"><!----><button data-v-66014261="" disabled="" class="chat-input-send-button" style="background-color: rgb(36, 36, 59) !important;"><svg data-v-66014261="" viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="m2 21l21-9L2 3v7l15 2l-15 2z"></path></svg></button></div></div><!----></div></div></main></div><div class="chat-window-toggle" style="background-color: rgb(36, 36, 59) !important; position: relative;"><svg viewBox="0 0 24 24" width="32" height="32" style="display: none;"><path fill="currentColor" d="M12 3c5.5 0 10 3.58 10 8s-4.5 8-10 8c-1.24 0-2.43-.18-3.53-.5C5.55 21 2 21 2 21c2.33-2.33 2.7-3.9 2.75-4.5C3.05 15.07 2 13.13 2 11c0-4.42 4.5-8 10-8"></path></svg><img class="tubby-icon" src="/hero-clipart-3.png" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); pointer-events: none; display: block;"></div></div></div>
+
+
+<!-- Advanced Search Modal -->
+<div id="advancedSearchModal" class="fixed inset-0 z-50 hidden items-center justify-center">
+    <div class="fixed inset-0 bg-black bg-opacity-50"></div>
+    <div class="relative bg-[#0D0E2F] text-white rounded-lg shadow-xl w-full max-w-4xl p-6 z-10 max-h-screen overflow-y-auto">
+        <div class="flex items-center justify-between mb-6">
+            <h3 class="text-xl font-semibold">Advanced Search</h3>
+            <button id="advancedSearchCloseBtn" class="text-2xl leading-none">×</button>
+        </div>
+        
+        <form id="advancedSearchForm" class="space-y-6">
+            <!-- Search Query -->
+            <div>
+                <label class="block text-sm font-medium mb-2">Search Terms</label>
+                <input id="advancedSearchQuery" type="text" placeholder="Enter search terms..." class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400">
+            </div>
+            
+            <!-- Search Options -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-[#1F2235] rounded-lg">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Match Type</label>
+                    <select id="searchMatchType" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                        <option value="contains">Contains (default)</option>
+                        <option value="exact">Exact Match</option>
+                        <option value="starts_with">Starts With</option>
+                        <option value="ends_with">Ends With</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Case Sensitivity</label>
+                    <select id="searchCaseSensitive" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                        <option value="insensitive">Case Insensitive (Aa = aa)</option>
+                        <option value="sensitive">Case Sensitive (Aa ≠ aa)</option>
+                    </select>
+                </div>
+                
+
+            </div>
+            
+            <!-- Filters Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- File Type Filter -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">File Type</label>
+                    <select id="searchFileType" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                        <option value="">All Types</option>
+                        <option value="images">Images</option>
+                        <option value="documents">Documents</option>
+                        <option value="spreadsheets">Spreadsheets</option>
+                        <option value="presentations">Presentations</option>
+                        <option value="videos">Videos</option>
+                        <option value="audio">Audio</option>
+                        <option value="folders">Folders</option>
+                        <option value="files">Files Only</option>
+                    </select>
+                </div>
+                
+                <!-- Date Range -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Date From</label>
+                    <input id="searchDateFrom" type="date" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Date To</label>
+                    <input id="searchDateTo" type="date" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                </div>
+                
+                <!-- File Size Range -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Min Size (MB)</label>
+                    <input id="searchSizeMin" type="number" min="0" step="0.1" placeholder="0" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Max Size (MB)</label>
+                    <input id="searchSizeMax" type="number" min="0" max="100" step="0.1" placeholder="100" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400">
+                    <small class="text-gray-400 text-xs mt-1">Maximum: 100MB</small>
+                </div>
+                
+                
+                <!-- Sort Options -->
+                <div>
+                    <label class="block text-sm font-medium mb-2">Sort By</label>
+                    <select id="searchSortBy" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                        <option value="updated_at">Last Modified</option>
+                        <option value="created_at">Date Created</option>
+                        <option value="file_name">Name</option>
+                        <option value="file_size">Size</option>
+                        <option value="file_type">Type</option>
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium mb-2">Sort Order</label>
+                    <select id="searchSortOrder" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
+                        <option value="desc">Newest First</option>
+                        <option value="asc">Oldest First</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- Search Actions -->
+            <div class="flex justify-between items-center pt-6 border-t border-border-color">
+                <div class="flex space-x-2">
+                    <button type="button" id="clearSearchFilters" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm">
+                        Clear Filters
+                    </button>
+                </div>
+                <div class="flex space-x-2">
+                    <button type="button" id="cancelAdvancedSearch" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm">
+                        Cancel
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm">
+                        Search
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Version History Modal - REMOVED -->
+
+<!-- Premium Upgrade Modal -->
+<div id="premiumUpgradeModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-6 max-w-md mx-4">
+        <div class="text-center">
+            <div class="w-16 h-16 bg-gradient-to-r from-[#f89c00] to-[#ff8c00] rounded-full flex items-center justify-center mx-auto mb-4">
+                <span class="text-2xl">👑</span>
+            </div>
+            <h3 class="text-xl font-bold text-white mb-2">Premium Feature</h3>
+            <p id="premiumModalText" class="text-gray-400 mb-6">
+                This feature requires a Premium subscription to access advanced capabilities.
+            </p>
+            <div class="space-y-3">
+                <button onclick="window.location.href='https://securedocs.live/premium/upgrade'" class="w-full bg-[#f89c00] hover:bg-[#e88900] text-white py-3 px-6 rounded-lg font-bold transition-colors">
+                    Upgrade to Premium
+                </button>
+                <button onclick="window.closePremiumModal()" class="w-full bg-[#3C3F58] hover:bg-[#4A4D6A] text-white py-3 px-6 rounded-lg transition-colors">
+                    Maybe Later
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+
+
+
+
+
+
+
+    
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="csrf-token" content="2gwqRJzuh7M8MrkTwlipjJLv9k1QzAk6BKvF5unl">
+        <title>Dashboard</title>
+        <link rel="icon" href="https://securedocs.live/logo-favicon.png" type="image/png">
+        
+        <!-- Critical CSS to prevent FOUC -->
+        <style>
+            /* Hide body until CSS loads */
+            body { 
+                visibility: hidden; 
+                background-color: #141326 !important;
+                font-family: 'Poppins', sans-serif;
+            }
+            body.loaded { 
+                visibility: visible; 
+            }
+            
+            /* Loading spinner */
+            .loading-spinner {
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                width: 40px;
+                height: 40px;
+                border: 3px solid #3C3F58;
+                border-top: 3px solid #f89c00;
+                border-radius: 50%;
+                animation: spin 1s linear infinite;
+                z-index: 9999;
+            }
+            
+            @keyframes spin {
+                0% { transform: translate(-50%, -50%) rotate(0deg); }
+                100% { transform: translate(-50%, -50%) rotate(360deg); }
+            }
+        </style>
+        
+        <!-- Preload critical fonts -->
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+        <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet">
+        
+        <!-- Preload N8N chat styles -->
+        <link href="https://cdn.jsdelivr.net/npm/@n8n/chat/dist/style.css" rel="stylesheet">
+        
+        <!-- Main styles -->
+        <link rel="preload" as="style" href="https://securedocs.live/build/assets/app-_QSTZIlg.css"><link rel="modulepreload" href="https://securedocs.live/build/assets/app-DgWz1gtc.js"><link rel="modulepreload" href="https://securedocs.live/build/assets/file-folder-DLGrnMJm.js"><link rel="stylesheet" href="https://securedocs.live/build/assets/app-_QSTZIlg.css" data-navigate-track="reload"><script type="module" src="https://securedocs.live/build/assets/app-DgWz1gtc.js" data-navigate-track="reload"></script>
+<script>
+     window.addEventListener('load', () => window.setTimeout(() => {
+        const makeLink = (asset) => {
+            const link = document.createElement('link')
+
+            Object.keys(asset).forEach((attribute) => {
+                link.setAttribute(attribute, asset[attribute])
+            })
+
+            return link
+        }
+
+        const loadNext = (assets, count) => window.setTimeout(() => {
+            if (count > assets.length) {
+                count = assets.length
+
+                if (count === 0) {
+                    return
+                }
+            }
+
+            const fragment = new DocumentFragment
+
+            while (count > 0) {
+                const link = makeLink(assets.shift())
+                fragment.append(link)
+                count--
+
+                if (assets.length) {
+                    link.onload = () => loadNext(assets, 1)
+                    link.onerror = () => loadNext(assets, 1)
+                }
+            }
+
+            document.head.append(fragment)
+        })
+
+        loadNext([], 3)
+    }))
+</script>        
+        <!-- User context for AI categorization -->
+        <script>
+            window.userId = 22;
+            window.aiUsePublicStatus = true;
+        </script>
+        
+        <!-- Bundlr Dependencies for Real Arweave Integration -->
+        <script src="https://cdn.jsdelivr.net/npm/ethers@5.7.2/dist/ethers.umd.min.js"></script>
+        <script src="https://unpkg.com/@bundlr-network/client@0.7.3/build/web/bundle.js" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bignumber.js@9.1.2/bignumber.min.js"></script>
+        
+        <!-- KaTeX Support for Mathematical Expressions -->
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" integrity="sha384-n8MVd4RsNIU0tAv4ct0nTaAbDJwPJzDEaqSD1odI+WdtXRGWt2kTvGFasHpSy3SV" crossorigin="anonymous">
+        <script defer="" src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" integrity="sha384-XjKyOOlGwcjNTAIQHIpgOno0Hl1YQqzUOEleOLALmuqehneUG+vnGctmUb0ZY0l8" crossorigin="anonymous"></script>
+
+        <!-- N8N Chat Widget -->
+        <script type="module">
+            import { createChat } from 'https://cdn.jsdelivr.net/npm/@n8n/chat/dist/chat.bundle.es.js';
+            window.createChat = createChat;
+        </script>
+        
+        <!-- Scripts -->
+        <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+                <script>
+            window.userId = 22;
+            window.userEmail = 'louiejaybonghanoy43@gmail.com';
+            window.username = 'louie Jay Bonghanoy';
+            window.userIsPremium = true;
+            // window.chatWebhookUrl disabled with n8n chat to prevent loading the widget
+             window.chatWebhookUrl = 'https://securedocssemi.app.n8n.cloud/webhook/e104e40e-6134-4825-a6f0-8a646d882662/chat';
+        </script>
+                <script>
+            window.SUPABASE_URL = "https://fywmgiuvdbsjfchfzixc.supabase.co";
+            window.SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZ5d21naXV2ZGJzamZjaGZ6aXhjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDUxNjExNzAsImV4cCI6MjA2MDczNzE3MH0.wrupHgjfdyERpLDzD5uP9ZsYNnsUOICuwOTunCGmfG4";
+        </script>
+        <!-- FOUC Prevention Script -->
+        <script>
+            // Show body when DOM and CSS are ready
+            document.addEventListener('DOMContentLoaded', function() {
+                // Add a small delay to ensure CSS is fully applied
+                setTimeout(function() {
+                    document.body.classList.add('loaded');
+                    const spinner = document.querySelector('.loading-spinner');
+                    if (spinner) {
+                        spinner.remove();
+                    }
+                }, 50);
+            });
+            
+            // Fallback: show body after 2 seconds regardless
+            setTimeout(function() {
+                if (!document.body.classList.contains('loaded')) {
+                    document.body.classList.add('loaded');
+                    const spinner = document.querySelector('.loading-spinner');
+                    if (spinner) {
+                        spinner.remove();
+                    }
+                }
+            }, 2000);
+        </script>
+    
+    
+        <!-- Loading spinner -->
+        
+        
+        <script>
+    // Pass user premium status to JavaScript
+    window.userIsPremium = true;
+    
+    // Pass user data to JavaScript
+    window.authUser = {
+        id: 22,
+        name: "louie Jay Bonghanoy",
+        email: "louiejaybonghanoy43@gmail.com",
+        is_premium: true
+    };
+    
+    // Handle folder navigation from share redirects
+        
+    </script>
+
+
+<!-- Include Client-Side Arweave Modal -->
+<!-- Client-Side Arweave Upload Modal -->
+<div id="clientArweaveModal" class="fixed inset-0 z-[49] flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="relative z-10 bg-[#0D0E2F] text-white rounded-lg shadow-xl w-full max-w-2xl mx-4 max-h-[90vh] overflow-hidden">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between p-6 border-b border-[#3C3F58]">
+            <h3 class="text-xl font-semibold">Upload to Arweave</h3>
+            <button id="clientArweaveCloseBtn" class="text-2xl leading-none hover:text-gray-300">×</button>
+        </div>
+
+        <!-- Content -->
+        <div class="p-6 max-h-[calc(90vh-140px)] overflow-y-auto">
+            
+            <!-- Error/Success Messages -->
+            <div id="clientArweaveError" class="hidden mb-4 p-3 bg-red-600 rounded-lg text-sm"></div>
+            <div id="clientArweaveSuccess" class="hidden mb-4 p-3 bg-green-600 rounded-lg text-sm"></div>
+
+            <!-- Step 1: File Selection -->
+            <div id="stepFileSelection" class="space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-2">Select File</h4>
+                    <p class="text-gray-400 mb-2">Choose a file to upload permanently to Arweave</p>
+                    
+                </div>
+                
+                <div id="arweaveDropZone" style="border-width: 3px;" class="border-dashed border-[#3C3F58] bg-[#1F2235] rounded-lg p-8 text-center cursor-pointer hover:border-blue-500 transition-colors">
+                    <div id="arweaveDropZoneContent" class="flex flex-col items-center">
+                        <div class="text-4xl mb-4">
+                            <img src="/file.png" alt="File" class="opacity-50 w-12 h-12 mx-auto">
+                        </div>
+                        <p class="text-lg font-medium text-white mb-2">Drag and drop files here or click to browse</p>
+                        <p class="text-sm text-gray-400">Maximum file size: 100MB</p>
+                    </div>
+                    <input type="file" id="clientArweaveFile" class="hidden" accept="*/*">
+                </div>
+                
+                <div id="selectedFileInfo" class="text-center text-gray-400"></div>
+                
+                <!-- Privacy Controls -->
+                <div id="privacyControls" class="bg-[#1F2235] rounded-lg p-6 space-y-4 hidden">
+                    <h5 class="text-lg font-medium text-white mb-4">🔐 File Privacy Settings</h5>
+                    
+                    <!-- Privacy Toggle -->
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <div class="mr-4">
+                                <p class="font-medium text-white">File Access</p>
+                                <p class="text-sm text-gray-400">Choose who can access your file</p>
+                            </div>
+                        </div>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="filePrivacyToggle" class="sr-only peer">
+                            <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-800 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                            <span class="ml-3 text-sm font-medium text-white" id="privacyToggleLabel">Public</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Privacy Options -->
+                    <div class="grid grid-cols-2 gap-4 text-sm">
+                        <div id="publicOption" class="p-3 border border-green-500 bg-green-500/10 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <span class="text-lg mr-2">🌐</span>
+                                <span class="font-medium text-green-400">Public</span>
+                            </div>
+                            <p class="text-gray-400 text-xs">Anyone with the URL can access this file</p>
+                        </div>
+                        <div id="privateOption" class="p-3 border border-gray-600 bg-gray-600/10 rounded-lg">
+                            <div class="flex items-center mb-2">
+                                <span class="text-lg mr-2">🔒</span>
+                                <span class="font-medium text-gray-400">Private</span>
+                            </div>
+                            <p class="text-gray-400 text-xs">Only you can access with password</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Password Section (Hidden by default) -->
+                    <div id="passwordSection" class="hidden space-y-4 border-t border-[#3C3F58] pt-4">
+                        <div>
+                            <label class="block text-sm font-medium text-white mb-2">
+                                Encryption Password
+                            </label>
+                            <div class="relative">
+                                <input type="password" id="encryptionPassword" class="w-full px-3 py-2 bg-[#0D0E2F] border border-[#3C3F58] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter a strong password (min 8 characters)" autocomplete="new-password">
+                                <button type="button" id="generatePasswordBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-300 text-sm">
+                                    Generate
+                                </button>
+                            </div>
+                            <div id="passwordStrength" class="text-sm mt-1"></div>
+                        </div>
+                        
+                        <div class="bg-yellow-500/10 border border-yellow-500/20 rounded-lg p-3">
+                            <div class="flex items-start">
+                                <span class="text-yellow-400 mr-2">⚠️</span>
+                                <div class="text-sm">
+                                    <p class="text-yellow-400 font-medium mb-1">Important:</p>
+                                    <p class="text-gray-300">Save this password securely. If you lose it, your file cannot be recovered.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Continue Button (shown after file selection) -->
+                <div id="continueFromFileSelection" class="hidden text-center">
+                    <button onclick="showStep('walletConnection')" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium">
+                        Continue to Wallet Connection →
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Wallet Connection -->
+            <div id="stepWalletConnection" class="hidden space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-2"> Connect Your Wallet</h4>
+                    <p class="text-gray-400 mb-4">Use the Bundlr wallet widget (B button) in the navigation bar first</p>
+                </div>
+                
+                <!-- Wallet Status Display -->
+                <div id="walletStatusDisplay" class="bg-[#1F2235] rounded-lg p-6 space-y-4 hidden">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <span class="text-3xl mr-3">✅</span>
+                            <div>
+                                <p class="font-medium text-green-400">Wallet Connected</p>
+                                <p class="text-sm text-gray-400" id="connectedWalletAddress">0x...</p>
+                            </div>
+                        </div>
+                        <div class="flex gap-2">
+                            <button id="viewWalletDetailsBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm">
+                                View Details
+                            </button>
+                            <button id="continueToBalanceBtn" class="px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white text-sm">
+                                Continue →
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Wallet Details -->
+                    <div id="walletDetailsPanel" class="border-t border-[#3C3F58] pt-4 hidden">
+                        <div class="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                                <span class="text-gray-400">Network:</span>
+                                <span class="text-white ml-2">Polygon</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Status:</span>
+                                <span class="text-green-400 ml-2">Active</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Bundlr Balance:</span>
+                                <span class="text-yellow-400 ml-2" id="walletBundlrBalance">Loading...</span>
+                            </div>
+                            <div>
+                                <span class="text-gray-400">Last Updated:</span>
+                                <span class="text-gray-300 ml-2" id="walletLastUpdate">Now</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Connection Panel -->
+                <div id="walletConnectionPanel" class="bg-[#1F2235] rounded-lg p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center">
+                            <span class="text-3xl mr-3">🦊</span>
+                            <div>
+                                <p class="font-medium">MetaMask Wallet</p>
+                                <p class="text-sm text-gray-400">Connect to Polygon Network</p>
+                            </div>
+                        </div>
+                        <button id="connectWalletBtn" class="px-6 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white">
+                            Connect MetaMask
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                    <div class="flex items-start text-yellow-800 text-sm">
+                        <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div>
+                            <strong>Make sure:</strong> Your MetaMask is connected to Polygon network. 
+                            Switch network if needed.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 3: Bundlr Balance (YouTube Style) -->
+            <div id="stepBalanceCheck" class="hidden space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-2">💰 Check Bundlr Balance</h4>
+                    <p class="text-gray-400 mb-4">Your Bundlr account balance for uploads</p>
+                </div>
+                
+                <div class="bg-[#1F2235] rounded-lg p-6 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="font-medium text-white">Bundlr Balance</p>
+                            <p class="text-sm text-gray-400">Available for uploads</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-2xl font-bold text-green-400" id="currentBundlrBalance">0.000000</p>
+                            <p class="text-xs text-gray-400">MATIC</p>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-[#3C3F58] pt-4">
+                        <div class="flex items-center justify-between text-sm">
+                            <span>Upload Cost:</span>
+                            <span class="text-yellow-400">~0.005 MATIC</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm mt-2">
+                            <span>Sufficient Balance:</span>
+                            <span id="balanceSufficient" class="text-green-400">✅ Yes</span>
+                        </div>
+                    </div>
+                    
+                    <!-- Fund Button (YouTube Style) -->
+                    <div class="flex gap-3">
+                        <button id="fundBundlrAccountBtn" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white text-sm">
+                            💳 Fund Account
+                        </button>
+                        <button id="refreshBundlrBalanceBtn" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white text-sm">
+                            🔄 Refresh
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Continue Buttons -->
+                <div class="flex gap-3">
+                    <button onclick="showStep('walletConnection')" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white text-sm">
+                        ← Back
+                    </button>
+                    <button id="proceedFromBalanceBtn" class="flex-1 px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium">
+                        🚀 Continue to Upload
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 4: Funding (if needed) -->
+            <div id="stepFunding" class="hidden space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-2">💳 Fund Your Bundlr</h4>
+                    <p class="text-gray-400 mb-4">Add MATIC to your Bundlr balance for uploads</p>
+                </div>
+                
+                <div class="bg-[#1F2235] rounded-lg p-6 space-y-4">
+                    <div class="space-y-3">
+                        <label class="block text-sm font-medium">Amount to Fund (MATIC):</label>
+                        <input type="number" id="fundAmount" placeholder="0.1" step="0.001" min="0.001" class="w-full px-3 py-2 bg-[#3C3F58] border border-gray-600 rounded-lg text-white placeholder-gray-400">
+                        
+                        <div class="grid grid-cols-3 gap-2 mt-2">
+                            <button onclick="document.getElementById('fundAmount').value = '0.05'" class="px-3 py-1 bg-[#3C3F58] hover:bg-[#55597C] rounded text-xs">
+                                0.05 MATIC
+                            </button>
+                            <button onclick="document.getElementById('fundAmount').value = '0.1'" class="px-3 py-1 bg-[#3C3F58] hover:bg-[#55597C] rounded text-xs">
+                                0.1 MATIC
+                            </button>
+                            <button onclick="document.getElementById('fundAmount').value = '0.2'" class="px-3 py-1 bg-[#3C3F58] hover:bg-[#55597C] rounded text-xs">
+                                0.2 MATIC
+                            </button>
+                        </div>
+                        
+                        <div class="text-xs text-gray-400 mt-2">
+                            <p>• 0.05 MATIC ≈ 10 uploads (~1MB each)</p>
+                            <p>• 0.1 MATIC ≈ 20 uploads (~1MB each)</p>
+                            <p>• 0.2 MATIC ≈ 40 uploads (~1MB each)</p>
+                        </div>
+                    </div>
+                    
+                    <button id="fundBundlrBtn" class="w-full px-6 py-3 bg-green-600 hover:bg-green-700 rounded-lg text-white font-medium">
+                        Fund Bundlr Balance
+                    </button>
+                </div>
+
+                <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div class="flex items-start text-blue-800 text-sm">
+                        <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div>
+                            <strong>How it works:</strong> You're funding YOUR OWN Bundlr account, not paying us. 
+                            This MATIC stays in your control and is used only for your uploads.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 5: Upload -->
+            <div id="stepUpload" class="hidden space-y-6">
+                <div class="text-center">
+                    <h4 class="text-lg font-medium text-white mb-2">🚀 Upload to Arweave</h4>
+                    <p class="text-gray-400 mb-4">Ready to upload your file permanently</p>
+                </div>
+                
+                <div class="bg-[#1F2235] rounded-lg p-6 space-y-4">
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between text-sm">
+                            <span>File:</span>
+                            <span class="text-gray-300" id="uploadFileName">No file selected</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span>Upload Cost:</span>
+                            <span class="text-yellow-400" id="uploadCostFinal">~0.005 MATIC</span>
+                        </div>
+                        <div class="flex items-center justify-between text-sm">
+                            <span>Your Balance:</span>
+                            <span class="text-green-400" id="uploadBalanceFinal">0.000000 MATIC</span>
+                        </div>
+                    </div>
+                    
+                    <button id="uploadToArweaveBtn" class="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium">
+                        🚀 Upload to Arweave
+                    </button>
+                </div>
+
+                <div class="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div class="flex items-start text-green-800 text-sm">
+                        <svg class="w-4 h-4 mr-2 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+                        </svg>
+                        <div>
+                            <strong>Permanent Storage:</strong> Once uploaded, your file will be stored forever on Arweave. 
+                            You'll get a permanent URL that never expires.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Step 6: Success -->
+            <div id="stepSuccess" class="hidden space-y-6">
+                <div class="text-center">
+                    <div class="text-6xl mb-4">🎉</div>
+                    <h4 class="text-lg font-medium text-white mb-2">Upload Successful!</h4>
+                    <p class="text-gray-400 mb-4">Your file is now permanently stored on Arweave</p>
+                </div>
+                
+                <div class="bg-[#1F2235] rounded-lg p-6 space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium mb-2">Permanent URL:</label>
+                        <div class="mb-2 text-xs text-gray-400">
+                            <span>File Type: </span><span id="uploadedFileType">Unknown</span> |
+                            <span>Size: </span><span id="uploadedFileSize">Unknown</span>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <input type="text" id="arweaveSuccessUrlInput" readonly="" class="flex-1 px-3 py-2 bg-[#3C3F58] border border-gray-600 rounded-lg text-white text-sm font-mono">
+                            <button id="copyUrlBtn" onclick="copyToClipboard(document.getElementById('arweaveSuccessUrlInput').value)" class="px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm">
+                                Copy
+                            </button>
+                            <a id="arweaveSuccessUrlLink" href="#" target="_blank" class="px-2 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm">
+                                View
+                            </a>
+                            <a id="arweaveAltUrlLink" href="#" target="_blank" title="Alternative gateway if main doesn't work" class="px-2 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-sm">
+                                Alt
+                            </a>
+                            <button id="checkStatusBtn" onclick="checkArweaveStatus()" title="Check if file is ready on Arweave" class="px-2 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-sm">
+                                Status
+                            </button>
+                            <button id="autoCheckBtn" onclick="toggleAutoCheck()" title="Auto-check every 30 seconds" class="px-2 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-sm">
+                                Auto
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="border-t border-[#3C3F58] pt-4">
+                        <div class="flex items-center justify-between text-sm mb-4">
+                            <span>Remaining Balance:</span>
+                            <span class="text-green-400" id="arweaveSuccessBalance">0.000000 MATIC</span>
+                        </div>
+                        
+                        <!-- Save Options -->
+                        <div class="border-t border-[#3C3F58] pt-4">
+                            <label class="text-sm text-gray-400 mb-3 block">💾 Save to Your Files:</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center">
+                                    <input type="radio" name="saveOption" value="save_url" checked="" class="mr-3 text-blue-600">
+                                    <span class="text-white text-sm">Save URL reference (recommended)</span>
+                                </label>
+                                <label class="flex items-center">
+                                    <input type="radio" name="saveOption" value="skip_save" class="mr-3 text-blue-600">
+                                    <span class="text-white text-sm">Don't save to files (URL only)</span>
+                                </label>
+                            </div>
+                            <p class="text-xs text-gray-500 mt-2">
+                                URL reference saves the Arweave link to your files list without downloading content locally.
+                            </p>
+                        </div>
+                    </div>
+                    
+                    <!-- Arweave Info Panel -->
+                    <!-- Auto Status Checker -->
+                    <div id="arweaveStatusChecker" class="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4 mb-4">
+                        <div class="flex items-start">
+                            <div id="statusIcon" class="text-blue-400 mr-3 mt-0.5 flex-shrink-0">🔍</div>
+                            <div class="flex-1">
+                                <h5 class="text-sm font-semibold text-blue-300 mb-1">
+                                    <span id="statusTitle">🔍 Checking File Status...</span>
+                                </h5>
+                                <p class="text-xs text-blue-200 mb-2" id="statusMessage">
+                                    Automatically checking if your file is ready on Arweave gateways...
+                                </p>
+                                <div class="flex items-center gap-2 text-xs">
+                                    <div id="statusProgress" class="flex gap-1">
+                                        <span id="gateway1" class="px-2 py-1 bg-gray-600 rounded">Gateway 1</span>
+                                        <span id="gateway2" class="px-2 py-1 bg-gray-600 rounded">Gateway 2</span>
+                                        <span id="gateway3" class="px-2 py-1 bg-gray-600 rounded">Gateway 3</span>
+                                    </div>
+                                    <button id="manualCheckBtn" class="px-2 py-1 bg-blue-600 hover:bg-blue-700 rounded text-xs">
+                                        Check Now
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Mining Wait Notice (shown if not ready) -->
+                    <div id="miningWaitNotice" class="bg-yellow-900/30 border border-yellow-500/50 rounded-lg p-4 mb-4 hidden">
+                        <div class="flex items-start">
+                            <svg class="w-5 h-5 text-yellow-400 mr-3 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clip-rule="evenodd"></path>
+                            </svg>
+                            <div>
+                                <h5 class="text-sm font-semibold text-yellow-300 mb-1">⏳ Block Mining in Progress</h5>
+                                <p class="text-xs text-yellow-200">
+                                    Your file is still being processed. This usually takes <strong>5-30 minutes</strong>. We'll keep checking automatically every 2 minutes.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="bg-blue-900/20 border border-blue-500/30 rounded-lg p-4">
+                        <h5 class="text-sm font-medium text-blue-400 mb-2">📋 Arweave File Access Guide</h5>
+                        <div class="text-xs text-gray-300 space-y-1">
+                            <div><strong>Images/Videos:</strong> Display directly in browser</div>
+                            <div><strong>PDFs:</strong> Usually display in browser</div>
+                            <div><strong>Documents (DOC, TXT):</strong> May download instead of display</div>
+                            <div><strong>Binary files:</strong> Typically trigger download</div>
+                            <div class="mt-2 text-yellow-300"><strong>⏳ New uploads take 5-30 minutes to propagate globally</strong></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex gap-3">
+                    <button onclick="document.getElementById('clientArweaveModal').classList.add('hidden')" class="flex-1 px-6 py-2 bg-gray-600 hover:bg-gray-700 rounded-lg text-white">
+                        Close
+                    </button>
+                    <button onclick="window.location.reload()" class="flex-1 px-6 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white">
+                        Upload Another File
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Copy to clipboard function
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = document.getElementById('copyUrlBtn');
+        const originalText = btn.textContent;
+        
+        // Show feedback
+        btn.textContent = 'Copied!';
+        btn.classList.add('bg-green-600');
+        btn.classList.remove('bg-gray-600');
+        
+        // Reset after 2 seconds
+        setTimeout(() => {
+            btn.textContent = originalText;
+            btn.classList.remove('bg-green-600');
+            btn.classList.add('bg-gray-600');
+        }, 2000);
+        
+        console.log('✅ Copied to clipboard!');
+    }).catch(err => {
+        console.error('❌ Failed to copy:', err);
+        alert('Failed to copy. Please select and copy manually.');
+    });
+}
+
+// Check Arweave transaction status using official APIs
+async function checkArweaveStatus() {
+    const btn = document.getElementById('checkStatusBtn');
+    const urlInput = document.getElementById('arweaveSuccessUrlInput');
+    const url = urlInput?.value;
+    
+    if (!url) {
+        alert('No URL to check');
+        return;
+    }
+    
+    const txId = url.split('/').pop();
+    btn.textContent = 'Checking...';
+    btn.disabled = true;
+    
+    try {
+        let statusMsg = '';
+        let found = false;
+        
+        // 1. Check transaction status via Arweave API
+        console.log('🔍 Checking transaction:', txId);
+        
+        try {
+            const txResponse = await fetch(`https://arweave.net/tx/${txId}/status`);
+            const txStatus = await txResponse.json();
+            
+            if (txResponse.ok && txStatus.confirmed) {
+                statusMsg += `✅ Transaction confirmed in block ${txStatus.confirmed.block_height}\n`;
+                statusMsg += `📦 Block indep hash: ${txStatus.confirmed.block_indep_hash.substring(0, 16)}...\n`;
+                found = true;
+                
+                // Check how many confirmations
+                try {
+                    const networkResponse = await fetch('https://arweave.net/info');
+                    const networkInfo = await networkResponse.json();
+                    const confirmations = networkInfo.height - txStatus.confirmed.block_height;
+                    statusMsg += `🔗 Confirmations: ${confirmations}\n`;
+                    
+                    if (confirmations >= 50) {
+                        statusMsg += `✅ File should be available on all gateways\n`;
+                    } else if (confirmations >= 25) {
+                        statusMsg += `🟡 File should be available on most gateways\n`;
+                    } else {
+                        statusMsg += `🟠 File might not be available on all gateways yet\n`;
+                    }
+                } catch (e) {
+                    console.warn('Could not get confirmations:', e);
+                }
+                
+            } else if (txResponse.ok && txStatus.accepted) {
+                statusMsg += `🟡 Transaction accepted but not yet confirmed\n`;
+                statusMsg += `⏳ Usually takes 1-2 minutes to confirm\n`;
+            } else {
+                statusMsg += `❌ Transaction not found in mempool\n`;
+            }
+        } catch (txError) {
+            console.warn('Transaction API failed:', txError);
+            statusMsg += `⚠️ Could not check transaction status\n`;
+        }
+        
+        // 2. Test actual file availability on gateways
+        statusMsg += `\n🌐 Gateway Availability:\n`;
+        const gateways = [
+            { name: 'Arweave.net', url: `https://arweave.net/${txId}` },
+            { name: 'Gateway.dev', url: `https://gateway.arweave.dev/${txId}` },
+            { name: 'AR.io', url: `https://ar.io/${txId}` }
+        ];
+        
+        let availableCount = 0;
+        for (const gateway of gateways) {
+            try {
+                const response = await fetch(gateway.url, { 
+                    method: 'HEAD',
+                    signal: AbortSignal.timeout(5000) // 5 second timeout
+                });
+                
+                if (response.ok) {
+                    statusMsg += `✅ ${gateway.name}: Available\n`;
+                    availableCount++;
+                    found = true;
+                } else {
+                    statusMsg += `❌ ${gateway.name}: ${response.status}\n`;
+                }
+            } catch (err) {
+                statusMsg += `⏳ ${gateway.name}: Not ready\n`;
+            }
+        }
+        
+        // 3. Overall status
+        if (found && availableCount >= 2) {
+            btn.textContent = '✅ Ready';
+            btn.classList.remove('bg-orange-600');
+            btn.classList.add('bg-green-600');
+            statusMsg += `\n🎉 File is ready! Available on ${availableCount}/3 gateways`;
+        } else if (found && availableCount >= 1) {
+            btn.textContent = '🟡 Partial';
+            btn.classList.remove('bg-orange-600');
+            btn.classList.add('bg-yellow-600');
+            statusMsg += `\n⏳ File is partially ready (${availableCount}/3 gateways)`;
+        } else {
+            btn.textContent = '⏳ Wait';
+            statusMsg += `\n⏳ File not ready yet. Try again in 2-5 minutes.`;
+        }
+        
+        // Show detailed status
+        const statusWindow = window.open('', '_blank', 'width=600,height=400,scrollbars=yes');
+        statusWindow.document.write(`
+            <html>
+                <head><title>Arweave Status - ${txId}</title></head>
+                <body style="font-family: monospace; padding: 20px; background: #1a1a1a; color: #fff;">
+                    <h2>📊 Arweave Transaction Status</h2>
+                    <p><strong>Transaction ID:</strong> ${txId}</p>
+                    <pre style="background: #2a2a2a; padding: 15px; border-radius: 5px; white-space: pre-wrap;">${statusMsg}</pre>
+                    <br>
+                    <button onclick="window.close()" style="padding: 10px 20px; background: #4a5568; color: white; border: none; border-radius: 5px;">Close</button>
+                </body>
+            </html>
+        `);
+        
+    } catch (error) {
+        btn.textContent = '❌ Error';
+        alert('Status check failed: ' + error.message);
+        console.error('Status check error:', error);
+    } finally {
+        btn.disabled = false;
+        setTimeout(() => {
+            btn.textContent = 'Status';
+            btn.classList.remove('bg-green-600', 'bg-yellow-600');
+            btn.classList.add('bg-orange-600');
+        }, 10000); // Reset after 10 seconds
+    }
+}
+
+// Auto-check functionality
+let autoCheckInterval = null;
+let autoCheckCount = 0;
+
+function toggleAutoCheck() {
+    const btn = document.getElementById('autoCheckBtn');
+    
+    if (autoCheckInterval) {
+        // Stop auto-check
+        clearInterval(autoCheckInterval);
+        autoCheckInterval = null;
+        autoCheckCount = 0;
+        btn.textContent = 'Auto';
+        btn.classList.remove('bg-green-600');
+        btn.classList.add('bg-gray-600');
+        console.log('🔄 Auto-check stopped');
+    } else {
+        // Start auto-check
+        autoCheckInterval = setInterval(async () => {
+            autoCheckCount++;
+            console.log(`🔄 Auto-check #${autoCheckCount}`);
+            
+            // Quick status check (just transaction confirmation)
+            const urlInput = document.getElementById('arweaveSuccessUrlInput');
+            const url = urlInput?.value;
+            
+            if (url) {
+                const txId = url.split('/').pop();
+                
+                try {
+                    const txResponse = await fetch(`https://arweave.net/tx/${txId}/status`);
+                    const txStatus = await txResponse.json();
+                    
+                    if (txResponse.ok && txStatus.confirmed) {
+                        // Check network height for confirmations
+                        const networkResponse = await fetch('https://arweave.net/info');
+                        const networkInfo = await networkResponse.json();
+                        const confirmations = networkInfo.height - txStatus.confirmed.block_height;
+                        
+                        btn.textContent = `${confirmations}✓`;
+                        
+                        if (confirmations >= 50) {
+                            // File should be ready, stop auto-check
+                            clearInterval(autoCheckInterval);
+                            autoCheckInterval = null;
+                            btn.textContent = '✅ Done';
+                            btn.classList.remove('bg-green-600');
+                            btn.classList.add('bg-blue-600');
+                            
+                            // Show notification
+                            if (window.Notification && Notification.permission === 'granted') {
+                                new Notification('Arweave File Ready!', {
+                                    body: `Your file has ${confirmations} confirmations and should be available on all gateways.`,
+                                    icon: '/favicon.ico'
+                                });
+                            }
+                            
+                            console.log('✅ File ready! Auto-check completed.');
+                        }
+                    } else {
+                        btn.textContent = `${autoCheckCount}⏳`;
+                    }
+                } catch (e) {
+                    btn.textContent = `${autoCheckCount}❌`;
+                }
+                
+                // Stop after 20 checks (10 minutes)
+                if (autoCheckCount >= 20) {
+                    clearInterval(autoCheckInterval);
+                    autoCheckInterval = null;
+                    btn.textContent = 'Auto';
+                    btn.classList.remove('bg-green-600');
+                    btn.classList.add('bg-gray-600');
+                    console.log('⏰ Auto-check timeout after 10 minutes');
+                }
+            }
+        }, 30000); // Check every 30 seconds
+        
+        btn.textContent = '1⏳';
+        btn.classList.remove('bg-gray-600');
+        btn.classList.add('bg-green-600');
+        
+        // Request notification permission
+        if (window.Notification && Notification.permission === 'default') {
+            Notification.requestPermission();
+        }
+        
+        console.log('🔄 Auto-check started (every 30 seconds)');
+    }
+}
+</script>
+
+        <div id="notification-container" class="fixed bottom-4 left-4 z-[1000] space-y-2"></div>
+        
+            <link rel="modulepreload" href="https://securedocs.live/build/assets/dashboard-HcrDlxBJ.js"><link rel="modulepreload" href="https://securedocs.live/build/assets/file-folder-DLGrnMJm.js"><link rel="modulepreload" href="https://securedocs.live/build/assets/file-encryption-BFlBmmO2.js"><link rel="modulepreload" href="https://securedocs.live/build/assets/vendor-DsVkTHo1.js"><script type="module" src="https://securedocs.live/build/assets/dashboard-HcrDlxBJ.js" data-navigate-track="reload"></script>
+<script>
+     window.addEventListener('load', () => window.setTimeout(() => {
+        const makeLink = (asset) => {
+            const link = document.createElement('link')
+
+            Object.keys(asset).forEach((attribute) => {
+                link.setAttribute(attribute, asset[attribute])
+            })
+
+            return link
+        }
+
+        const loadNext = (assets, count) => window.setTimeout(() => {
+            if (count > assets.length) {
+                count = assets.length
+
+                if (count === 0) {
+                    return
+                }
+            }
+
+            const fragment = new DocumentFragment
+
+            while (count > 0) {
+                const link = makeLink(assets.shift())
+                fragment.append(link)
+                count--
+
+                if (assets.length) {
+                    link.onload = () => loadNext(assets, 1)
+                    link.onerror = () => loadNext(assets, 1)
+                }
+            }
+
+            document.head.append(fragment)
+        })
+
+        loadNext([], 3)
+    }))
+</script>    
+    
+
+<div id="ai-categorization-overlay" style="display: none;">
+            <div class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[10000] flex items-center justify-center">
+                <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-8 max-w-md w-full mx-4 shadow-2xl">
+                    <div class="text-center">
+                        <div class="w-16 h-16 mx-auto mb-4 relative">
+                            <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                            <div class="absolute inset-0 flex items-center justify-center">
+                                <svg class="w-8 h-8 text-blue-400" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"></path>
+                                </svg>
+                            </div>
+                        </div>
+                        <h3 class="text-xl font-semibold text-white mb-2">AI Categorizing Your Files</h3>
+                        <p class="text-gray-300 mb-4" id="categorization-message">Starting AI categorization...</p>
+                        
+                        <div class="w-full bg-[#2A2D47] rounded-full h-2 mb-4">
+                            <div class="bg-blue-600 h-2 rounded-full transition-all duration-300" id="categorization-progress" style="width: 0%"></div>
+                        </div>
+                        
+                        <div class="text-sm text-gray-400" id="categorization-details">
+                            Progress: <span id="categorization-percentage">0</span>%
+                        </div>
+                        
+                        <div class="mt-6 text-xs text-gray-500 text-center">
+                            <p>🔒 This process cannot be interrupted for data integrity</p>
+                            <p class="mt-1">Please keep this window open</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div></body><!-- Inline scripts moved to modules/ui.js for better maintainability --></html>

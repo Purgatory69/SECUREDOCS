@@ -339,17 +339,19 @@ class AdminController extends Controller
                 DB::statement('UPDATE users SET is_premium = true WHERE id = ?', [$user->id]);
                 
                 // Create admin-granted subscription
-                $subscription = new Subscription();
-                $subscription->user_id = $user->id;
-                $subscription->plan_name = 'premium';
-                $subscription->status = 'active';
-                $subscription->amount = 0; // Admin granted - no charge (will be cast to decimal by model)
-                $subscription->currency = 'PHP';
-                $subscription->billing_cycle = 'monthly';
-                $subscription->starts_at = now();
-                $subscription->ends_at = now()->addYear(); // Give 1 year for admin grants
-                $subscription->auto_renew = false; // This will be properly cast by the model
-                $subscription->save();
+                DB::table('subscriptions')->insert([
+                    'user_id' => $user->id,
+                    'plan_name' => 'premium',
+                    'status' => 'active',
+                    'amount' => 0, // Admin granted - no charge
+                    'currency' => 'PHP',
+                    'billing_cycle' => 'monthly',
+                    'starts_at' => now(),
+                    'ends_at' => now()->addYear(), // Give 1 year for admin grants
+                    'auto_renew' => DB::raw('false'),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
                 
                 $message = [
                     'key' => 'auth.success_premium_granted',

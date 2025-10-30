@@ -4106,8 +4106,12 @@ function showShareModal(fileId) {
             const result = await response.json();
 
             if (result.success) {
-                // Show success modal with share link
-                showShareSuccessModal(result.share);
+                // Show success modal with share link; ensure flags reflect user's selections
+                showShareSuccessModal({
+                    ...result.share,
+                    is_one_time: !!isOneTime,
+                    password_protected: !!(passwordProtected && password && password.trim())
+                });
                 modal.remove();
             } else {
                 if (result.requires_otp_disable) {
@@ -4143,6 +4147,10 @@ function showShareModal(fileId) {
 function showShareSuccessModal(share) {
     const modal = document.createElement('div');
     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
+    // Normalize boolean-like fields that may arrive as strings ("true"/"false") or numbers (1/0)
+    const isOneTime = !!(share && (share.is_one_time === true || share.is_one_time === 1 || share.is_one_time === '1' || share.is_one_time === 'true'));
+    const isPasswordProtected = !!(share && (share.password_protected === true || share.password_protected === 1 || share.password_protected === '1' || share.password_protected === 'true'));
+
     modal.innerHTML = `
         <div class="bg-[#1F2235] rounded-lg shadow-xl max-w-md w-full p-6 border border-[#4A4D6A]">
             <div class="flex items-center justify-between mb-4">
@@ -4180,8 +4188,8 @@ function showShareSuccessModal(share) {
                     <span>Type:</span>
                     <span class="font-medium text-white">${share.type === 'folder' ? 'Folder' : 'File'}</span>
                 </div>
-                ${share.is_one_time ? '<div class="flex justify-between"><span>Access:</span><span class="font-medium text-[#f89c00]">One-time only</span></div>' : ''}
-                ${share.password_protected ? '<div class="flex justify-between"><span>Protection:</span><span class="font-medium text-[#f89c00]">Password protected</span></div>' : ''}
+                ${isOneTime ? '<div class="flex justify-between"><span>Access:</span><span class="font-medium text-[#f89c00]">One-time only</span></div>' : ''}
+                ${isPasswordProtected ? '<div class="flex justify-between"><span>Protection:</span><span class="font-medium text-[#f89c00]">Password protected</span></div>' : ''}
                 ${share.expires_at ? `<div class="flex justify-between"><span>Expires:</span><span class="font-medium text-white">${new Date(share.expires_at).toLocaleDateString()}</span></div>` : ''}
             </div>
 

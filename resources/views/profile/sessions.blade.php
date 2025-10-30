@@ -314,6 +314,8 @@ document.addEventListener('DOMContentLoaded', async function() {
 
 async function loadSessions() {
     try {
+        console.log('Loading sessions...');
+        
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
         
@@ -333,6 +335,9 @@ async function loadSessions() {
         }
 
         const data = await response.json();
+        console.log('Sessions loaded:', data.sessions?.length || 0, 'sessions');
+        console.log('Session details:', data.sessions);
+        
         renderSessions(data.sessions || []);
     } catch (error) {
         console.error('Error loading sessions:', error);
@@ -409,7 +414,7 @@ function getDeviceIcon(deviceType) {
 async function loadNotificationPreferences() {
     try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout (increased)
         
         const response = await fetch('/user/notifications/preferences', {
             headers: {
@@ -433,7 +438,11 @@ async function loadNotificationPreferences() {
         document.getElementById('security_notifications_enabled').checked = prefs.security_notifications_enabled ?? true;
         document.getElementById('activity_notifications_enabled').checked = prefs.activity_notifications_enabled ?? false;
     } catch (error) {
-        console.error('Error loading notification preferences:', error);
+        if (error.name === 'AbortError') {
+            console.warn('Notification preferences request timed out, using defaults');
+        } else {
+            console.error('Error loading notification preferences:', error);
+        }
         // Set default values if loading fails
         document.getElementById('email_notifications_enabled').checked = true;
         document.getElementById('login_notifications_enabled').checked = true;
@@ -627,6 +636,8 @@ async function terminateSession(sessionId) {
     }
 
     try {
+        console.log('Terminating session:', sessionId);
+        
         const response = await fetch(`/user/sessions/${sessionId}`, {
             method: 'DELETE',
             headers: {
@@ -636,14 +647,27 @@ async function terminateSession(sessionId) {
             }
         });
 
-        if (!response.ok) throw new Error('Failed to terminate session');
+        console.log('Terminate response status:', response.status);
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            console.error('Terminate failed:', errorData);
+            throw new Error(errorData.message || 'Failed to terminate session');
+        }
 
         const data = await response.json();
-        showNotification(data.message, 'success');
-        loadSessions(); // Reload sessions
+        console.log('Session terminated successfully:', data);
+        
+        showNotification(data.message || 'Session terminated successfully', 'success');
+        
+        // Force reload sessions after a short delay to ensure DB update is complete
+        setTimeout(() => {
+            console.log('Reloading sessions after termination...');
+            loadSessions();
+        }, 500);
     } catch (error) {
         console.error('Error terminating session:', error);
-        showNotification('Failed to terminate session', 'error');
+        showNotification(error.message || 'Failed to terminate session', 'error');
     }
 }
 

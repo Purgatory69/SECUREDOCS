@@ -1936,7 +1936,10 @@ class FileController extends Controller
                 'parent_id' => [
                     'nullable',
                     'integer',
-                    Rule::exists('files', 'id')->where('user_id', $user->id)->where('is_folder', DB::raw('true')),
+                    Rule::exists('files', 'id')->where(function ($query) use ($user) {
+                    $query->where('user_id', $user->id)
+                          ->whereRaw('is_folder IS TRUE');
+                }),
                 ],
             ], [
                 'file_name.regex' => 'Folder name can only contain letters, numbers, spaces, underscores, dots, and hyphens.',

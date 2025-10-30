@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 use ZipArchive;
 
@@ -85,12 +86,90 @@ class PublicShareController extends Controller
                 ->first();
 
             if ($existingShare) {
-                // Return existing share instead of creating a new one
+                // Update existing share to reflect current selections
                 $share = $existingShare;
-                Log::info('Returning existing share', [
+
+                $updatesMade = [];
+
+                // is_one_time
+                $requestedIsOneTime = (bool) ($options['is_one_time'] ?? false);
+                if ((bool) $share->is_one_time !== $requestedIsOneTime) {
+                    $share->is_one_time = $requestedIsOneTime;
+                    $updatesMade['is_one_time'] = $requestedIsOneTime;
+                }
+
+                // Password protection
+                $requestedPasswordProtected = (bool) ($options['password_protected'] ?? false);
+                if ($requestedPasswordProtected) {
+                    // Ensure user is premium
+                    if (!$user->is_premium) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Password protection is a premium feature. Upgrade to premium to use this feature.',
+                            'requires_premium' => true
+                        ], 403);
+                    }
+
+                    // Set/replace password when provided
+                    if (!empty($options['password'])) {
+                        // Use DB::raw to set boolean in PostgreSQL
+                        \DB::table('public_shares')
+                            ->where('id', $share->id)
+                            ->update([
+                                'password_hash' => Hash::make($options['password']),
+                                'password_protected' => \DB::raw('true'),
+                                'updated_at' => now(),
+                            ]);
+                        $updatesMade['password_protected'] = true;
+                        // Sync in-memory model
+                        $share->refresh();
+                    }
+                } else {
+                    // Remove password protection if currently enabled and user didn't request it
+                    if ((bool) $share->password_protected === true) {
+                        // Clear password hash and flag using DB::raw for boolean
+                        \DB::table('public_shares')
+                            ->where('id', $share->id)
+                            ->update([
+                                'password_hash' => null,
+                                'password_protected' => \DB::raw('false'),
+                                'updated_at' => now(),
+                            ]);
+                        $updatesMade['password_protected'] = false;
+                        // Sync in-memory model
+                        $share->refresh();
+                    }
+                }
+
+                // Expiration (use exists to detect null sent by client to clear)
+                if ($request->exists('expires_in_days')) {
+                    $expiresIn = $request->get('expires_in_days');
+                    if ($expiresIn === null || $expiresIn === '' ) {
+                        // User selected "Never expires"
+                        if (!is_null($share->expires_at)) {
+                            $share->expires_at = null;
+                            $updatesMade['expires_at'] = null;
+                        }
+                    } else {
+                        $newExpiry = now()->addDays((int) $expiresIn);
+                        // Only update if different to avoid unnecessary writes
+                        if (is_null($share->expires_at) || $share->expires_at->ne($newExpiry)) {
+                            $share->expires_at = $newExpiry;
+                            $updatesMade['expires_at'] = $newExpiry->toISOString();
+                        }
+                    }
+                }
+
+                if (!empty($updatesMade)) {
+                    $share->save();
+                }
+
+                Log::info('Returning existing share (possibly updated)', [
                     'share_id' => $share->id,
-                    'existing_is_one_time' => $share->is_one_time,
-                    'existing_password_protected' => $share->password_protected,
+                    'applied_updates' => $updatesMade,
+                    'final_is_one_time' => $share->is_one_time,
+                    'final_password_protected' => $share->password_protected,
+                    'final_expires_at' => $share->expires_at?->toISOString(),
                     'requested_options' => $options
                 ]);
             } else {

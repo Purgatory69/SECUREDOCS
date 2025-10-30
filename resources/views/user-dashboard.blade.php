@@ -740,12 +740,7 @@
                     </select>
                 </div>
                 
-                <div class="flex items-end">
-                    <label class="flex items-center space-x-2 cursor-pointer">
-                        <input type="checkbox" id="searchWholeWord" class="w-4 h-4 rounded bg-[#3C3F58] border-gray-600 text-blue-600 focus:ring-blue-500">
-                        <span class="text-sm">Match Whole Words Only</span>
-                    </label>
-                </div>
+
             </div>
             
             <!-- Filters Grid -->

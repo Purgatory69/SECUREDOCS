@@ -143,22 +143,57 @@ class SearchController extends Controller
             $type = $filters['type'];
             switch ($type) {
                 case 'images':
-                    $filesQuery->where('mime_type', 'LIKE', 'image/%');
+                    $filesQuery->where('mime_type', 'ILIKE', 'image/%');
                     break;
                 case 'documents':
-                    $filesQuery->whereIn('file_type', ['pdf', 'doc', 'docx', 'txt', 'rtf']);
+                    // Match by MIME types with filename extension fallbacks
+                    $filesQuery->where(function($q) {
+                        $q->whereIn('mime_type', [
+                            'application/pdf',
+                            'application/msword',
+                            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                            'text/plain',
+                            'application/rtf',
+                        ])
+                        ->orWhere(function($qq) {
+                            $qq->whereNull('mime_type')
+                               ->orWhere('mime_type', '=','')
+                               ->orWhereRaw("LOWER(file_name) ~ '\\.((pdf)|(doc)|(docx)|(txt)|(rtf))$'");
+                        });
+                    });
                     break;
                 case 'spreadsheets':
-                    $filesQuery->whereIn('file_type', ['xls', 'xlsx', 'csv']);
+                    $filesQuery->where(function($q) {
+                        $q->whereIn('mime_type', [
+                            'application/vnd.ms-excel',
+                            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                            'text/csv',
+                        ])
+                        ->orWhere(function($qq) {
+                            $qq->whereNull('mime_type')
+                               ->orWhere('mime_type', '=','')
+                               ->orWhereRaw("LOWER(file_name) ~ '\\.((xls)|(xlsx)|(csv))$'");
+                        });
+                    });
                     break;
                 case 'presentations':
-                    $filesQuery->whereIn('file_type', ['ppt', 'pptx']);
+                    $filesQuery->where(function($q) {
+                        $q->whereIn('mime_type', [
+                            'application/vnd.ms-powerpoint',
+                            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+                        ])
+                        ->orWhere(function($qq) {
+                            $qq->whereNull('mime_type')
+                               ->orWhere('mime_type', '=','')
+                               ->orWhereRaw("LOWER(file_name) ~ '\\.((ppt)|(pptx))$'");
+                        });
+                    });
                     break;
                 case 'videos':
-                    $filesQuery->where('mime_type', 'LIKE', 'video/%');
+                    $filesQuery->where('mime_type', 'ILIKE', 'video/%');
                     break;
                 case 'audio':
-                    $filesQuery->where('mime_type', 'LIKE', 'audio/%');
+                    $filesQuery->where('mime_type', 'ILIKE', 'audio/%');
                     break;
                 case 'folders':
                     $filesQuery->where('is_folder', DB::raw('true'));
@@ -167,7 +202,11 @@ class SearchController extends Controller
                     $filesQuery->where('is_folder', DB::raw('false'));
                     break;
                 default:
-                    $filesQuery->where('file_type', $type);
+                    // Generic fallback: try MIME type prefix, then extension
+                    $filesQuery->where(function($q) use ($type) {
+                        $q->where('mime_type', 'ILIKE', $type . '/%')
+                          ->orWhereRaw('LOWER(file_name) LIKE ?', ['%.' . strtolower($type)]);
+                    });
             }
         }
 

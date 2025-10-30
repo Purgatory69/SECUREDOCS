@@ -38,29 +38,47 @@ class UserSessionController extends Controller
                 ], 401);
             }
 
+            Log::info('Loading user sessions', [
+                'user_id' => $user->id,
+                'current_session_id' => session()->getId()
+            ]);
+
             $sessions = $this->deviceDetectionService->getUserSessions($user, 20);
+
+            Log::info('Sessions retrieved from database', [
+                'user_id' => $user->id,
+                'session_count' => $sessions->count(),
+                'session_ids' => $sessions->pluck('session_id')->toArray()
+            ]);
+
+            $mappedSessions = $sessions->map(function ($session) {
+                return [
+                    'id' => $session->id,
+                    'session_id' => $session->session_id,
+                    'device_type' => $session->device_type ?? 'unknown',
+                    'browser' => $session->browser ?? 'Unknown',
+                    'platform' => $session->platform ?? 'Unknown',
+                    'location' => ($session->location_city && $session->location_country) 
+                        ? "{$session->location_city}, {$session->location_country}" 
+                        : 'Unknown location',
+                    'ip_address' => $session->ip_address,
+                    'is_current' => $session->session_id === session()->getId(),
+                    'is_active' => $session->is_active ?? false,
+                    'is_suspicious' => $session->is_suspicious ?? false,
+                    'trusted_device' => $session->trusted_device ?? false,
+                    'last_activity' => $session->last_activity_at?->diffForHumans() ?? 'Unknown',
+                    'created_at' => $session->created_at?->diffForHumans() ?? 'Unknown',
+                ];
+            });
+
+            Log::info('Returning sessions to frontend', [
+                'user_id' => $user->id,
+                'mapped_session_count' => $mappedSessions->count()
+            ]);
 
             return response()->json([
                 'success' => true,
-                'sessions' => $sessions->map(function ($session) {
-                    return [
-                        'id' => $session->id,
-                        'session_id' => $session->session_id,
-                        'device_type' => $session->device_type ?? 'unknown',
-                        'browser' => $session->browser ?? 'Unknown',
-                        'platform' => $session->platform ?? 'Unknown',
-                        'location' => ($session->location_city && $session->location_country) 
-                            ? "{$session->location_city}, {$session->location_country}" 
-                            : 'Unknown location',
-                        'ip_address' => $session->ip_address,
-                        'is_current' => $session->session_id === session()->getId(),
-                        'is_active' => $session->is_active ?? false,
-                        'is_suspicious' => $session->is_suspicious ?? false,
-                        'trusted_device' => $session->trusted_device ?? false,
-                        'last_activity' => $session->last_activity_at?->diffForHumans() ?? 'Unknown',
-                        'created_at' => $session->created_at?->diffForHumans() ?? 'Unknown',
-                    ];
-                })
+                'sessions' => $mappedSessions
             ]);
         } catch (\Exception $e) {
             \Log::error('Error loading user sessions', [
@@ -143,7 +161,7 @@ class UserSessionController extends Controller
         // Get all active sessions except current
         $sessions = UserSession::where('user_id', $user->id)
             ->where('session_id', '!=', $currentSessionId)
-            ->whereRaw('is_active = ?', [true])
+            ->whereRaw('is_active = true')
             ->get();
 
         $terminatedCount = 0;

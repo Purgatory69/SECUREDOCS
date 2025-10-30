@@ -36,8 +36,8 @@ class DeviceDetectionService
         // Log the login activity
         $this->logLoginActivity($user, $deviceInfo, $locationInfo, $isNewDevice);
         
-        // Send notification if it's a new device and user has notifications enabled
-        if ($isNewDevice && $user->login_notifications_enabled) {
+        // Send notification if it's a new device, user has notifications enabled, and email is verified
+        if ($isNewDevice && $user->login_notifications_enabled && $user->hasVerifiedEmail()) {
             $this->sendNewDeviceNotification($user, $deviceInfo, $locationInfo);
         }
         
@@ -439,8 +439,8 @@ class DeviceDetectionService
                 ]
             ]);
 
-            // Send email notification if enabled
-            if ($user->email_notifications_enabled) {
+            // Send email notification if enabled and email is verified
+            if ($user->email_notifications_enabled && $user->hasVerifiedEmail()) {
                 \Mail::to($user->email)->send(new \App\Mail\NewDeviceLoginNotification($user, $deviceInfo, $locationInfo));
             }
 
@@ -458,6 +458,7 @@ class DeviceDetectionService
     public function getUserSessions(User $user, int $limit = 10): \Illuminate\Database\Eloquent\Collection
     {
         return UserSession::where('user_id', $user->id)
+            ->whereRaw('is_active = true')
             ->orderBy('last_activity_at', 'desc')
             ->limit($limit)
             ->get();
@@ -468,14 +469,52 @@ class DeviceDetectionService
      */
     public function terminateSession(User $user, string $sessionId): bool
     {
+        Log::info('Attempting to terminate session', [
+            'user_id' => $user->id,
+            'session_id' => $sessionId
+        ]);
+
         $session = UserSession::where('user_id', $user->id)
             ->where('session_id', $sessionId)
             ->first();
 
-        if ($session) {
-            $session->update([
-                'is_active' => DB::raw('false'),
-                'logged_out_at' => now()
+        if (!$session) {
+            Log::warning('Session not found for termination', [
+                'user_id' => $user->id,
+                'session_id' => $sessionId
+            ]);
+            return false;
+        }
+
+        Log::info('Session found, current state', [
+            'session_id' => $sessionId,
+            'is_active_before' => $session->is_active,
+            'logged_out_at_before' => $session->logged_out_at
+        ]);
+
+        // Use direct SQL to ensure proper boolean handling in PostgreSQL
+        $affectedRows = DB::update(
+            'UPDATE public.user_sessions
+             SET is_active = false, logged_out_at = now()
+             WHERE user_id = ? AND session_id = ?',
+            [$user->id, $sessionId]
+        );
+
+        Log::info('Session termination SQL executed', [
+            'session_id' => $sessionId,
+            'affected_rows' => $affectedRows
+        ]);
+
+        if ($affectedRows > 0) {
+            // Verify the update
+            $updatedSession = UserSession::where('user_id', $user->id)
+                ->where('session_id', $sessionId)
+                ->first();
+            
+            Log::info('Session state after update', [
+                'session_id' => $sessionId,
+                'is_active_after' => $updatedSession->is_active,
+                'logged_out_at_after' => $updatedSession->logged_out_at
             ]);
 
             // Log the logout
@@ -489,6 +528,11 @@ class DeviceDetectionService
 
             return true;
         }
+
+        Log::warning('Session termination failed - no rows affected', [
+            'user_id' => $user->id,
+            'session_id' => $sessionId
+        ]);
 
         return false;
     }
