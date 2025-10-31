@@ -799,6 +799,7 @@ Route::middleware([
     Route::prefix('share')->name('share.')->group(function () {
         Route::post('/create', [App\Http\Controllers\PublicShareController::class, 'create'])->name('create');
         Route::get('/my-shares', [App\Http\Controllers\PublicShareController::class, 'getUserShares'])->name('my-shares');
+        Route::get('/file/{fileId}', [App\Http\Controllers\PublicShareController::class, 'getExistingShare'])->name('get-existing');
         Route::delete('/{shareId}', [App\Http\Controllers\PublicShareController::class, 'delete'])->name('delete');
         Route::post('/{token}/save-to-my-files', [App\Http\Controllers\PublicShareController::class, 'saveToMyFiles'])->name('save-to-my-files');
     });

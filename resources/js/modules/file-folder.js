@@ -3952,13 +3952,35 @@ async function renameItem(fileId, newName) {
 }
 
 /**
- * Show share modal for creating public share links
+ * Show share modal for creating or editing public share links
  */
-function showShareModal(fileId) {
+async function showShareModal(fileId) {
     const item = findItemById(fileId);
     if (!item) {
         showNotification('File not found', 'error');
         return;
+    }
+    
+    // Fetch existing share for this file
+    let existingShare = null;
+    try {
+        const response = await fetch(`/share/file/${fileId}`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin'
+        });
+        
+        const result = await response.json();
+        if (result.success && result.has_share) {
+            existingShare = result.share;
+        }
+    } catch (error) {
+        console.error('Failed to fetch existing share:', error);
+        // Continue with modal creation even if fetch fails
     }
 
     const modal = document.createElement('div');
@@ -3966,13 +3988,22 @@ function showShareModal(fileId) {
     modal.innerHTML = `
         <div class="bg-[#1F2235] rounded-lg shadow-xl max-w-md w-full p-6 border border-[#4A4D6A]">
             <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-white">Share ${item.is_folder ? 'Folder' : 'File'}</h3>
+                <h3 class="text-lg font-semibold text-white">${existingShare ? 'Edit' : 'Create'} Share Link</h3>
                 <button type="button" class="text-gray-400 hover:text-gray-300" onclick="this.closest('.fixed').remove()">
                     <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
                 </button>
             </div>
+            ${existingShare ? `
+            <div class="mb-4 p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg text-sm text-yellow-300">
+                <div class="flex items-start">
+                    <svg class="w-4 h-4 mt-0.5 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <span>You already have an active share link for this ${item.is_folder ? 'folder' : 'file'}. Updating will modify the existing link.</span>
+                </div>
+            </div>` : ''}
 
             <div class="mb-4">
                 <div class="flex items-center space-x-3 p-3 bg-[#2A2D47] rounded-lg border border-[#4A4D6A]">
@@ -3989,7 +4020,7 @@ function showShareModal(fileId) {
             <div id="shareOptions" class="space-y-4">
                 <div>
                     <label class="flex items-center space-x-2">
-                        <input type="checkbox" id="isOneTime" class="rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]">
+                        <input type="checkbox" id="isOneTime" class="rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]" ${existingShare?.is_one_time ? 'checked' : ''}>
                         <span class="text-sm text-gray-300">One-time download link</span>
                     </label>
                 </div>
@@ -3997,22 +4028,22 @@ function showShareModal(fileId) {
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-1">Expires in (days)</label>
                     <select id="expiresIn" class="w-full border border-[#4A4D6A] bg-[#2A2D47] text-white rounded-md px-3 py-2 text-sm focus:ring-[#f89c00] focus:border-[#f89c00]">
-                        <option value="" selected>Never expires</option>
-                        <option value="1">1 day</option>
-                        <option value="7">1 week</option>
-                        <option value="30">1 month</option>
-                        <option value="90">3 months</option>
+                        <option value="" ${!existingShare?.expires_at ? 'selected' : ''}>Never expires</option>
+                        <option value="1" ${existingShare?.expires_at && getDaysUntilExpiry(existingShare.expires_at) === 1 ? 'selected' : ''}>1 day</option>
+                        <option value="7" ${existingShare?.expires_at && getDaysUntilExpiry(existingShare.expires_at) === 7 ? 'selected' : ''}>1 week</option>
+                        <option value="30" ${existingShare?.expires_at && getDaysUntilExpiry(existingShare.expires_at) === 30 ? 'selected' : ''}>1 month</option>
+                        <option value="90" ${existingShare?.expires_at && getDaysUntilExpiry(existingShare.expires_at) === 90 ? 'selected' : ''}>3 months</option>
                     </select>
                 </div>
 
                 <div id="passwordSection">
                     <label class="flex items-center space-x-2 mb-2">
-                        <input type="checkbox" id="passwordProtected" class="rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]">
+                        <input type="checkbox" id="passwordProtected" class="rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]" ${existingShare?.password_protected ? 'checked' : ''}>
                         <span class="text-sm text-gray-300">Password protection</span>
                         <span class="text-xs bg-[#f89c00] text-black px-2 py-1 rounded-full font-medium">Premium</span>
                     </label>
-                    <input type="password" id="sharePassword" placeholder="Enter password" 
-                           class="w-full border border-[#4A4D6A] bg-[#2A2D47] text-white rounded-md px-3 py-2 text-sm focus:ring-[#f89c00] focus:border-[#f89c00] placeholder-gray-500 hidden">
+                    <input type="password" id="sharePassword" placeholder="${existingShare?.password_protected ? 'Enter new password (leave blank to keep current)' : 'Enter password'}" 
+                           class="w-full border border-[#4A4D6A] bg-[#2A2D47] text-white rounded-md px-3 py-2 text-sm focus:ring-[#f89c00] focus:border-[#f89c00] placeholder-gray-500 ${existingShare?.password_protected ? '' : 'hidden'}">
                 </div>
 
                 <div id="errorMessage" class="hidden p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
@@ -4032,7 +4063,7 @@ function showShareModal(fileId) {
                 </button>
                 <button type="button" id="createShareBtn"
                         class="flex-1 px-4 py-2 text-sm font-medium text-black bg-[#f89c00] border border-transparent rounded-md hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f89c00] font-semibold">
-                    Create Share Link
+                    ${existingShare ? 'Update Share Link' : 'Create Share Link'}
                 </button>
             </div>
         </div>
@@ -4083,7 +4114,7 @@ function showShareModal(fileId) {
 
         // Show loading state
         createBtn.disabled = true;
-        createBtn.textContent = 'Creating...';
+        createBtn.textContent = existingShare ? 'Updating...' : 'Creating...';
 
         try {
             const response = await fetch('/share/create', {
@@ -4129,7 +4160,7 @@ function showShareModal(fileId) {
             errorMessage.classList.remove('hidden');
         } finally {
             createBtn.disabled = false;
-            createBtn.textContent = 'Create Share Link';
+            createBtn.textContent = existingShare ? 'Update Share Link' : 'Create Share Link';
         }
     });
 
@@ -4660,6 +4691,17 @@ function showFileActionModal(fileId, fileData) {
             modal.remove();
         }
     });
+}
+
+/**
+ * Helper function to calculate days until expiry
+ */
+function getDaysUntilExpiry(expiryDate) {
+    if (!expiryDate) return null;
+    const expiry = new Date(expiryDate);
+    const now = new Date();
+    const diffTime = expiry - now;
+    return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
 // Export functions to global scope for testing and external access

@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Hash;
@@ -36,6 +37,17 @@ class PublicShare extends Model
         'expires_at' => 'datetime',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
+    ];
+    
+    /**
+     * The attributes that should be mutated to dates.
+     *
+     * @var array
+     */
+    protected $dates = [
+        'expires_at',
+        'created_at',
+        'updated_at',
     ];
 
     /**
@@ -142,9 +154,28 @@ class PublicShare extends Model
     /**
      * Increment download count
      */
-    public function incrementDownload(): void
+    /**
+     * Increment download count and check if one-time link should be invalidated
+     */
+    public function incrementDownload(): bool
     {
-        $this->increment('download_count');
+        // Use direct DB update to avoid model events and ensure atomic operation
+        $updated = DB::table($this->table)
+            ->where('id', $this->id)
+            ->update([
+                'download_count' => DB::raw('download_count + 1'),
+                'updated_at' => now()
+            ]);
+
+        // Reload the model to get the updated download_count
+        $this->refresh();
+        
+        // If this is a one-time download and it's been used, return false
+        if ($this->is_one_time && $this->download_count >= 1) {
+            return false; // Indicate this was the final download
+        }
+        
+        return true; // Indicate more downloads are allowed
     }
 
     /**

@@ -101,20 +101,11 @@
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">
-                        <button onclick="showUpgradeModal()" class="bg-green-500 hover:bg-green-600 px-4 py-2 rounded text-sm font-medium transition-colors">
-                            ⬆️ UPGRADE
-                        </button>
                         <button onclick="shareFolder()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded transition-colors" title="Share">
                             📤
                         </button>
                         <button onclick="downloadFolder()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded transition-colors" title="Download">
                             ⬇️
-                        </button>
-                        <button onclick="toggleListView()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded transition-colors" title="List View">
-                            ☰
-                        </button>
-                        <button onclick="toggleGridView()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded transition-colors" title="Grid View">
-                            ⊞
                         </button>
                         <a href="{{ route('register') }}" class="bg-orange-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-orange-600 transition-colors">
                             SIGN UP

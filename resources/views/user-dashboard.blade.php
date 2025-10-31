@@ -580,13 +580,13 @@
                 </svg>
                 <span class="btn-label">Rename</span>
             </button>
-            <button id="selectionShareBtn" class="flex items-center gap-2 px-3 py-2 bg-[#f89c00] hover:brightness-110 rounded-lg text-sm transition-colors text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+            <button id="selectionShareBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:brightness-110 rounded-lg text-sm transition-colors text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
                 </svg>
                 <span class="btn-label">Share</span>
             </button>
-            <button id="selectionDownloadBtn" class="flex items-center gap-2 px-3 py-2 bg-[#f89c00] hover:brightness-110 rounded-lg text-sm transition-colors text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed">
+            <button id="selectionDownloadBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:brightness-110 rounded-lg text-sm transition-colors text-black font-medium disabled:opacity-50 disabled:cursor-not-allowed">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
                 </svg>

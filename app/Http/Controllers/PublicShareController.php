@@ -91,10 +91,10 @@ class PublicShareController extends Controller
 
                 $updatesMade = [];
 
-                // is_one_time
+                // is_one_time - Use DB::raw for PostgreSQL boolean compatibility
                 $requestedIsOneTime = (bool) ($options['is_one_time'] ?? false);
                 if ((bool) $share->is_one_time !== $requestedIsOneTime) {
-                    $share->is_one_time = $requestedIsOneTime;
+                    $share->is_one_time = DB::raw($requestedIsOneTime ? 'true' : 'false');
                     $updatesMade['is_one_time'] = $requestedIsOneTime;
                 }
 
@@ -161,7 +161,25 @@ class PublicShareController extends Controller
                 }
 
                 if (!empty($updatesMade)) {
-                    $share->save();
+                    // Save model with raw expressions
+                    $updateData = [
+                        'updated_at' => now(),
+                    ];
+                    
+                    // Only include fields that were actually updated
+                    if (array_key_exists('is_one_time', $updatesMade)) {
+                        $updateData['is_one_time'] = $share->is_one_time;
+                    }
+                    
+                    if (array_key_exists('expires_at', $updatesMade)) {
+                        $updateData['expires_at'] = $share->expires_at;
+                    }
+                    
+                    DB::table('public_shares')
+                        ->where('id', $share->id)
+                        ->update($updateData);
+                        
+                    $share->refresh(); // Refresh the model to get the updated values
                 }
 
                 Log::info('Returning existing share (possibly updated)', [
@@ -471,14 +489,46 @@ class PublicShareController extends Controller
      */
     private function downloadSingleFile(PublicShare $share, File $file)
     {
-        // Increment download count
-        $share->incrementDownload();
+        // Log download attempt
+        Log::info('Processing file download', [
+            'share_id' => $share->id,
+            'file_id' => $file->id,
+            'is_one_time' => $share->is_one_time,
+            'download_count' => $share->download_count,
+            'max_downloads' => $share->max_downloads
+        ]);
+
+        // Check if this is a one-time download that's already been used
+        if ($share->is_one_time && $share->download_count > 0) {
+            Log::warning('Attempted to use one-time download link that was already used', [
+                'share_id' => $share->id,
+                'file_id' => $file->id
+            ]);
+            abort(410, 'This one-time download link has already been used');
+        }
+
+        // Increment download count and check if this was the final allowed download
+        $canDownloadAgain = $share->incrementDownload();
+        
+        // Log the download
+        Log::info('File download processed', [
+            'share_id' => $share->id,
+            'file_id' => $file->id,
+            'new_download_count' => $share->download_count,
+            'can_download_again' => $canDownloadAgain
+        ]);
 
         // Get file content from Supabase
         $supabaseUrl = env('SUPABASE_URL');
         $filePath = ltrim($file->file_path, '/');
 
         if (empty($supabaseUrl) || empty($filePath)) {
+            Log::error('Missing Supabase configuration or file path', [
+                'share_id' => $share->id,
+                'file_id' => $file->id,
+                'has_supabase_url' => !empty($supabaseUrl),
+                'has_file_path' => !empty($filePath)
+            ]);
             abort(404, 'File not found in storage');
         }
 
@@ -748,6 +798,67 @@ class PublicShareController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to save file to your account'
+            ], 500);
+        }
+    }
+
+    /**
+     * Get existing share for a specific file
+     */
+    public function getExistingShare(int $fileId): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+            
+            // Check if user owns the file
+            $file = File::where('id', $fileId)
+                ->where('user_id', $user->id)
+                ->firstOrFail();
+            
+            // Get active share for this file
+            $share = PublicShare::where('user_id', $user->id)
+                ->where('file_id', $fileId)
+                ->where(function ($query) {
+                    $query->whereNull('expires_at')
+                          ->orWhere('expires_at', '>', now());
+                })
+                ->first();
+            
+            if (!$share) {
+                return response()->json([
+                    'success' => true,
+                    'has_share' => false,
+                    'share' => null
+                ]);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'has_share' => true,
+                'share' => [
+                    'id' => $share->id,
+                    'file_id' => $share->file_id,
+                    'token' => $share->share_token,
+                    'url' => $share->getPublicUrl(),
+                    'type' => $share->share_type,
+                    'is_one_time' => $share->is_one_time,
+                    'password_protected' => $share->password_protected,
+                    'expires_at' => $share->expires_at?->toISOString(),
+                    'download_count' => $share->download_count,
+                    'max_downloads' => $share->max_downloads,
+                ]
+            ]);
+            
+        } catch (\Exception $e) {
+            Log::error('Failed to get existing share', [
+                'user_id' => Auth::id(),
+                'file_id' => $fileId,
+                'error' => $e->getMessage()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to load share information'
             ], 500);
         }
     }
