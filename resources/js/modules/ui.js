@@ -89,11 +89,11 @@ let activeDropdown = null;
 // Close all dropdowns or specific ones
 function closeAllDropdowns(except = []) {
     const dropdowns = {
-        new: { element: document.getElementById('newDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] },
-        profile: { element: document.getElementById('profileDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] },
+        new: { element: document.getElementById('newDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]'], arrow: document.getElementById('uploadIcon') },
+        profile: { element: document.getElementById('profileDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]'] },
         language: { element: document.getElementById('headerLanguageSubmenu2'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]'], arrow: document.getElementById('langCaret') },
-        notification: { element: document.getElementById('notificationDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] },
-        bundlrWallet: { element: document.getElementById('bundlrWalletDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95'] }
+        notification: { element: document.getElementById('notificationDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]'] },
+        bundlrWallet: { element: document.getElementById('bundlrWalletDropdown'), classes: ['opacity-0', 'invisible', 'translate-y-[-10px]'] }
     };
 
     for (const [key, config] of Object.entries(dropdowns)) {
@@ -115,37 +115,51 @@ window.closeAllDropdowns = closeAllDropdowns;
 export function initializeNewDropdown() {
     const newButton = document.getElementById('newBtn');
     const newDropdown = document.getElementById('newDropdown');
+    const arrow = document.getElementById('uploadIcon');
+    
+    // Find options inside the dropdown
+    const uploadFileOption = document.getElementById('uploadFileOption');
+    const arweaveBtn = document.getElementById('openClientArweaveBtn');
+    const createFolderOption = document.getElementById('createFolderOption');
 
-    // Guard against missing dropdown on pages that don't include it
-    if (newButton && newDropdown) {
-        // Ensure dropdown starts hidden with proper classes
-        newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
-        
-        newButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            
-            // Check current state and toggle accordingly
-            const isHidden = newDropdown.classList.contains('opacity-0') || 
-                             newDropdown.classList.contains('invisible');
-            
-            if (isHidden) {
-                // Close other dropdowns first (except language which is nested)
-                closeAllDropdowns(['new', 'language']);
-                // Close all actions menus
-                if (typeof closeAllActionsMenus === 'function') closeAllActionsMenus();
-                activeDropdown = 'new';
-                // Show dropdown with animation
-                newDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
-                newDropdown.classList.add('opacity-100', 'visible', 'translate-y-0', 'scale-100');
-            } else {
-                // Hide dropdown with animation
-                newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
-                newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
-                activeDropdown = null;
-            }
-        });
+// Guard against missing dropdown on pages that don't include it
+    if (!newButton || !newDropdown || !arrow) return;
+
+    // Helper function to close the menu and reset state
+    const closeNewDropdown = () => {
+        newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+        arrow.style.transform = 'rotate(0deg)';
+        activeDropdown = null;
     }
+
+newButton.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isHidden = newDropdown.classList.contains('opacity-0');
+         
+   
+        if (isHidden) {
+            // Close other dropdowns first
+            closeAllDropdowns(['new']);
+            // Close all actions menus
+            if (typeof closeAllActionsMenus === 'function') 
+            closeAllActionsMenus();
+            activeDropdown = 'new';
+            // Show dropdown
+            newDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+            arrow.style.transform = 'rotate(180deg)';
+        } else {
+      // Hide dropdown
+            closeNewDropdown();
+        }
+    });
+
+    // Add listeners to the options to close the menu when they are clicked
+    uploadFileOption?.addEventListener('click', closeNewDropdown);
+    arweaveBtn?.addEventListener('click', closeNewDropdown);
+    createFolderOption?.addEventListener('click', closeNewDropdown);
 }
+
+
 
 export function initializeUserProfile() {
     const userProfileBtn = document.getElementById('userProfileBtn');
@@ -171,12 +185,10 @@ export function initializeUserProfile() {
             activeDropdown = 'profile';
             
             // Show profile dropdown and remove overflow-hidden to allow nested language dropdown
-            profileDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95', 'overflow-hidden');
-            profileDropdown.classList.add('opacity-100', 'visible', 'translate-y-0');
+            profileDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]', 'overflow-hidden');
         } else {
             // Hide profile dropdown
-            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95', 'overflow-hidden');
-            profileDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0');
+            profileDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'overflow-hidden');
             activeDropdown = null;
         }
     });
@@ -367,6 +379,169 @@ function initializeLanguageDropdown() {
     });
 }
 
+function initializeNotificationDropdown() {
+    const notificationBell = document.getElementById('notificationBell');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+
+    if (!notificationBell || !notificationDropdown) {
+        console.debug('Notification dropdown elements not found - skipping notification initialization');
+        return;
+    }
+
+    notificationBell.addEventListener('click', function (event) {
+        event.stopPropagation();
+
+        // Check if dropdown is currently hidden
+        const isHidden = notificationDropdown.classList.contains('opacity-0');
+
+        if (isHidden) {
+            // Close other dropdowns first
+            closeAllDropdowns(['notification']);
+            if (typeof closeAllActionsMenus === 'function') closeAllActionsMenus();
+            activeDropdown = 'notification';
+
+            // Show notification dropdown
+            notificationDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+
+            // Fire a custom event to tell notifications.js to load
+            window.dispatchEvent(new CustomEvent('open-notifications'));
+
+        } else {
+            // Hide notification dropdown
+            notificationDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+            activeDropdown = null;
+        }
+    });
+}
+
+function initializeBundlrWalletDropdown() {
+    const bundlrBtn = document.getElementById('bundlrWalletBtn');
+    const bundlrDropdown = document.getElementById('bundlrWalletDropdown');
+
+    if (!bundlrBtn || !bundlrDropdown) {
+        return; // Don't run if the elements don't exist
+    }
+
+    bundlrBtn.addEventListener('click', function (event) {
+        event.stopPropagation();
+        
+        // Check if dropdown is currently hidden
+        const isHidden = bundlrDropdown.classList.contains('opacity-0');
+        
+        if (isHidden) {
+             // Close other dropdowns first
+            closeAllDropdowns(['bundlrWallet']);
+            if (typeof closeAllActionsMenus === 'function') closeAllActionsMenus();
+             activeDropdown = 'bundlrWallet';
+
+            // Show dropdown
+            bundlrDropdown.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+
+            // Fire a custom event to tell bundlr-wallet-widget.js to update the balance
+            window.dispatchEvent(new CustomEvent('open-bundlr-wallet'));
+
+             } else {
+            // Hide dropdown
+            bundlrDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+            activeDropdown = null;
+        }
+    });
+}
+
+// --- ADD THE NEW SCRIPT CODE HERE ---
+
+/**
+ * Closes all open custom select dropdowns.
+ * @param {HTMLElement} [except] - A menu element to keep open.
+ */
+function closeAllCustomSelects(except = null) {
+    document.querySelectorAll('.custom-select-menu').forEach(menu => {
+        if (menu !== except) {
+            menu.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+            
+            // Find this menu's trigger to rotate the caret back
+            const trigger = document.querySelector(`[data-dropdown-toggle="${menu.id}"]`);
+            if (trigger) {
+                trigger.querySelector('.custom-select-caret')?.classList.remove('rotate-180');
+            }
+        }
+    });
+}
+
+/**
+ * Initializes all custom select dropdowns inside the Advanced Search modal.
+ * This finds the hidden <input> tags by their ID (like 'searchMatchType')
+ * and updates their .value, so your search.js script works perfectly.
+ */
+export function initializeAdvancedSearchSelects() {
+    const modal = document.getElementById('advancedSearchModal');
+    if (!modal) return;
+
+    // Find all trigger buttons
+    const triggers = modal.querySelectorAll('.custom-select-trigger');
+
+    triggers.forEach(trigger => {
+        const menuId = trigger.getAttribute('data-dropdown-toggle');
+        const menu = document.getElementById(menuId);
+        const label = trigger.querySelector('.custom-select-label');
+        const caret = trigger.querySelector('.custom-select-caret');
+        
+        // Find the hidden input.
+        const parentDiv = trigger.closest('.relative');
+        const hiddenInput = parentDiv.querySelector('input[type="hidden"]');
+
+        if (!menu || !label || !hiddenInput) {
+            console.warn('Custom select is missing parts:', { trigger, menu, label, hiddenInput });
+            return;
+        }
+
+        // --- 1. Toggle this menu ---
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation(); // Stop click from bubbling to document
+            const isHidden = menu.classList.contains('opacity-0');
+
+            // Close all *other* dropdowns first
+            closeAllCustomSelects(isHidden ? menu : null);
+
+            if (isHidden) {
+                // Open this one
+                menu.classList.remove('opacity-0', 'invisible', 'translate-y-[-10px]');
+                caret?.classList.add('rotate-180');
+            } else {
+                // Close this one
+                menu.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]');
+                caret?.classList.remove('rotate-180');
+            }
+        });
+
+        // --- 2. Handle option selection ---
+        menu.querySelectorAll('.custom-select-option').forEach(option => {
+            option.addEventListener('click', () => {
+                const selectedValue = option.getAttribute('data-value');
+                const selectedText = option.textContent;
+
+                // Update the visible label
+                label.textContent = selectedText;
+                
+                // Update the hidden input's value (this is what your search.js reads)
+                hiddenInput.value = selectedValue;
+
+                // Close the menu
+                closeAllCustomSelects();
+            });
+        });
+    });
+
+    // --- 3. Global click to close ---
+    modal.addEventListener('click', (e) => {
+        if (!e.target.closest('.custom-select-trigger')) {
+            closeAllCustomSelects();
+        }
+    });
+}
+
+// --- END OF NEW SCRIPT CODE ---
+
 export function initializeUi(dependencies) {
     const { loadUserFiles, loadTrashItems, loadSharedFiles, loadBlockchainItems, state } = dependencies;
     
@@ -375,6 +550,8 @@ export function initializeUi(dependencies) {
     initializeModalSystem();
     initializeBreadcrumbsDropdown();
     initializeLanguageDropdown();
+    initializeNotificationDropdown();
+    initializeBundlrWalletDropdown();
     initializeViewToggling(loadUserFiles, loadTrashItems, loadSharedFiles, loadBlockchainItems, state);
     
     // Global click handler to close all dropdowns when clicking outside

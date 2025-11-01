@@ -25,7 +25,7 @@ class NotificationManager {
         this.markAllReadBtn = document.getElementById('markAllRead');
         this.deleteAllBtn = document.getElementById('deleteAllNotifications');
         this.viewAllBtn = document.getElementById('viewAllNotifications');
-        this.isOpen = false;
+        // this.isOpen = false;
 
         this.init();
     }
@@ -38,10 +38,12 @@ class NotificationManager {
         }
 
         // Event listeners
-        this.bell.addEventListener('click', (e) => {
+        
+        /*this.bell.addEventListener('click', (e) => {
             e.stopPropagation();
             this.toggleDropdown();
         });
+        */
 
         if (this.markAllReadBtn) {
             this.markAllReadBtn.addEventListener('click', () => {
@@ -75,11 +77,11 @@ class NotificationManager {
         }
 
         // Close dropdown when clicking outside
-        document.addEventListener('click', (e) => {
+        /* document.addEventListener('click', (e) => {
             if (!this.dropdown.contains(e.target) && !this.bell.contains(e.target)) {
                 this.closeDropdown();
             }
-        });
+        }); */
 
         // Load initial notifications and count
         this.loadNotifications();
@@ -91,6 +93,7 @@ class NotificationManager {
         }, 30000);
     }
 
+    /*
     async toggleDropdown() {
         if (this.isOpen) {
             this.closeDropdown();
@@ -120,6 +123,7 @@ class NotificationManager {
         this.dropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
         this.isOpen = false;
     }
+    */
 
     async loadNotifications(limit = 5) {
         try {

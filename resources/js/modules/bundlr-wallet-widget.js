@@ -41,6 +41,12 @@ export function initializeBundlrWalletWidget() {
     
     // Set up event listeners
     setupWalletWidgetListeners();
+    window.addEventListener('open-bundlr-wallet', () => {
+        if (isInitialized) {
+            console.log('Dropdown opened, updating balance display...');
+            updateBalanceDisplay();
+             }
+         });
     
     // Update UI state
     updateWalletWidgetUI();
@@ -55,7 +61,7 @@ function setupWalletWidgetListeners() {
     // console.log('🔧 Setting up wallet widget listeners...');
     
     // Use direct onclick for better compatibility
-    const walletBtn = document.getElementById('bundlrWalletBtn');
+    /* const walletBtn = document.getElementById('bundlrWalletBtn');
     if (walletBtn) {
         // console.log('✅ Found bundlr wallet button, setting up click handler');
         walletBtn.onclick = function(e) {
@@ -67,6 +73,7 @@ function setupWalletWidgetListeners() {
     } else {
         console.error('❌ Bundlr wallet button not found!');
     }
+        */
     
     // Set up other buttons with onclick
     setTimeout(() => {
@@ -105,7 +112,8 @@ function setupWalletWidgetListeners() {
 
 /**
  * Toggle wallet dropdown
- */
+
+
 function toggleWalletDropdown() {
     console.log('🔄 Toggling wallet dropdown...');
     const dropdown = document.getElementById('bundlrWalletDropdown');
@@ -140,6 +148,7 @@ function toggleWalletDropdown() {
         console.error('❌ Dropdown element not found!');
     }
 }
+    */
 
 /**
  * Handle Bundlr initialization (Real like React app)
