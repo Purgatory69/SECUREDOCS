@@ -94,8 +94,16 @@ class PublicShareController extends Controller
                 // is_one_time - Use DB::raw for PostgreSQL boolean compatibility
                 $requestedIsOneTime = (bool) ($options['is_one_time'] ?? false);
                 if ((bool) $share->is_one_time !== $requestedIsOneTime) {
-                    $share->is_one_time = DB::raw($requestedIsOneTime ? 'true' : 'false');
+                    // Use direct DB update to ensure proper PostgreSQL boolean handling
+                    DB::table('public_shares')
+                        ->where('id', $share->id)
+                        ->update([
+                            'is_one_time' => DB::raw($requestedIsOneTime ? 'true' : 'false'),
+                            'updated_at' => now()
+                        ]);
                     $updatesMade['is_one_time'] = $requestedIsOneTime;
+                    // Refresh the model to get the updated values
+                    $share->refresh();
                 }
 
                 // Password protection
@@ -370,6 +378,15 @@ class PublicShareController extends Controller
             }
 
             $folderFiles = collect();
+            
+            // If file doesn't exist, show expired page
+            if (!$share->file) {
+                Log::error('File not found for share', ['share_id' => $share->id, 'token' => $token]);
+                return view('public.share-expired', [
+                    'share' => $share,
+                    'reason' => 'file_not_found'
+                ]);
+            }
             
             // If it's a folder, get the folder contents (direct children only)
             $otpInfo = ['has_otp_files' => false, 'otp_count' => 0, 'otp_files' => []];

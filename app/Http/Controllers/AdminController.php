@@ -5,8 +5,10 @@ use Illuminate\Http\Request;
 use App\Models\User;
 use App\Models\Subscription;
 use App\Models\Payment;
+use App\Models\Notification;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Carbon\Carbon;
 
@@ -117,6 +119,33 @@ class AdminController extends Controller
             ->where('id', $id)
             ->update(['is_approved' => DB::raw('true')]);
 
+        // Create in-app notification
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'success',
+            'title' => 'Account Verified!',
+            'message' => 'Your account has been approved by an administrator. You now have full access to SecureDocs.',
+            'data' => [
+                'action' => 'account_approved',
+                'approved_at' => now()->toDateTimeString(),
+                'admin_id' => auth()->id(),
+                'admin_name' => auth()->user()->name,
+            ]
+        ]);
+
+        // Send email notification
+        try {
+            Mail::send('emails.account-approved', ['user' => $user], function ($message) use ($user) {
+                $message->to($user->email)
+                        ->subject('Your Account Has Been Approved - SecureDocs');
+            });
+        } catch (\Exception $e) {
+            \Log::error('Failed to send account approval email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+        }
+
         return redirect()->route('admin.users')->with('success', [
             'key' => 'auth.success_user_approved',
             'params' => ['name' => Str::limit($user->name, 28)]
@@ -133,6 +162,33 @@ class AdminController extends Controller
         DB::table('users')
             ->where('id', $id)
             ->update(['is_approved' => DB::raw('false')]);
+
+        // Create in-app notification
+        Notification::create([
+            'user_id' => $user->id,
+            'type' => 'warning',
+            'title' => 'Account Access Revoked',
+            'message' => 'Your account access has been revoked by an administrator. Please contact support if you have questions.',
+            'data' => [
+                'action' => 'account_revoked',
+                'revoked_at' => now()->toDateTimeString(),
+                'admin_id' => auth()->id(),
+                'admin_name' => auth()->user()->name,
+            ]
+        ]);
+
+        // Send email notification
+        try {
+            Mail::send('emails.account-revoked', ['user' => $user], function ($message) use ($user) {
+                $message->to($user->email)
+                        ->subject('Account Access Revoked - SecureDocs');
+            });
+        } catch (\Exception $e) {
+            \Log::error('Failed to send account revocation email', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage()
+            ]);
+        }
 
         return redirect()->route('admin.users')->with('success', [
             'key' => 'auth.success_user_revoked',
@@ -330,6 +386,33 @@ class AdminController extends Controller
                         'auto_renew' => DB::raw('false')
                     ]);
                 
+                // Create in-app notification
+                Notification::create([
+                    'user_id' => $user->id,
+                    'type' => 'warning',
+                    'title' => 'Premium Access Removed',
+                    'message' => 'Your premium access has been removed by an administrator. You still have access to all standard features.',
+                    'data' => [
+                        'action' => 'premium_removed',
+                        'removed_at' => now()->toDateTimeString(),
+                        'admin_id' => auth()->id(),
+                        'admin_name' => auth()->user()->name,
+                    ]
+                ]);
+
+                // Send email notification
+                try {
+                    Mail::send('emails.premium-removed', ['user' => $user], function ($message) use ($user) {
+                        $message->to($user->email)
+                                ->subject('Premium Access Removed - SecureDocs');
+                    });
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send premium removal email', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
+                
                 $message = [
                     'key' => 'auth.success_premium_removed',
                     'params' => ['name' => Str::limit($user->name, 28)]
@@ -339,6 +422,7 @@ class AdminController extends Controller
                 DB::statement('UPDATE users SET is_premium = true WHERE id = ?', [$user->id]);
                 
                 // Create admin-granted subscription
+                $expiresAt = now()->addYear();
                 DB::table('subscriptions')->insert([
                     'user_id' => $user->id,
                     'plan_name' => 'premium',
@@ -347,11 +431,45 @@ class AdminController extends Controller
                     'currency' => 'PHP',
                     'billing_cycle' => 'monthly',
                     'starts_at' => now(),
-                    'ends_at' => now()->addYear(), // Give 1 year for admin grants
+                    'ends_at' => $expiresAt, // Give 1 year for admin grants
                     'auto_renew' => DB::raw('false'),
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
+                
+                // Create in-app notification
+                Notification::create([
+                    'user_id' => $user->id,
+                    'type' => 'success',
+                    'title' => 'Premium Access Granted!',
+                    'message' => 'You have been granted premium access for 1 year. Enjoy all premium features!',
+                    'data' => [
+                        'action' => 'premium_granted',
+                        'granted_at' => now()->toDateTimeString(),
+                        'expires_at' => $expiresAt->toDateTimeString(),
+                        'duration' => '1 year',
+                        'admin_id' => auth()->id(),
+                        'admin_name' => auth()->user()->name,
+                    ]
+                ]);
+
+                // Send email notification
+                try {
+                    Mail::send('emails.premium-granted', [
+                        'user' => $user,
+                        'duration' => '1 year',
+                        'activatedAt' => now()->format('F j, Y'),
+                        'expiresAt' => $expiresAt->format('F j, Y')
+                    ], function ($message) use ($user) {
+                        $message->to($user->email)
+                                ->subject('Premium Access Granted - SecureDocs');
+                    });
+                } catch (\Exception $e) {
+                    \Log::error('Failed to send premium granted email', [
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage()
+                    ]);
+                }
                 
                 $message = [
                     'key' => 'auth.success_premium_granted',

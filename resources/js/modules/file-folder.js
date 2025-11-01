@@ -2004,8 +2004,8 @@ function showActionsMenu(button, itemId) {
             ev.stopPropagation();
             ev.stopImmediatePropagation?.();
             const id = openBtn.dataset.itemId;
-            // Use new MediaFire-style modal instead of direct redirect
-            handleFilePreview(id);
+            // Directly navigate to the file preview page
+            window.location.href = `/files/${id}/preview`;
             cleanup();
         };
         openBtn.addEventListener('click', directOpen);
@@ -3524,8 +3524,8 @@ async function handleFilePreview(fileId) {
             // File requires OTP verification - show OTP prompt
             showOtpVerificationModal(fileId, result.file_name, 'preview');
         } else if (result.success !== false) {
-            // No OTP required or already verified - show MediaFire-style modal
-            showFileActionModal(fileId, result.file || {});
+            // No OTP required or already verified - redirect to file preview page
+            window.location.href = `/files/${fileId}/preview`;
         } else {
             throw new Error(result.message || 'Failed to access file');
         }
@@ -4588,110 +4588,6 @@ async function downloadFile(fileId, fileName) {
     }
 }
 
-/**
- * Show MediaFire-style file action modal with download and preview options
- */
-function showFileActionModal(fileId, fileData) {
-    const modal = document.createElement('div');
-    modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4';
-    
-    // Get file extension for icon
-    const fileName = fileData.file_name || 'Unknown File';
-    const fileExtension = fileName.split('.').pop()?.toLowerCase() || '';
-    const fileSize = formatFileSize(fileData.file_size || 0);
-    
-    modal.innerHTML = `
-        <div class="bg-[#1F2235] rounded-lg shadow-xl max-w-md w-full p-6 border border-[#4A4D6A]">
-            <div class="flex items-center justify-between mb-4">
-                <h3 class="text-lg font-semibold text-white">${escapeHtml(fileName)}</h3>
-                <button type="button" class="text-gray-400 hover:text-gray-300" onclick="this.closest('.fixed').remove()">
-                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
-                    </svg>
-                </button>
-            </div>
-
-            <div class="mb-6">
-                <div class="flex items-center space-x-3 p-4 bg-[#2A2D47] rounded-lg border border-[#4A4D6A]">
-                    <div class="w-12 h-12 bg-[#f89c00] rounded-lg flex items-center justify-center">
-                        <svg class="w-6 h-6 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                        </svg>
-                    </div>
-                    <div class="flex-1 min-w-0">
-                        <p class="font-medium text-white truncate">${escapeHtml(fileName)}</p>
-                        <p class="text-sm text-gray-400">Document (.${fileExtension.toUpperCase()})</p>
-                    </div>
-                </div>
-            </div>
-
-            <div class="mb-4">
-                <div class="grid grid-cols-2 gap-3 text-sm text-gray-300">
-                    <div class="flex justify-between">
-                        <span>File size:</span>
-                        <span class="font-medium text-white">${fileSize}</span>
-                    </div>
-                    <div class="flex justify-between">
-                        <span>Uploaded:</span>
-                        <span class="font-medium text-white">${new Date(fileData.created_at || Date.now()).toLocaleDateString()}</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-3">
-                <button type="button" id="downloadFileBtn" 
-                        class="w-full px-4 py-3 text-sm font-semibold text-black bg-[#f89c00] border border-transparent rounded-lg hover:brightness-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f89c00] flex items-center justify-center space-x-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                    </svg>
-                    <span>DOWNLOAD FILE</span>
-                </button>
-                
-                <button type="button" id="previewFileBtn" 
-                        class="w-full px-4 py-3 text-sm font-medium text-gray-300 bg-[#3C3F58] border border-[#4A4D6A] rounded-lg hover:bg-[#55597C] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#f89c00] flex items-center justify-center space-x-2">
-                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                    </svg>
-                    <span>Preview File</span>
-                </button>
-            </div>
-
-            <div class="mt-4 p-3 bg-[#2A2D47] rounded-lg border border-[#4A4D6A]">
-                <p class="text-xs text-gray-400 mb-2">Can be opened with</p>
-                <div class="flex items-center space-x-2">
-                    <div class="w-6 h-6 bg-blue-600 rounded flex items-center justify-center">
-                        <span class="text-xs text-white font-bold">W</span>
-                    </div>
-                    <span class="text-sm text-gray-300">Microsoft Word</span>
-                </div>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-
-    // Handle download button
-    const downloadBtn = modal.querySelector('#downloadFileBtn');
-    downloadBtn.addEventListener('click', function() {
-        downloadFile(fileId, fileName);
-        modal.remove();
-    });
-
-    // Handle preview button
-    const previewBtn = modal.querySelector('#previewFileBtn');
-    previewBtn.addEventListener('click', function() {
-        window.location.href = `/files/${fileId}/preview`;
-        modal.remove();
-    });
-
-    // Close modal when clicking outside
-    modal.addEventListener('click', function(e) {
-        if (e.target === modal) {
-            modal.remove();
-        }
-    });
-}
 
 /**
  * Helper function to calculate days until expiry

@@ -7,7 +7,7 @@ This document outlines the process of creating unit tests for the SecureDocs.liv
 Here is a list of tests that need to be created:
 
 *   Permanent delete of a file
-*   Create a folder
-*   Open a folder
-*   Delete an empty folder
+*   Create a folder (Completed)
+*   Open a folder (Completed)
+*   Delete an empty folder (Completed)
 *   Delete a folder with contents inside it

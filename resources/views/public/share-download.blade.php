@@ -4,6 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="share-token" content="{{ $share->share_token }}">
+    @if(isset($share->expires_at) && $share->expires_at)
+    <meta name="share-expires-at" content="{{ $share->expires_at->toIso8601String() }}">
+    @endif
+    <meta name="share-is-one-time" content="{{ $share->is_one_time ? 'true' : 'false' }}">
+    <meta name="share-download-count" content="{{ $share->download_count ?? 0 }}">
     <title>{{ $file->file_name }} - SecureDocs</title>
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @vite(['resources/css/app.css'])
@@ -345,6 +351,78 @@
 
     <!-- JavaScript for functionality -->
     <script>
+        // Check if share has expired
+        function isShareExpired() {
+            const expiresAtMeta = document.querySelector('meta[name="share-expires-at"]');
+            if (!expiresAtMeta || !expiresAtMeta.content) {
+                return false; // No expiration set
+            }
+            
+            const expiryDate = new Date(expiresAtMeta.content);
+            return expiryDate < new Date();
+        }
+
+        // Check if share is one-time and already used
+        function isShareUsed() {
+            const isOneTimeMeta = document.querySelector('meta[name="share-is-one-time"]');
+            const downloadCountMeta = document.querySelector('meta[name="share-download-count"]');
+            
+            if (!isOneTimeMeta || isOneTimeMeta.content !== 'true') {
+                return false; // Not a one-time link
+            }
+            
+            const downloadCount = parseInt(downloadCountMeta?.content || '0');
+            return downloadCount > 0;
+        }
+
+        // Redirect to expired page
+        function redirectToExpired() {
+            const shareToken = document.querySelector('meta[name="share-token"]')?.content;
+            window.location.href = `/s/${shareToken}`;
+        }
+
+        // Check share validity on page load
+        function checkShareValidity() {
+            if (isShareExpired()) {
+                console.log('Share has expired, redirecting...');
+                redirectToExpired();
+                return false;
+            }
+            
+            if (isShareUsed()) {
+                console.log('One-time share already used, redirecting...');
+                redirectToExpired();
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Intercept all download button clicks
+        function interceptDownloadButtons() {
+            // Get all download buttons
+            const downloadButtons = document.querySelectorAll('a[href*="/download"], button[onclick*="download"]');
+            
+            downloadButtons.forEach(button => {
+                button.addEventListener('click', function(e) {
+                    if (!checkShareValidity()) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        return false;
+                    }
+                }, true); // Use capture phase to intercept early
+            });
+        }
+
+        // Check validity on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            checkShareValidity();
+            interceptDownloadButtons();
+            
+            // Check every 30 seconds if still on page
+            setInterval(checkShareValidity, 30000);
+        });
+
         // Save to My Files functionality
         async function saveToMyFiles() {
             try {
