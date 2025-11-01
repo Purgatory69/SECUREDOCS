@@ -122,8 +122,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
 
             <div class="w-4/6 min-w-[420px] -pb-4 mb-6">
-                <label for="name" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">{{ __('auth.name') }}</label>
-                <input id="name" name="name" type="text" required autofocus autocomplete="name" value="{{ old('name') }}" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
+                <label for="firstname" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">{{ __('FIRST NAME') }}</label>
+                <input id="firstname" name="firstname" type="text" required autofocus autocomplete="given-name" value="{{ old('firstname') }}" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
+            </div>
+
+            <div class="w-4/6 min-w-[420px] -pb-4 mb-6">
+                <label for="lastname" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">{{ __('LAST NAME') }}</label>
+                <input id="lastname" name="lastname" type="text" required autocomplete="family-name" value="{{ old('lastname') }}" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
+            </div>
+
+            <div class="w-4/6 min-w-[420px] -pb-4 mb-6">
+                <label for="birthday" class="block text-white text-sm font-normal mb-3 tracking-wide text-left">{{ __('BIRTHDAY') }}</label>
+                <input id="birthday" name="birthday" type="date" autocomplete="bday" value="{{ old('birthday') }}" class="w-full rounded-full py-2.5 px-5 text-black text-sm focus:outline-none bg-[#eaeaf3]">
             </div>
 
             <div class="w-4/6 min-w-[420px] -pb-4">

@@ -47,6 +47,9 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
      */
     protected $fillable = [
         'name',
+        'firstname',
+        'lastname',
+        'birthday',
         'email',
         'password',
         'role',
@@ -86,6 +89,7 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
      */
     protected $casts = [
         'email_verified_at' => 'datetime',
+        'birthday' => 'date',
         'password' => 'hashed',
         'is_approved' => 'boolean',
         'is_premium' => 'boolean',
@@ -103,6 +107,22 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
     protected $appends = [
         'profile_photo_url',
     ];
+
+    /**
+     * Get the user's full name (accessor for backward compatibility).
+     *
+     * @return string
+     */
+    public function getNameAttribute($value): string
+    {
+        // If name is stored in DB, use it
+        if (!empty($value)) {
+            return $value;
+        }
+        
+        // Otherwise, construct from firstname and lastname
+        return trim(($this->attributes['firstname'] ?? '') . ' ' . ($this->attributes['lastname'] ?? ''));
+    }
 
     /**
      * Check if the user has a specific role.

@@ -5,10 +5,12 @@
     </x-slot>
 
     <x-slot name="description">
-        <span class="settings-description">{{ __('Update your account\'s profile information and email address.') }}</span>
+        <span class="settings-description">{{ __('Update your account\'s profile information.') }}</span>
     </x-slot>
 
     <x-slot name="form">
+        <!-- Initialize birthday state so the date input is prefilled (YYYY-MM-DD) -->
+        <div class="hidden" wire:init="$set('state.birthday', '{{ optional($this->user->birthday)->format('Y-m-d') }}')"></div>
         <!-- Profile Photo -->
         @if (Laravel\Jetstream\Jetstream::managesProfilePhotos())
             <div x-data="{photoName: null, photoPreview: null}" class="col-span-6 sm:col-span-4" >
@@ -53,30 +55,49 @@
             </div>
         @endif
 
-        <!-- Name -->
+        <!-- First Name -->
         <div class="col-span-6 sm:col-span-4">
-            <x-label for="name" class="settings-label" value="{{ __('Name') }}" />
-            <x-input id="name" type="text" class="mt-1 block w-full" wire:model="state.name" required autocomplete="name" />
-            <x-input-error for="name" class="mt-2" />
+            <x-label for="firstname" class="settings-label" value="{{ __('First Name') }}" />
+            <x-input id="firstname" type="text" class="mt-1 block w-full" wire:model="state.firstname" required autocomplete="given-name" />
+            <x-input-error for="firstname" class="mt-2" />
         </div>
 
-        <!-- Email -->
+        <!-- Last Name -->
         <div class="col-span-6 sm:col-span-4">
-            <x-label for="email" class="settings-label" value="{{ __('Email') }}" />
-            <x-input id="email" type="email" class="mt-1 block w-full" wire:model="state.email" required autocomplete="username" />
-            <x-input-error for="email" class="mt-2" />
+            <x-label for="lastname" class="settings-label" value="{{ __('Last Name') }}" />
+            <x-input id="lastname" type="text" class="mt-1 block w-full" wire:model="state.lastname" required autocomplete="family-name" />
+            <x-input-error for="lastname" class="mt-2" />
+        </div>
+
+        <!-- Birthday -->
+        <div class="col-span-6 sm:col-span-4">
+            <x-label for="birthday" class="settings-label" value="{{ __('Birthday') }}" />
+            <x-input id="birthday" type="date" class="mt-1 block w-full" wire:model="state.birthday" autocomplete="bday" />
+            <x-input-error for="birthday" class="mt-2" />
+        </div>
+
+        <!-- Email (Read-only) -->
+        <div class="col-span-6 sm:col-span-4">
+            <x-label for="email" class="settings-label" value="{{ __('Email Address') }}" />
+            <div class="mt-1 block w-full px-3 py-2 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-md shadow-sm text-gray-500 dark:text-gray-400 cursor-not-allowed">
+                {{ $this->user->email }}
+            </div>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+                {{ __('Email address cannot be changed after registration.') }}
+            </p>
 
             @if (Laravel\Fortify\Features::enabled(Laravel\Fortify\Features::emailVerification()) && ! $this->user->hasVerifiedEmail())
-                <p class="settings-description text-sm mt-4">
-                    {{ __('Your email address is unverified.') }}
-
-                    <button type="button" class="settings-verification-link" wire:click.prevent="sendEmailVerification">
+                <div class="mt-4 p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                    <p class="text-sm text-yellow-800 dark:text-yellow-200">
+                        {{ __('Your email address is unverified.') }}
+                    </p>
+                    <button type="button" class="mt-2 text-sm font-medium text-yellow-600 dark:text-yellow-400 hover:text-yellow-500 dark:hover:text-yellow-300 underline" wire:click.prevent="sendEmailVerification">
                         {{ __('Click here to re-send the verification email.') }}
                     </button>
-                </p>
+                </div>
 
                 @if ($this->verificationLinkSent)
-                    <p class="mt-2 font-medium text-sm text-green-600">
+                    <p class="mt-2 font-medium text-sm text-green-600 dark:text-green-400">
                         {{ __('A new verification link has been sent to your email address.') }}
                     </p>
                 @endif
