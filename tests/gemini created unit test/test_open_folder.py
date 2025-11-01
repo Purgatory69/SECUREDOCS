@@ -54,31 +54,31 @@ def test_open_folder():
 
         # --- Create Folder ---
         # Click the "Add" button to show the dropdown
-        add_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'font-medium') and text()='Upload']")))
+        add_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='newBtn']")))
         add_button.click()
         time.sleep(1)
 
         # Click the "New Folder" option from the dropdown
-        new_folder_option = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[contains(@class, 'px-4') and text()='New Folder']")))
+        new_folder_option = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='createFolderOption']")))
         new_folder_option.click()
         time.sleep(1)
 
         # Enter folder name
-        folder_name_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Folder Name']")))
+        folder_name_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Enter here']")))
         folder_name = f"TestFolder_{int(time.time())}"
         folder_name_input.send_keys(folder_name)
         time.sleep(1)
 
         # Click "Create" button
-        create_folder_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Create']")))
+        create_folder_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Create Folder']")))
         create_folder_button.click()
-        time.sleep(3) # Wait for folder to be created and page to update
+        time.sleep(5) # Wait for folder to be created and page to update
 
         print(f"Folder '{folder_name}' created successfully.")
 
         # --- Open Folder ---
         # Find and click the newly created folder to select it
-        folder_element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//button[contains(., '{folder_name}')]")))
+        folder_element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[@data-item-name='{folder_name}']")))
         folder_element.click()
         time.sleep(1)
 
