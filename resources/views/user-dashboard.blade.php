@@ -38,18 +38,17 @@
         <!-- Bundlr Wallet Widget (Premium Only) -->
         @if(auth()->user()->is_premium)
         <div class="relative">
-            <button id="bundlrWalletBtn" class="flex items-center gap-2 px-3 py-2 bg-[#3C3F58] hover:bg-[#55597C] rounded-lg transition-colors text-white text-sm" title="Bundlr Wallet">
-                <div class="w-6 h-6 rounded-full bg-orange-500 flex items-center justify-center text-xs font-bold">
-                    B
-                </div>
-                <div class="hidden md:block">
-                    <div class="text-xs text-gray-400">Bundlr</div>
-                    <div id="walletBalance" class="text-xs font-medium">Click to Initialize</div>
-                </div>
+            <button id="bundlrWalletBtn" 
+                    class="w-10 h-10 rounded-full flex items-center justify-center cursor-pointer transition" 
+                    style="background-color: #3C3F58;"
+                    title="Bundlr Wallet"
+                    onmouseover="this.style.filter='brightness(1.1)';"
+                    onmouseout="this.style.filter='';">
+                <img src="{{ asset('Bundlr-1.png') }}" alt="Bundlr Wallet" style="margin-left: -1px;" class="w-5 h-5 object-contain">
             </button>
             
             <!-- Bundlr Wallet Dropdown -->
-            <div id="bundlrWalletDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
+            <div id="bundlrWalletDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] transition-all duration-200">
                 <div class="px-4 py-3 border-b border-[#4A4D6A]">
                     <div class="flex items-center justify-between mb-2">
                         <div class="text-sm font-medium">Bundlr Wallet</div>
@@ -111,8 +110,7 @@
             </button>
             <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
             
-            <!-- Notification Dropdown -->
-            <div id="notificationDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
+            <div id="notificationDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] transition-all duration-200">
                 <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
                     <div class="text-sm font-medium">Notifications</div>
                     <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>
@@ -141,7 +139,7 @@
                 <img src="{{ asset('user-shape.png') }}" alt="Profile" class="w-6 h-6 object-contain">
             </div>
             <div id="profileDropdown" 
-                class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200">
+                class="absolute top-[54px] right-0 w-[280px] bg-[#3C3F58] text-white rounded-lg shadow-lg z-50 overflow-hidden opacity-0 invisible translate-y-[-10px] transition-all duration-200">
                 <div class="p-4 border-border-color flex items-center">
                     <div class="w-10 h-10 rounded-full flex items-center justify-center text-xl mr-4 cursor-pointer transition"
                         style="background-color: #55597C;">
@@ -249,12 +247,16 @@
                     </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
                     -->
-                    <li class="flex items-center px-4 py-2 hover:bg-[#3C3F58] cursor-pointer rounded-lg mx-2 transition-colors duration-200"
-                        onclick="window.location.href='{{ route('premium.upgrade') }}'"
+                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    <li>
+                        <a href="{{ route('premium.upgrade') }}" 
+                        class="p-4 flex items-center cursor-pointer"
+                        style="transition: background-color 0.2s;"
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/crown.png" class="mr-4 w-4 h-4 ml-1" alt="Premium Upgrade">
                         <span class="text-sm">{{ __('auth.db_buy_premium') }}</span>
+                        </a>
                     </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
                 </ul>
@@ -401,12 +403,12 @@
      style="background-color: #3c3f58;">
         <img src="{{ asset('add.png') }}" alt="Add" class="mr-3 w-3 h-3">
         <span class="text-sm text-white font-medium">{{ __('auth.db_upload') }}</span>
-        <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" class="ml-auto w-2 h-2" id="uploadIcon">
+        <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" class="ml-auto w-2 h-2 transition-transform duration-200" id="uploadIcon">
     </div>
 
     <!-- Dropdown Menu - Simplified Structure -->
     <div id="newDropdown" 
-     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C] opacity-0 invisible translate-y-[-10px] scale-95 transition-all duration-200"
+     class="absolute left-0 right-0 top-full mt-2 rounded-lg z-50 bg-[#55597C] opacity-0 invisible translate-y-[-10px] transition-all duration-200"
      style="background-color: #55597C;">
         <div>
             <div id="uploadFileOption"
@@ -487,12 +489,15 @@
             #newBtn:hover{background:#55597C!important;}
             #newDropdown{background:#3c3f58!important;}
         </style>
-
-
     </ul>
 
-    <!-- Storage Usage Display -->
-    <div id="storageUsageContainer" class="mt-8 px-6">
+<!-- Storage Usage Display -->
+    <li id="storage-tile" class="py-3 px-8 flex items-center rounded-r-2xl mr-4 bg-[#141326] text-white">
+        <img src="{{ asset('cloud.png') }}" alt="Storage" class="mr-4 w-5 h-5">
+        <span class="text-sm">Storage</span>
+    </li>
+   
+    <div id="storageUsageContainer" class="px-6"> 
         <div class="w-full h-2 bg-gray-600 rounded overflow-hidden">
             <div id="storageProgressBar" class="h-full transition-all duration-300 rounded" style="width: 0%; background-color: #3C3F58;"></div>
         </div>
@@ -506,6 +511,7 @@
             </div>
         </div>
     </div>
+
 </div>
 </div>
 
@@ -704,129 +710,117 @@
 </div>
 
 <!-- Advanced Search Modal -->
+<!-- Advanced Search Modal -->
 <div id="advancedSearchModal" class="fixed inset-0 z-50 hidden items-center justify-center">
-    <div class="fixed inset-0 bg-black bg-opacity-50"></div>
-    <div class="relative bg-[#0D0E2F] text-white rounded-lg shadow-xl w-full max-w-4xl p-6 z-10 max-h-screen overflow-y-auto">
+    <!-- <div class="fixed inset-0 bg-black bg-opacity-50"></div> -->
+    <div style="background-color: #141326; opacity: 0.8;" class="fixed inset-0 transition-opacity"></div>
+    <div class="relative bg-[#24243B] text-white rounded-lg shadow-xl w-full max-w-4xl p-6 z-10 max-h-screen overflow-y-auto">
         <div class="flex items-center justify-between mb-6">
             <h3 class="text-xl font-semibold">Advanced Search</h3>
             <button id="advancedSearchCloseBtn" class="text-2xl leading-none">&times;</button>
         </div>
         
-        <form id="advancedSearchForm" class="space-y-6">
-            <!-- Search Query -->
-            <div>
-                <label class="block text-sm font-medium mb-2">Search Terms</label>
-                <input id="advancedSearchQuery" type="text" placeholder="Enter search terms..." 
-                       class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400" />
-            </div>
-            
-            <!-- Search Options -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 p-4 bg-[#1F2235] rounded-lg">
-                <div>
-                    <label class="block text-sm font-medium mb-2">Match Type</label>
-                    <select id="searchMatchType" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
-                        <option value="contains">Contains (default)</option>
-                        <option value="exact">Exact Match</option>
-                        <option value="starts_with">Starts With</option>
-                        <option value="ends_with">Ends With</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">Case Sensitivity</label>
-                    <select id="searchCaseSensitive" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
-                        <option value="insensitive">Case Insensitive (Aa = aa)</option>
-                        <option value="sensitive">Case Sensitive (Aa ≠ aa)</option>
-                    </select>
-                </div>
-                
+        <form id="advancedSearchForm" class="space-y-8">
+    <div class="flex items-center space-x-4">
+        <div class="flex-grow">
+            <input id="advancedSearchQuery" type="text" placeholder="Enter search term here..." 
+                class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#55597C]" />
+        </div>
+        <div>
+             <button type="button" id="clearSearchFilters" class="text-gray-400 hover:text-white text-sm font-medium">Clear Filters</button>
+        </div>
+    </div>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div>
+            <label for="searchMatchType" class="text-opacity-80 block text-sm text-gray-400 font-medium mb-2">Match type</label>
+            <select id="searchMatchType" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white appearance-none bg-no-repeat" style="background-image: url('{{ asset('caret-down.png') }}'); background-position: right 1rem center; background-size: 0.5rem;">                <option value="contains">Contains (default)</option>
+                <option value="exact">Exact Match</option>
+                <option value="starts_with">Starts With</option>
+                <option value="ends_with">Ends With</option>
+            </select>
+        </div>
+        <div>
+            <label for="searchCaseSensitive" class="block text-sm text-gray-400 font-medium mb-2">Case Sensitivity</label>
+            <select id="searchCaseSensitive" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white">
+                <option value="insensitive">Case Insensitive (Aa = aa)</option>
+                <option value="sensitive">Case Sensitive (Aa ≠ aa)</option>
+            </select>
+        </div>
+        <div>
+            <label for="searchFileType" class="block text-sm font-medium text-gray-400 mb-2">File Types</label>
+            <select id="searchFileType" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white">
+                <option value="">All Types</option>
+                <option value="images">Images</option>
+                 <option value="documents">Documents</option>
+                <option value="spreadsheets">Spreadsheets</option>
+                <option value="presentations">Presentations</option>
+                <option value="videos">Videos</option>
+                <option value="audio">Audio</option>
+                <option value="folders">Folders</option>
+                 <option value="files">Files Only</option>
+            </select>
+        </div>
 
-            </div>
-            
-            <!-- Filters Grid -->
-            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- File Type Filter -->
-                <div>
-                    <label class="block text-sm font-medium mb-2">File Type</label>
-                    <select id="searchFileType" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
-                        <option value="">All Types</option>
-                        <option value="images">Images</option>
-                        <option value="documents">Documents</option>
-                        <option value="spreadsheets">Spreadsheets</option>
-                        <option value="presentations">Presentations</option>
-                        <option value="videos">Videos</option>
-                        <option value="audio">Audio</option>
-                        <option value="folders">Folders</option>
-                        <option value="files">Files Only</option>
-                    </select>
-                </div>
-                
-                <!-- Date Range -->
-                <div>
-                    <label class="block text-sm font-medium mb-2">Date From</label>
-                    <input id="searchDateFrom" type="date" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white" />
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">Date To</label>
-                    <input id="searchDateTo" type="date" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white" />
-                </div>
-                
-                <!-- File Size Range -->
-                <div>
-                    <label class="block text-sm font-medium mb-2">Min Size (MB)</label>
-                    <input id="searchSizeMin" type="number" min="0" step="0.1" placeholder="0" 
-                           class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400" />
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">Max Size (MB)</label>
-                    <input id="searchSizeMax" type="number" min="0" max="100" step="0.1" placeholder="100" 
-                           class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white placeholder-gray-400" />
-                    <small class="text-gray-400 text-xs mt-1">Maximum: 100MB</small>
-                </div>
-                
-                
-                <!-- Sort Options -->
-                <div>
-                    <label class="block text-sm font-medium mb-2">Sort By</label>
-                    <select id="searchSortBy" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
-                        <option value="updated_at">Last Modified</option>
-                        <option value="created_at">Date Created</option>
-                        <option value="file_name">Name</option>
-                        <option value="file_size">Size</option>
-                        <option value="file_type">Type</option>
-                    </select>
-                </div>
-                
-                <div>
-                    <label class="block text-sm font-medium mb-2">Sort Order</label>
-                    <select id="searchSortOrder" class="w-full py-2 px-3 rounded bg-[#3C3F58] border-none text-white">
-                        <option value="desc">Newest First</option>
-                        <option value="asc">Oldest First</option>
-                    </select>
-                </div>
-            </div>
-            
-            <!-- Search Actions -->
-            <div class="flex justify-between items-center pt-6 border-t border-border-color">
-                <div class="flex space-x-2">
-                    <button type="button" id="clearSearchFilters" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm">
-                        Clear Filters
-                    </button>
-                </div>
-                <div class="flex space-x-2">
-                    <button type="button" id="cancelAdvancedSearch" class="px-4 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm">
-                        Cancel
-                    </button>
-                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm">
-                        Search
-                    </button>
-                </div>
-            </div>
-        </form>
+        <div>
+            <label for="searchDateFrom" class="block text-sm text-gray-400 font-medium mb-2">Date From</label>
+            <input id="searchDateFrom" type="text" placeholder="YYYY/MM/DD" onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'"
+                   class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white" />
+        </div>
+        <div>
+            <label for="searchSizeMin" class="block text-sm text-gray-400 font-medium mb-2">Min. Size (MB)</label>
+            <input id="searchSizeMin" type="number" min="0" placeholder="0" step="0.1" 
+                   class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white placeholder-gray-400" />
+        </div>
+        <div>
+            <label for="searchSortBy" class="block text-sm text-gray-400 font-medium mb-2">Sort by</label>
+            <select id="searchSortBy" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white">
+                <option value="updated_at">Last Modified</option>
+                <option value="created_at">Date Created</option>
+                <option value="file_name">Name</option>
+                <option value="file_size">Size</option>
+                <option value="file_type">Type</option>
+            </select>
+         </div>
+
+        <div>
+            <label for="searchDateTo" class="block text-sm text-gray-400 font-medium mb-2">Date To</label>
+            <input id="searchDateTo" type="text" placeholder="YYYY/MM/DD" onfocus="(this.type='date')" onblur="if(!this.value)this.type='text'"
+                   class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white" />
+        </div>
+        <div>
+            <label for="searchSizeMax" class="block text-sm text-gray-400 font-medium mb-2">Max. Size (MB)</label>
+            <input id="searchSizeMax" type="number" min="0" placeholder="1000" step="0.1"
+                   class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white placeholder-gray-400" />
+        </div>
+        <div>
+            <label for="searchSortOrder" class="block text-sm text-gray-400 font-medium mb-2">Sort Order</label>
+            <select id="searchSortOrder" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white">
+                 <option value="desc">Newest First</option>
+                <option value="asc">Oldest First</option>
+            </select>
+        </div>
+    </div>
+
+    <div class="flex justify-end items-center pt-4">
+        <!-- <label class="flex items-center space-x-3 cursor-pointer">
+            <input type="checkbox" id="searchWholeWord" class="w-5 h-5 rounded bg-[#3C3F58] border-gray-600 text-[#f89c00] focus:ring-[#f89c00]">
+            <span class="text-sm">Match whole words only</span>
+        </label> -->
+        
+        <div class="flex items-center space-x-4">
+            <button type="button" id="cancelAdvancedSearch" class="py-3 px-6 rounded-lg text-sm text-gray-300 hover:text-white transition-colors">
+                Cancel
+            </button>
+            <button type="submit" class="py-3 px-8 rounded-lg text-sm font-bold text-black bg-[#f89c00] hover:brightness-110 transition">
+                Search
+            </button>
+        </div>
+    </div>
+</form>
     </div>
 </div>
+
 
 <!-- Version History Modal - REMOVED -->
 

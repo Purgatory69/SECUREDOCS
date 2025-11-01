@@ -1,194 +1,177 @@
 @extends('layouts.app')
 
 @section('content')
-<div class="min-h-screen bg-[#141326] text-white">
+<div style="background-color: #24243B;" class="min-h-screen text-white">
     <!-- Header -->
-    <div class="bg-[#1F2235] border-b border-[#4A4D6A] px-6 py-4">
-        <div class="flex items-center justify-between">
-            <div>
-                <h1 class="text-2xl font-bold text-white">Upgrade to Premium</h1>
-                <p class="text-gray-400 mt-1">Unlock advanced features and enhanced security</p>
-            </div>
-            <a href="{{ route('user.dashboard') }}" class="bg-[#3C3F58] hover:bg-[#4A4D6A] text-white px-4 py-2 rounded-lg transition-colors">
-                ← Back to Dashboard
+    <div class="bg-[#141326] px-6 py-6">
+        <div class="flex items-center justify-between w-full">
+            <a href="{{ route('user.dashboard') }}" style="margin-left: 100px;"
+            class="flex items-center text-white hover:text-gray-300 transition-colors duration-200">
+                <img src="{{ asset('back-arrow.png') }}" alt="Back" class="w-5 h-5">
             </a>
+            <div class="flex items-center space-x-3 absolute left-1/2 transform -translate-x-1/2">
+                <img src="{{ asset('logo-white.png') }}" alt="Logo" class="h-8 w-auto">
+                <h2 class="font-bold text-xl text-[#f89c00] font-['Poppins']">Manage Premium Plan</h2>
+            </div>
+            
         </div>
     </div>
 
-    <div class="container mx-auto px-6 py-8">
+    <!-- Body Title -->
+    <div class="container mx-auto px-6 py-8 ">
         <div class="max-w-4xl mx-auto">
-            
-            <!-- Current Plan Status -->
-            <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-6 mb-8">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="text-lg font-semibold text-white">Current Plan</h3>
-                        <p class="text-gray-400">
-                            @if(auth()->user()->is_premium)
-                                <span class="text-green-400">✓ Premium Active</span>
-                            @else
-                                <span class="text-yellow-400">Basic Plan</span>
-                            @endif
-                        </p>
+            <div class="flex flex-col items-center mb-8">
+                <div class="flex items-center mb-2">
+                    <img src="{{ asset('crown.png') }}" alt="Logo" class="h-6 w-6">
+                    <h1 class="text-lg font-bold text-white ml-3">Enchance your SECUREDOCS Experience!</h1>
+                </div> 
+                <p class="text-sm text-gray-300 mt-1 text-center">Try our monthly subscription for improved and new, innovative file storage features. Only on SECUREDOCS Premium.</p>
+            </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
+        
+        <!-- Standard Plan -->
+        <div class="bg-[#3C3F58] rounded-2xl p-8 flex flex-col">
+            <div class="text-center mb-12">
+                <h3 class="text-xl font-bold text-white mb-2">Standard Plan</h3>
+                <div class="text-4xl font-bold text-white">Free</div>
                     </div>
+            <div class="flex-grow">
+                <ul class="space-y-4 text-white">
+                    <li>500MB of Storage Size</li>
+                    <li>Standard security</li>
+                    <li>No access to AI Features</li>
+                    <li>No access to Blockchain</li>
+                </ul>
+                        </div>
+        </div>
+
+        <!-- Premium Plan -->
+        <div class="bg-[#f89c00] rounded-2xl p-8 flex flex-col" 
+        @if(auth()->user()->plan != 'premium') id="upgradeBtn" @endif>
+            <div class="text-center mb-12">
+                <h3 class="text-xl font-bold text-black mb-2">Premium Plan</h3>
+                <div class="text-4xl font-bold text-black">
+                    299.00 <span class="text-lg font-medium text-black pb-2">/ mo</span>
+                </div>
+            </div>
+            <div class="flex-grow">
+                <ul class="space-y-4 text-black ">
+                    <li>Up to 1GB of Storage Size</li>
+                    <li>OTP Security for Uploaded Files</li>
+                    <li>AI File Organization and Chatbot</li>
+                    <li>Full Access to upload in Arweave</li>
+                </ul>
+            </div>
+        </div>
+                    </div>
+                    
+<!-- Current Plan Status -->
+<div class="prem-border border-t"></div>
+    <div class="p-6">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center space-x-2">
+                <h3 class="text-medium font-medium text-white">Current Plan:</h3>
+                <p>
                     @if(auth()->user()->is_premium)
-                        <div class="text-right">
-                            <p class="text-sm text-gray-400">Next billing</p>
-                            <p class="text-white font-medium">{{ $subscription->ends_at ?? 'N/A' }}</p>
-                        </div>
+                        <span class="text-medium font-semibold text-[#f89c00]">Premium</span>
+                    @else
+                        <span class="text-medium font-semibold text-[#f89c00]">Standard</span>
                     @endif
+                </p>
                 </div>
-            </div>
 
-            <!-- Pricing Plans -->
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-                
-                <!-- Basic Plan -->
-                <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-6">
-                    <div class="text-center mb-6">
-                        <h3 class="text-xl font-bold text-white mb-2">Basic Plan</h3>
-                        <div class="text-3xl font-bold text-white mb-1">Free</div>
-                        <p class="text-gray-400">Forever</p>
+            <div class="flex items-center space-x-2">
+                <p class="text-medium text-medium text-white">Next billing:</p>
+                <p class="text-medium text-[#f89c00] font-semibold">{{ $subscription->ends_at ?? 'N/A' }}</p>
+                    </div>
+        </div>
                     </div>
                     
-                    <ul class="space-y-3 mb-6">
-                        <li class="flex items-center text-gray-300">
-                            <span class="text-green-400 mr-3">✓</span>
-                            Upload up to 500 mb worth of storage
-                        </li>
-                        <li class="flex items-center text-gray-300">
-                            <span class="text-green-400 mr-3">✓</span>
-                            Standard security
-                        </li>
-                        <li class="flex items-center text-gray-300">
-                            <span class="text-red-400 mr-3">✗</span>
-                            <span class="line-through">Blockchain storage</span>
-                        </li>
-                        <li class="flex items-center text-gray-300">
-                            <span class="text-red-400 mr-3">✗</span>
-                            <span class="line-through">AI document analysis</span>
-                        </li>
-                    </ul>
+    <div class="prem-border border-t mb-8"></div>
                     
                     @if(!auth()->user()->is_premium)
-                        <button class="w-full bg-gray-600 text-gray-400 py-3 rounded-lg cursor-not-allowed">
-                            Current Plan
-                        </button>
-                    @else
-                        <button class="w-full bg-gray-600 text-gray-400 py-3 rounded-lg cursor-not-allowed">
-                            Downgrade Available
-                        </button>
-                    @endif
-                </div>
-
-                <!-- Premium Plan -->
-                <div class="bg-gradient-to-br from-[#f89c00] to-[#ff8c00] rounded-xl p-6 relative">
-                    <div class="absolute top-4 right-4">
-                        <span class="bg-white text-[#f89c00] px-3 py-1 rounded-full text-sm font-bold">POPULAR</span>
-                    </div>
-                    
-                    <div class="text-center mb-6">
-                        <h3 class="text-xl font-bold text-white mb-2">Premium Plan</h3>
-                        <div class="text-3xl font-bold text-white mb-1">₱299</div>
-                        <p class="text-white/80">per month</p>
-                    </div>
-                    
-                    <ul class="space-y-3 mb-6">
-                        <li class="flex items-center text-white">
-                            <span class="text-white mr-3">✓</span>
-                            Increased document uploads
-                        </li>
-                        <li class="flex items-center text-white">
-                            <span class="text-white mr-3">✓</span>
-                            Enhanced security features
-                        </li>
-                        <li class="flex items-center text-white">
-                            <span class="text-white mr-3">✓</span>
-                            Blockchain document storage
-                        </li>
-                        <li class="flex items-center text-white">
-                            <span class="text-white mr-3">✓</span>
-                            AI-powered document analysis
-                        </li>
-                        <li class="flex items-center text-white">
-                            <span class="text-white mr-3">✓</span>
-                            Priority customer support
-                        </li>
-                    </ul>
-                    
-                    @if(!auth()->user()->is_premium)
-                        <button id="upgradeBtn" class="w-full bg-white text-[#f89c00] py-3 rounded-lg font-bold hover:bg-gray-100 transition-colors">
-                            Upgrade Now
-                        </button>
-                    @else
-                        <button class="w-full bg-white/20 text-white py-3 rounded-lg cursor-not-allowed">
-                            ✓ Current Plan
-                        </button>
-                    @endif
+    <h3 class="text-lg font-bold text-white mb-6">Choose Payment Method</h3>
+    
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+        <label class="payment-method cursor-pointer">
+            <input type="radio" name="payment_method" value="gcash" class="hidden">
+            <div class="payment-button">
+                <img src="{{ asset('crown.png') }}" alt="Crown" class="h-6 w-6">
+                <div>
+                    <div class="text-white font-bold">GCash</div>
+                    <div class="text-gray-400 text-sm">E-Wallet</div>
                 </div>
             </div>
+                    </label>
 
-            <!-- Payment Methods -->
-            @if(!auth()->user()->is_premium)
-            <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl p-6">
-                <h3 class="text-lg font-semibold text-white mb-4">Choose Payment Method</h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <!-- GCash -->
                     <label class="payment-method cursor-pointer">
-                        <input type="radio" name="payment_method" value="gcash" class="hidden">
-                        <div class="border-2 border-[#4A4D6A] rounded-lg p-4 text-center hover:border-[#f89c00] transition-colors">
-                            <div class="text-2xl mb-2">📱</div>
-                            <div class="text-white font-medium">GCash</div>
-                            <div class="text-gray-400 text-sm">E-wallet</div>
+            <input type="radio" name="payment_method" value="paymaya" class="hidden peer">
+            <div class="payment-button">
+                <img src="{{ asset('crown.png') }}" alt="Crown" class="h-6 w-6">
+                <div>
+                    <div class="text-white font-bold">PayMaya</div>
+                    <div class="text-gray-400 text-sm">E-Wallet</div>
+                </div>
                         </div>
                     </label>
 
-                    <!-- PayMaya -->
                     <label class="payment-method cursor-pointer">
-                        <input type="radio" name="payment_method" value="paymaya" class="hidden">
-                        <div class="border-2 border-[#4A4D6A] rounded-lg p-4 text-center hover:border-[#f89c00] transition-colors">
-                            <div class="text-2xl mb-2">💳</div>
-                            <div class="text-white font-medium">PayMaya</div>
-                            <div class="text-gray-400 text-sm">E-wallet</div>
-                        </div>
-                    </label>
-
-                    <!-- Credit/Debit Card -->
-                    <label class="payment-method cursor-pointer">
-                        <input type="radio" name="payment_method" value="card" class="hidden">
-                        <div class="border-2 border-[#4A4D6A] rounded-lg p-4 text-center hover:border-[#f89c00] transition-colors">
-                            <div class="text-2xl mb-2">💳</div>
-                            <div class="text-white font-medium">Card</div>
-                            <div class="text-gray-400 text-sm">Visa, Mastercard</div>
+            <input type="radio" name="payment_method" value="card" class="hidden peer">
+            <div class="payment-button">
+                <img src="{{ asset('crown.png') }}" alt="Crown" class="h-6 w-6">
+                <div>
+                    <div class="text-white font-bold">Card</div>
+                    <div class="text-gray-400 text-sm">Visa, MasterCard, etc.</div>
+                </div>
                         </div>
                     </label>
                 </div>
 
-                <!-- Proceed Button -->
-                <div class="mt-6 text-center">
-                    <button id="proceedPayment" class="bg-[#f89c00] hover:bg-[#e88900] text-white px-8 py-3 rounded-lg font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+    <div class="flex items-center justify-between">
+        <p class="text-sm text-gray-400 max-w-md">
+            Your payment is processed securely through PayMongo.<br>We never store your payment information.
+        </p>
+        <button id="proceedPayment" class="bg-[#f89c00] hover:brightness-110 text-black px-8 py-3 rounded-full font-bold transition-all disabled:opacity-50 disabled:cursor-not-allowed" disabled>
                         Proceed to Payment
                     </button>
                 </div>
-
-                <!-- Security Notice -->
-                <div class="mt-6 p-4 bg-[#2A2D47] rounded-lg">
-                    <div class="flex items-start">
-                        <span class="text-green-400 mr-3 mt-1">🔒</span>
-                        <div>
-                            <h4 class="text-white font-medium mb-1">Secure Payment</h4>
-                            <p class="text-gray-400 text-sm">
-                                Your payment is processed securely through PayMongo. We never store your payment information.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            </div>
             @endif
         </div>
     </div>
 </div>
+
+<style>
+    .prem-border {
+        border-color: #55597C !important;
+        /* margin-left: 16px !important;
+        margin-right: 16px !important; */
+    }
+
+    .payment-button {
+        display: flex;
+        align-items: center;
+        column-gap: 1rem;
+        padding: 1rem;
+        border-radius: 9999px;
+        transition: background-color 0.2s, border-color 0.2s;
+        /* --- STATE 1: Normal --- */
+        background-color: transparent;
+        border: 2px solid #3C3F58;
+    }
+
+    .payment-button:hover {
+        /* --- STATE 2: Hovered --- */
+        background-color: #3C3F58;
+        border-color: #3C3F58;
+    }
+
+    /* This looks for a checked radio button and styles the .payment-button right after it */
+    input[type="radio"]:checked + .payment-button {
+        /* --- STATE 3: Selected --- */
+        background-color: #55597C;
+        border-color: #55597C;
+    }
+</style>
 
 @push('scripts')
 <script>
