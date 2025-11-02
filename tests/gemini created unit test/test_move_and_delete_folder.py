@@ -1,3 +1,4 @@
+
 import os
 import time
 from selenium import webdriver
@@ -7,9 +8,9 @@ from webdriver_manager.chrome import ChromeDriverManager
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
-def test_delete_folder_with_contents():
+def test_move_and_delete_folder():
     """
-    Test case to create a folder with a file, and then delete the folder.
+    Test case to create two folders, move one into the other, and then delete the parent folder.
     """
     try:
         # Setup WebDriver
@@ -27,32 +28,42 @@ def test_delete_folder_with_contents():
         driver.find_element(By.XPATH, "//button[text()='LOGIN']").click()
         WebDriverWait(driver, 10).until(EC.url_contains("/dashboard"))
 
-        # --- Create Folder ---
-        folder_name = f"FolderWithFile_{int(time.time())}"
-        create_folder(driver, folder_name)
-        print(f"Folder '{folder_name}' created successfully.")
+        # --- Create Folder A ---
+        folder_a_name = f"FolderA_{int(time.time())}"
+        create_folder(driver, folder_a_name)
+        print(f"Folder '{folder_a_name}' created successfully.")
 
-        # --- Upload File to Folder ---
-        # Open the folder
-        folder_element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[@data-item-name='{folder_name}']")))
-        folder_element.click()
+        # --- Create Folder B ---
+        folder_b_name = f"FolderB_{int(time.time())}"
+        create_folder(driver, folder_b_name)
+        print(f"Folder '{folder_b_name}' created successfully.")
+
+        # --- Move Folder B into Folder A ---
+        # Select Folder B
+        folder_b_element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[@data-item-name='{folder_b_name}']")))
+        folder_b_element.click()
         time.sleep(1)
-        open_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='selectionToolbar']//button[.//span[text()='Open']]")))
-        open_button.click()
+
+        # Click the "Move" button
+        move_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='selectionToolbar']//button[.//span[text()='Move']]")))
+        move_button.click()
+        time.sleep(1)
+
+        # Select Folder A as the destination
+        destination_folder = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[contains(@class, 'folder-item')]//span[text()='{folder_a_name}']")))
+        destination_folder.click()
+        time.sleep(1)
+
+        # Click the "Move Here" button
+        move_here_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Move Here']")))
+        move_here_button.click()
         time.sleep(3)
+        print(f"Folder '{folder_b_name}' moved into '{folder_a_name}'.")
 
-        # Upload the file
-        upload_file(driver, "dummy_file.txt")
-        print("File uploaded successfully.")
-
-        # Go back to the parent directory
-        driver.back()
-        time.sleep(3)
-
-        # --- Delete Folder ---
-        # Select the folder
-        folder_element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[@data-item-name='{folder_name}']")))
-        folder_element.click()
+        # --- Delete Folder A ---
+        # Select Folder A
+        folder_a_element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[@data-item-name='{folder_a_name}']")))
+        folder_a_element.click()
         time.sleep(1)
 
         # Click the "Delete" button
@@ -64,7 +75,7 @@ def test_delete_folder_with_contents():
         confirm_delete_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Delete']")))
         confirm_delete_button.click()
         time.sleep(3)
-        print(f"Folder '{folder_name}' deleted successfully.")
+        print(f"Folder '{folder_a_name}' deleted successfully.")
 
     except Exception as e:
         print(f"Test failed: {e}")
@@ -96,27 +107,5 @@ def create_folder(driver, folder_name):
     create_folder_button.click()
     time.sleep(5) # Wait for folder to be created and page to update
 
-def upload_file(driver, file_name):
-    # Click the "Add" button to show the dropdown
-    add_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='newBtn']")))
-    add_button.click()
-    time.sleep(1)
-
-    # Click the "Upload File" option from the dropdown
-    upload_file_option = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='uploadFileOption']")))
-    upload_file_option.click()
-    time.sleep(1)
-
-    # Upload the file
-    file_input = driver.find_element(By.ID, "fileInput")
-    file_path = os.path.abspath(file_name)
-    file_input.send_keys(file_path)
-    time.sleep(1)
-
-    # Click the "Upload" button
-    upload_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.ID, "uploadBtn")))
-    upload_button.click()
-    time.sleep(5) # Wait for upload to complete
-
 if __name__ == "__main__":
-    test_delete_folder_with_contents()
+    test_move_and_delete_folder()

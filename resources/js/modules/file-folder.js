@@ -415,8 +415,14 @@ async function handleSelectionDelete() {
 function handleSelectionMove() {
     if (state.selectedItems.size === 0) return;
 
-    // For now, just show a notification - full move functionality would need a multi-item move modal
-    showNotification('Multi-item move functionality coming soon', 'info');
+    // Check selection limit (50 items max)
+    if (state.selectedItems.size > 50) {
+        showNotification('Maximum 50 items can be moved at once', 'error');
+        return;
+    }
+
+    const itemIds = Array.from(state.selectedItems);
+    showMoveModalMulti(itemIds);
 }
 
 /**
@@ -2925,6 +2931,321 @@ export async function loadUserFiles(query = '', page = 1, parentId = null, creat
 }
 
 // Move functionality
+
+/**
+ * Show move modal for multiple items with conflict resolution
+ */
+async function showMoveModalMulti(itemIds) {
+    try {
+        // Fetch details for all selected items
+        const itemsData = await Promise.all(
+            itemIds.map(id => 
+                fetch(`/files/${id}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRF-TOKEN': getCsrfToken()
+                    },
+                    credentials: 'same-origin'
+                }).then(r => r.ok ? r.json() : Promise.reject('Failed to fetch item'))
+                 .then(data => data.data || data)
+                 .catch(() => null)
+            )
+        );
+
+        const validItems = itemsData.filter(item => item !== null);
+        if (validItems.length === 0) {
+            showNotification('Failed to load selected items', 'error');
+            return;
+        }
+
+        // Create modal
+        const modal = document.createElement('div');
+        modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-[10000] flex items-center justify-center p-4';
+        modal.innerHTML = `
+            <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+                <div class="p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-white">Move ${validItems.length} item${validItems.length > 1 ? 's' : ''}</h3>
+                        <button type="button" class="text-gray-400 hover:text-white" id="close-move-modal">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Selected items list -->
+                    <div class="mb-4 bg-[#2A2D47] rounded-lg border border-[#4A4D6A] p-3">
+                        <p class="text-xs text-gray-400 mb-2">Selected items:</p>
+                        <div class="max-h-32 overflow-y-auto">
+                            ${validItems.map((item, idx) => `
+                                <div class="text-sm text-gray-300 py-1 flex items-center gap-2">
+                                    <svg class="w-4 h-4 ${item.is_folder ? 'text-blue-400' : 'text-gray-400'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="${item.is_folder ? 'M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z' : 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z'}"></path>
+                                    </svg>
+                                    <span class="truncate">${escapeHtml(item.file_name)}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <!-- Destination folder selection -->
+                    <div class="mb-4">
+                        <p class="text-sm text-gray-300 mb-3">Select destination folder:</p>
+                        <div class="bg-[#2A2D47] rounded-lg border border-[#4A4D6A] max-h-64 overflow-y-auto" id="folder-list">
+                            <div class="p-3 text-center text-gray-400">Loading folders...</div>
+                        </div>
+                    </div>
+
+                    <!-- Buttons -->
+                    <div class="flex gap-3 justify-end">
+                        <button type="button" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white border border-[#4A4D6A] rounded-lg hover:bg-[#2A2D47] transition-colors" id="cancel-move">
+                            Cancel
+                        </button>
+                        <button type="button" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed" id="confirm-move" disabled>
+                            Move ${validItems.length} item${validItems.length > 1 ? 's' : ''}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        document.body.appendChild(modal);
+
+        // Load folders - pass full item details for multi-item moves
+        await loadFoldersForMove(modal, itemIds, validItems);
+
+        // Event listeners
+        const closeBtn = modal.querySelector('#close-move-modal');
+        const cancelBtn = modal.querySelector('#cancel-move');
+        const confirmBtn = modal.querySelector('#confirm-move');
+
+        const closeModal = () => {
+            modal.remove();
+        };
+
+        closeBtn.addEventListener('click', closeModal);
+        cancelBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) closeModal();
+        });
+
+        confirmBtn.addEventListener('click', async () => {
+            const selectedFolder = modal.querySelector('.folder-item.selected');
+            const destinationId = selectedFolder ? selectedFolder.dataset.folderId : null;
+
+            try {
+                confirmBtn.disabled = true;
+                confirmBtn.textContent = 'Moving...';
+
+                await moveItemsBatch(itemIds, destinationId);
+                closeModal();
+
+                // Refresh current view
+                if (window.loadUserFiles) {
+                    window.loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+                }
+
+                clearSelection();
+                showNotification(`${validItems.length} item${validItems.length > 1 ? 's' : ''} moved successfully`, 'success');
+            } catch (error) {
+                console.error('Batch move failed:', error);
+                
+                // Handle validation errors with conflict resolution
+                if (error.validationErrors && error.validationErrors.length > 0) {
+                    showConflictResolutionModal(error.validationErrors, itemIds, destinationId);
+                } else {
+                    showNotification(error.message || 'Failed to move items', 'error');
+                    confirmBtn.disabled = false;
+                    confirmBtn.textContent = `Move ${validItems.length} item${validItems.length > 1 ? 's' : ''}`;
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Failed to show move modal:', error);
+        showNotification(error.message || 'Failed to open move dialog', 'error');
+    }
+}
+
+/**
+ * Show conflict resolution modal for items with naming conflicts
+ */
+function showConflictResolutionModal(conflicts, allItemIds, destinationId) {
+    const modal = document.createElement('div');
+    modal.className = 'fixed inset-0 bg-black/50 backdrop-blur-sm z-[10001] flex items-center justify-center p-4';
+    
+    const conflictItems = conflicts.filter(c => c.error.includes('conflict'));
+    const otherErrors = conflicts.filter(c => !c.error.includes('conflict'));
+
+    modal.innerHTML = `
+        <div class="bg-[#1F2235] border border-[#4A4D6A] rounded-xl max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div class="p-6">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold text-white">Resolve Conflicts</h3>
+                    <button type="button" class="text-gray-400 hover:text-white" id="close-conflict-modal">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="mb-4 p-3 bg-yellow-900/20 border border-yellow-700/30 rounded-lg">
+                    <p class="text-sm text-yellow-200">
+                        ${conflictItems.length} item${conflictItems.length > 1 ? 's' : ''} with name conflict${conflictItems.length > 1 ? 's' : ''} found.
+                        ${otherErrors.length > 0 ? `<br>${otherErrors.length} item${otherErrors.length > 1 ? 's' : ''} cannot be moved.` : ''}
+                    </p>
+                </div>
+
+                <!-- Conflict items -->
+                <div class="mb-4 max-h-64 overflow-y-auto">
+                    ${conflictItems.map((conflict, idx) => `
+                        <div class="mb-3 p-3 bg-[#2A2D47] rounded-lg border border-[#4A4D6A]">
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-sm text-gray-300"><strong>${escapeHtml(conflict.file_name)}</strong></span>
+                                <span class="text-xs text-yellow-400">Name conflict</span>
+                            </div>
+                            <div class="text-xs text-gray-400 mb-2">Existing: ${escapeHtml(conflict.conflict_item?.file_name || 'Unknown')}</div>
+                            <div class="flex gap-2">
+                                <button class="conflict-skip text-xs px-2 py-1 bg-gray-600 hover:bg-gray-700 text-white rounded transition-colors" data-item-id="${conflict.item_id}">
+                                    Skip
+                                </button>
+                                <button class="conflict-rename text-xs px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors" data-item-id="${conflict.item_id}" data-file-name="${escapeHtml(conflict.file_name)}">
+                                    Rename
+                                </button>
+                                <button class="conflict-replace text-xs px-2 py-1 bg-red-600 hover:bg-red-700 text-white rounded transition-colors" data-item-id="${conflict.item_id}">
+                                    Replace
+                                </button>
+                            </div>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <!-- Other errors -->
+                ${otherErrors.length > 0 ? `
+                    <div class="mb-4 p-3 bg-red-900/20 border border-red-700/30 rounded-lg">
+                        <p class="text-sm text-red-200 mb-2">Items that cannot be moved:</p>
+                        <ul class="text-xs text-red-300">
+                            ${otherErrors.map(err => `<li>• ${escapeHtml(err.file_name || 'Unknown')}: ${err.error}</li>`).join('')}
+                        </ul>
+                    </div>
+                ` : ''}
+
+                <!-- Buttons -->
+                <div class="flex gap-3 justify-end">
+                    <button type="button" class="px-4 py-2 text-sm font-medium text-gray-300 hover:text-white border border-[#4A4D6A] rounded-lg hover:bg-[#2A2D47] transition-colors" id="cancel-conflict">
+                        Cancel
+                    </button>
+                    <button type="button" class="px-4 py-2 text-sm font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors" id="proceed-conflict">
+                        Proceed with Selected Options
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const conflictChoices = {};
+    conflictItems.forEach(c => {
+        conflictChoices[c.item_id] = 'skip'; // default
+    });
+
+    // Event handlers for conflict resolution buttons
+    modal.querySelectorAll('.conflict-skip').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const itemId = btn.dataset.itemId;
+            conflictChoices[itemId] = 'skip';
+            updateConflictButtonStates(modal, conflictChoices);
+        });
+    });
+
+    modal.querySelectorAll('.conflict-rename').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const itemId = btn.dataset.itemId;
+            const fileName = btn.dataset.fileName;
+            const newName = prompt(`Rename "${fileName}" to:`, `${fileName} (1)`);
+            if (newName && newName.trim()) {
+                conflictChoices[itemId] = { action: 'rename', newName: newName.trim() };
+                updateConflictButtonStates(modal, conflictChoices);
+            }
+        });
+    });
+
+    modal.querySelectorAll('.conflict-replace').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            const itemId = btn.dataset.itemId;
+            if (confirm('This will delete the existing file. Are you sure?')) {
+                conflictChoices[itemId] = 'replace';
+                updateConflictButtonStates(modal, conflictChoices);
+            }
+        });
+    });
+
+    // Close handlers
+    const closeModal = () => modal.remove();
+    modal.querySelector('#close-conflict-modal').addEventListener('click', closeModal);
+    modal.querySelector('#cancel-conflict').addEventListener('click', closeModal);
+
+    modal.querySelector('#proceed-conflict').addEventListener('click', async () => {
+        try {
+            modal.querySelector('#proceed-conflict').disabled = true;
+            modal.querySelector('#proceed-conflict').textContent = 'Processing...';
+
+            // For now, just skip conflicted items and move the rest
+            const itemsToMove = allItemIds.filter(id => !conflictChoices[id] || conflictChoices[id] === 'skip');
+            
+            if (itemsToMove.length === 0) {
+                showNotification('No items to move', 'info');
+                closeModal();
+                return;
+            }
+
+            await moveItemsBatch(itemsToMove, destinationId);
+            closeModal();
+
+            if (window.loadUserFiles) {
+                window.loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+            }
+
+            clearSelection();
+            showNotification(`${itemsToMove.length} item${itemsToMove.length > 1 ? 's' : ''} moved successfully`, 'success');
+        } catch (error) {
+            console.error('Conflict resolution move failed:', error);
+            showNotification(error.message || 'Failed to move items', 'error');
+            modal.querySelector('#proceed-conflict').disabled = false;
+            modal.querySelector('#proceed-conflict').textContent = 'Proceed with Selected Options';
+        }
+    });
+}
+
+/**
+ * Update visual state of conflict buttons
+ */
+function updateConflictButtonStates(modal, choices) {
+    Object.entries(choices).forEach(([itemId, choice]) => {
+        const skipBtn = modal.querySelector(`.conflict-skip[data-item-id="${itemId}"]`);
+        const renameBtn = modal.querySelector(`.conflict-rename[data-item-id="${itemId}"]`);
+        const replaceBtn = modal.querySelector(`.conflict-replace[data-item-id="${itemId}"]`);
+
+        [skipBtn, renameBtn, replaceBtn].forEach(btn => {
+            if (btn) btn.classList.remove('ring-2', 'ring-green-500');
+        });
+
+        if (choice === 'skip' && skipBtn) {
+            skipBtn.classList.add('ring-2', 'ring-green-500');
+        } else if (choice === 'replace' && replaceBtn) {
+            replaceBtn.classList.add('ring-2', 'ring-green-500');
+        } else if (typeof choice === 'object' && choice.action === 'rename' && renameBtn) {
+            renameBtn.classList.add('ring-2', 'ring-green-500');
+            renameBtn.textContent = `Rename to "${choice.newName}"`;
+        }
+    });
+}
+
 async function showMoveModal(itemId) {
     try {
         // Get item details first
@@ -2980,8 +3301,8 @@ async function showMoveModal(itemId) {
 
         document.body.appendChild(modal);
 
-        // Load folders
-        await loadFoldersForMove(modal, itemId);
+        // Load folders - pass item details so we can exclude it and its descendants
+        await loadFoldersForMove(modal, itemId, item);
 
         // Event listeners
         const closeBtn = modal.querySelector('#close-move-modal');
@@ -3029,7 +3350,7 @@ async function showMoveModal(itemId) {
     }
 }
 
-async function loadFoldersForMove(modal, itemId) {
+async function loadFoldersForMove(modal, itemIdOrIds, itemDetails = null) {
     const folderList = modal.querySelector('#folder-list');
     
     try {
@@ -3050,36 +3371,302 @@ async function loadFoldersForMove(modal, itemId) {
         const data = await response.json();
         const folders = Array.isArray(data?.data) ? data.data : (Array.isArray(data) ? data : []);
 
-        // Filter out the item being moved if it's a folder
-        const availableFolders = folders.filter(folder => folder.id != itemId);
+        // Handle both single item and multiple items
+        const itemIds = Array.isArray(itemIdOrIds) ? itemIdOrIds : [itemIdOrIds];
+        
+        // Build a set of IDs to exclude (items being moved + their descendants)
+        const excludedIds = new Set();
+        const excludedNames = new Set();
+        
+        // Get item details array (handle both single object and array)
+        let itemDetailsArray = [];
+        if (Array.isArray(itemDetails)) {
+            itemDetailsArray = itemDetails;
+        } else if (itemDetails && itemDetails.id) {
+            itemDetailsArray = [itemDetails];
+        }
+        
+        // Add all items being moved to excluded set (by ID and name)
+        itemDetailsArray.forEach(item => {
+            if (item && item.id) {
+                excludedIds.add(item.id);
+                if (item.file_name) {
+                    excludedNames.add(item.file_name);
+                }
+            }
+        });
+        
+        // Also add by itemIds in case details weren't provided
+        itemIds.forEach(id => excludedIds.add(id));
+        
+        // For each folder being moved, add all its descendants to excluded set
+        const addDescendants = (parentId) => {
+            folders.forEach(folder => {
+                if (folder.parent_id === parentId && !excludedIds.has(folder.id)) {
+                    excludedIds.add(folder.id);
+                    addDescendants(folder.id);
+                }
+            });
+        };
+        
+        // Add descendants for all excluded items
+        excludedIds.forEach(id => {
+            addDescendants(id);
+        });
+        
+        // Filter out excluded folders (by ID or name match)
+        const availableFolders = folders.filter(folder => 
+            !excludedIds.has(folder.id) && !excludedNames.has(folder.file_name)
+        );
 
         folderList.innerHTML = '';
 
+        // Build tree structure: map of parentId -> [children]
+        // Normalize all parent_id values to ensure consistent key types
+        const folderTree = {};
+        availableFolders.forEach(folder => {
+            // Normalize parent_id: null/undefined -> 'null', otherwise use as-is
+            const parentId = folder.parent_id === null || folder.parent_id === undefined ? 'null' : folder.parent_id;
+            // Normalize folder.id for consistency
+            folder._normalizedId = folder.id;
+            
+            if (!folderTree[parentId]) {
+                folderTree[parentId] = [];
+            }
+            folderTree[parentId].push(folder);
+        });
+
+        // Debug: Log tree structure
+        console.log('🌳 [TREE] Available folders:', availableFolders.length);
+        console.log('🌳 [TREE] Folder tree structure:', folderTree);
+        Object.keys(folderTree).forEach(parentId => {
+            console.log(`🌳 [TREE] Parent ${parentId} has ${folderTree[parentId].length} children:`, folderTree[parentId].map(f => f.file_name));
+        });
+
+        // Sort folders by name within each level
+        Object.keys(folderTree).forEach(parentId => {
+            folderTree[parentId].sort((a, b) => 
+                (a.file_name || a.name).localeCompare(b.file_name || b.name)
+            );
+        });
+
         // Add root folder option
         const rootOption = document.createElement('div');
-        rootOption.className = 'folder-item flex items-center p-3 hover:bg-[#3C3F58] cursor-pointer border-b border-[#4A4D6A] last:border-b-0';
+        rootOption.className = 'folder-item flex items-center p-3 hover:bg-[#3C3F58] cursor-pointer border-b border-[#4A4D6A]';
         rootOption.dataset.folderId = 'null';
+        rootOption.style.paddingLeft = '0.75rem';
         rootOption.innerHTML = `
-            <svg class="w-5 h-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-5 h-5 text-blue-400 mr-3 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z"></path>
             </svg>
             <span class="text-gray-200">Root Folder</span>
         `;
         folderList.appendChild(rootOption);
 
-        // Add other folders
-        availableFolders.forEach(folder => {
-            const folderItem = document.createElement('div');
-            folderItem.className = 'folder-item flex items-center p-3 hover:bg-[#3C3F58] cursor-pointer border-b border-[#4A4D6A] last:border-b-0';
-            folderItem.dataset.folderId = folder.id;
-            folderItem.innerHTML = `
-                <svg class="w-5 h-5 text-blue-400 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z"></path>
-                </svg>
-                <span class="text-gray-200">${escapeHtml(folder.file_name || folder.name)}</span>
-            `;
-            folderList.appendChild(folderItem);
-        });
+        // Recursively render folder tree
+        const renderFolderTree = (parentId, depth = 0) => {
+            const children = folderTree[parentId] || [];
+            
+            children.forEach((folder, index) => {
+                // Check if this folder has children by looking it up in the tree
+                let hasChildren = folderTree[folder.id] && folderTree[folder.id].length > 0;
+                const isLast = index === children.length - 1;
+                
+                // Debug: log folder check
+                console.log(`🌳 [TREE] Checking folder "${folder.file_name}" (ID: ${folder.id}), hasChildren: ${hasChildren}, folderTree[${folder.id}]:`, folderTree[folder.id]);
+                
+                // Debug: log if folder should have children but doesn't
+                if (folder.id && !hasChildren && folderTree[folder.id] === undefined) {
+                    // Try to find children with string ID in case of type mismatch
+                    const stringId = String(folder.id);
+                    console.log(`🌳 [TREE] Trying string ID "${stringId}", found:`, folderTree[stringId]);
+                    if (folderTree[stringId] && folderTree[stringId].length > 0) {
+                        // Type mismatch detected, use string ID
+                        console.log(`🌳 [TREE] Type mismatch! Using string ID for folder "${folder.file_name}"`);
+                        folderTree[folder.id] = folderTree[stringId];
+                        hasChildren = true;
+                    }
+                }
+                
+                // Create folder item
+                const folderItem = document.createElement('div');
+                folderItem.className = 'folder-item flex items-center hover:bg-[#3C3F58] cursor-pointer border-b border-[#4A4D6A] group';
+                folderItem.dataset.folderId = folder.id;
+                folderItem.style.paddingLeft = `${0.75 + depth * 1.5}rem`;
+                
+                const paddingClass = isLast ? '' : 'border-l border-[#4A4D6A]';
+                
+                folderItem.innerHTML = `
+                    <div class="flex items-center w-full py-2">
+                        ${hasChildren ? `
+                            <button class="folder-toggle w-5 h-5 mr-1 flex items-center justify-center hover:bg-[#2A2D47] rounded transition-colors flex-shrink-0" data-folder-id="${folder.id}">
+                                <svg class="w-4 h-4 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        ` : `
+                            <div class="w-5 mr-1 flex-shrink-0"></div>
+                        `}
+                        <svg class="w-5 h-5 text-blue-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z"></path>
+                        </svg>
+                        <span class="text-gray-200 truncate">${escapeHtml(folder.file_name || folder.name)}</span>
+                    </div>
+                `;
+                
+                folderList.appendChild(folderItem);
+                
+                // Add toggle handler for expandable folders
+                if (hasChildren) {
+                    const toggleBtn = folderItem.querySelector('.folder-toggle');
+                    toggleBtn.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const isExpanded = toggleBtn.dataset.expanded === 'true';
+                        toggleBtn.dataset.expanded = !isExpanded;
+                        
+                        // Rotate arrow
+                        const svg = toggleBtn.querySelector('svg');
+                        svg.style.transform = isExpanded ? 'rotate(0deg)' : 'rotate(90deg)';
+                        
+                        // Toggle children visibility
+                        const childrenContainer = folderItem.nextElementSibling;
+                        if (childrenContainer && childrenContainer.classList.contains('folder-children')) {
+                            childrenContainer.style.display = isExpanded ? 'none' : 'block';
+                        }
+                    });
+                    
+                    // Create container for children
+                    const childrenContainer = document.createElement('div');
+                    childrenContainer.className = 'folder-children';
+                    childrenContainer.style.display = 'none';
+                    folderList.appendChild(childrenContainer);
+                    
+                    // Temporarily switch context to render children into container
+                    const originalParent = folderList;
+                    const tempParent = childrenContainer;
+                    const oldAppendChild = tempParent.appendChild.bind(tempParent);
+                    
+                    // Render children
+                    const childrenHTML = [];
+                    const renderChildren = (parentId, depth) => {
+                        const children = folderTree[parentId] || [];
+                        children.forEach((child, idx) => {
+                            const hasGrandchildren = folderTree[child.id] && folderTree[child.id].length > 0;
+                            const isLastChild = idx === children.length - 1;
+                            
+                            const childItem = document.createElement('div');
+                            childItem.className = 'folder-item flex items-center hover:bg-[#3C3F58] cursor-pointer border-b border-[#4A4D6A]';
+                            childItem.dataset.folderId = child.id;
+                            childItem.style.paddingLeft = `${0.75 + depth * 1.5}rem`;
+                            
+                            childItem.innerHTML = `
+                                <div class="flex items-center w-full py-2">
+                                    ${hasGrandchildren ? `
+                                        <button class="folder-toggle w-5 h-5 mr-1 flex items-center justify-center hover:bg-[#2A2D47] rounded transition-colors flex-shrink-0" data-folder-id="${child.id}">
+                                            <svg class="w-4 h-4 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                            </svg>
+                                        </button>
+                                    ` : `
+                                        <div class="w-5 mr-1 flex-shrink-0"></div>
+                                    `}
+                                    <svg class="w-5 h-5 text-blue-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z"></path>
+                                    </svg>
+                                    <span class="text-gray-200 truncate">${escapeHtml(child.file_name || child.name)}</span>
+                                </div>
+                            `;
+                            
+                            tempParent.appendChild(childItem);
+                            
+                            // Add toggle for grandchildren
+                            if (hasGrandchildren) {
+                                const toggleBtn = childItem.querySelector('.folder-toggle');
+                                toggleBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    const isExp = toggleBtn.dataset.expanded === 'true';
+                                    toggleBtn.dataset.expanded = !isExp;
+                                    const svg = toggleBtn.querySelector('svg');
+                                    svg.style.transform = isExp ? 'rotate(0deg)' : 'rotate(90deg)';
+                                    
+                                    const nextContainer = childItem.nextElementSibling;
+                                    if (nextContainer && nextContainer.classList.contains('folder-children')) {
+                                        nextContainer.style.display = isExp ? 'none' : 'block';
+                                    }
+                                });
+                                
+                                const grandchildContainer = document.createElement('div');
+                                grandchildContainer.className = 'folder-children';
+                                grandchildContainer.style.display = 'none';
+                                tempParent.appendChild(grandchildContainer);
+                                
+                                // Render grandchildren recursively
+                                renderGrandchildren(child.id, depth + 1, grandchildContainer);
+                            }
+                        });
+                    };
+                    
+                    const renderGrandchildren = (parentId, depth, container) => {
+                        const children = folderTree[parentId] || [];
+                        children.forEach((child, idx) => {
+                            const hasGrandchildren = folderTree[child.id] && folderTree[child.id].length > 0;
+                            
+                            const item = document.createElement('div');
+                            item.className = 'folder-item flex items-center hover:bg-[#3C3F58] cursor-pointer border-b border-[#4A4D6A]';
+                            item.dataset.folderId = child.id;
+                            item.style.paddingLeft = `${0.75 + depth * 1.5}rem`;
+                            
+                            item.innerHTML = `
+                                <div class="flex items-center w-full py-2">
+                                    ${hasGrandchildren ? `
+                                        <button class="folder-toggle w-5 h-5 mr-1 flex items-center justify-center hover:bg-[#2A2D47] rounded transition-colors flex-shrink-0" data-folder-id="${child.id}">
+                                            <svg class="w-4 h-4 text-gray-400 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                            </svg>
+                                        </button>
+                                    ` : `
+                                        <div class="w-5 mr-1 flex-shrink-0"></div>
+                                    `}
+                                    <svg class="w-5 h-5 text-blue-400 mr-2 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-5l-2-2H5a2 2 0 00-2 2z"></path>
+                                    </svg>
+                                    <span class="text-gray-200 truncate">${escapeHtml(child.file_name || child.name)}</span>
+                                </div>
+                            `;
+                            
+                            container.appendChild(item);
+                            
+                            if (hasGrandchildren) {
+                                const toggleBtn = item.querySelector('.folder-toggle');
+                                toggleBtn.addEventListener('click', (e) => {
+                                    e.stopPropagation();
+                                    const isExp = toggleBtn.dataset.expanded === 'true';
+                                    toggleBtn.dataset.expanded = !isExp;
+                                    const svg = toggleBtn.querySelector('svg');
+                                    svg.style.transform = isExp ? 'rotate(0deg)' : 'rotate(90deg)';
+                                    
+                                    const nextCont = item.nextElementSibling;
+                                    if (nextCont && nextCont.classList.contains('folder-children')) {
+                                        nextCont.style.display = isExp ? 'none' : 'block';
+                                    }
+                                });
+                                
+                                const deepContainer = document.createElement('div');
+                                deepContainer.className = 'folder-children';
+                                deepContainer.style.display = 'none';
+                                container.appendChild(deepContainer);
+                                renderGrandchildren(child.id, depth + 1, deepContainer);
+                            }
+                        });
+                    };
+                    
+                    renderChildren(folder.id, depth + 1);
+                }
+            });
+        };
+
+        // Render root level folders
+        renderFolderTree('null', 0);
 
         if (availableFolders.length === 0) {
             const noFolders = document.createElement('div');
@@ -3088,10 +3675,16 @@ async function loadFoldersForMove(modal, itemId) {
             folderList.appendChild(noFolders);
         }
 
-        // Add click handlers for folder selection
+        // Add click handlers for folder selection (event delegation)
         folderList.addEventListener('click', (e) => {
+            // Ensure we're working with an element, not a text node
+            if (e.target.nodeType !== 1) return; // 1 = ELEMENT_NODE
+            
             const folderItem = e.target.closest('.folder-item');
-            if (folderItem) {
+            const isToggleButton = e.target.closest('.folder-toggle');
+            
+            // Only select if clicking on folder item, not on toggle button
+            if (folderItem && !isToggleButton) {
                 // Remove previous selection
                 folderList.querySelectorAll('.folder-item').forEach(item => {
                     item.classList.remove('selected', 'bg-blue-600');
@@ -3134,6 +3727,41 @@ async function moveItem(itemId, destinationId) {
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Failed to move item (${response.status})`);
+    }
+
+    return response.json();
+}
+
+/**
+ * Move multiple items in a batch (transactional)
+ */
+async function moveItemsBatch(itemIds, destinationId) {
+    const response = await fetch('/files/move-batch', {
+        method: 'POST',
+        headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': getCsrfToken()
+        },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+            item_ids: itemIds,
+            parent_id: destinationId === 'null' ? null : parseInt(destinationId)
+        })
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        
+        // If validation errors exist, throw them with details
+        if (errorData.validation_errors) {
+            const error = new Error(errorData.message || 'Validation failed for some items');
+            error.validationErrors = errorData.validation_errors;
+            throw error;
+        }
+        
+        throw new Error(errorData.message || `Failed to move items (${response.status})`);
     }
 
     return response.json();

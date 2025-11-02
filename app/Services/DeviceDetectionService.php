@@ -352,9 +352,10 @@ class DeviceDetectionService
             $riskLevel = SystemActivity::RISK_MEDIUM;
         }
         
+        $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
         $description = $isNewDevice 
-            ? "New device login: {$user->name} logged in from {$deviceInfo['device_type']} ({$deviceInfo['browser']}) in {$locationInfo['city']}, {$locationInfo['country']}"
-            : "Login: {$user->name} logged in from known device";
+            ? "New device login: {$userName} logged in from {$deviceInfo['device_type']} ({$deviceInfo['browser']}) in {$locationInfo['city']}, {$locationInfo['country']}"
+            : "Login: {$userName} logged in from known device";
 
         // Add suspicious flag to description if detected
         if ($isSuspicious) {
@@ -518,9 +519,10 @@ class DeviceDetectionService
             ]);
 
             // Log the logout
+            $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
             SystemActivity::logAuthActivity(
                 SystemActivity::ACTION_LOGOUT,
-                "Session terminated: {$user->name} logged out",
+                "Session terminated: {$userName} logged out",
                 ['session_id' => $sessionId],
                 SystemActivity::RISK_LOW,
                 $user

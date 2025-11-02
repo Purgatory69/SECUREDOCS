@@ -53,7 +53,7 @@
                     <img src="{{ asset('user-shape.png') }}" alt="Profile" class="w-6 h-6 object-contain">
                 </div>
                 <div class="flex-1 min-w-0">
-                    <div class="text-base font-medium mb-1">{{ Str::limit(Auth::user()->name, 20) }}</div>
+                    <div class="text-base font-medium mb-1">{{ Str::limit(trim((Auth::user()->firstname ?? '') . ' ' . (Auth::user()->lastname ?? '')), 20) }}</div>
                     <div style="color: #B6B6B6; font-size: 12px;" class="text-sm text-text-secondary">{{ Str::limit(Auth::user()->email, 25) }}</div>
                 </div>
             </div>
@@ -196,7 +196,7 @@
                 <tbody style="border-top: 1px solid #3C3F58;">
                     @forelse ($users as $user)
                         <tr class="user-table-row" style="border-bottom: 1px solid #3C3F58;">
-                            <td class="px-6 py-4 text-sm" style="color:#ffffff; width:22%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ Str::limit($user->name, 28) }}</td>
+                            <td class="px-6 py-4 text-sm" style="color:#ffffff; width:22%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ Str::limit(trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')), 28) }}</td>
                             <td class="px-6 py-4 text-sm" style="color:#ffffff; width:26%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ Str::limit($user->email, 32) }}</td>
                             <td class="px-6 py-4 text-sm text-center" style="color:#ffffff; width:9%; text-transform:capitalize; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ ucfirst($user->role) }}</td>
                             <td class="px-6 py-4 text-sm text-center" style="width:6.5%; color:#ffffff;">@if($user->is_approved) {{ __('auth.au_yes') }} @else {{ __('auth.au_no') }} @endif</td>
@@ -234,7 +234,7 @@
                                         aria-labelledby="manageAccounts-menu-{{ $user->id }}">
                                         <div class="py-0" role="none">
                                             <!-- Toggle Premium Button -->
-                                            <button onclick="togglePremium({{ $user->id }}, '{{ $user->name }}', {{ $user->is_premium ? 'true' : 'false' }})" 
+                                            <button onclick="togglePremium({{ $user->id }}, '{{ trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')) }}', {{ $user->is_premium ? 'true' : 'false' }})" 
                                                     class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors rounded-t-lg"
                                                     style="border-radius: 8px 8px 0 0;"
                                                     role="menuitem">
@@ -243,7 +243,7 @@
 
                                             <!-- Reset Premium Button (Only show for premium users) -->
                                             @if($user->is_premium)
-                                            <button onclick="resetPremium({{ $user->id }}, '{{ $user->name }}')" 
+                                            <button onclick="resetPremium({{ $user->id }}, '{{ trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')) }}')" 
                                                     class="block w-full text-left px-4 py-2 text-xs text-white hover:bg-[#55597C] transition-colors rounded-none"
                                                     style="border-radius: 0;"
                                                     role="menuitem">
@@ -709,7 +709,12 @@
                     'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.success) {
                     alert(data.message);

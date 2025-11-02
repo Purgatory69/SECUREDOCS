@@ -44,7 +44,7 @@ class FileVersionController extends Controller
                     'time_since_created' => $version->time_since_created,
                     'user' => [
                         'id' => $version->user->id,
-                        'name' => $version->user->name,
+                        'name' => trim(($version->user->firstname ?? '') . ' ' . ($version->user->lastname ?? '')),
                         'email' => $version->user->email,
                     ],
                     'download_url' => $version->getDownloadUrl(),
@@ -86,7 +86,7 @@ class FileVersionController extends Controller
                 'created_at' => $activity->created_at,
                 'user' => [
                     'id' => $activity->user->id,
-                    'name' => $activity->user->name,
+                    'name' => trim(($activity->user->firstname ?? '') . ' ' . ($activity->user->lastname ?? '')),
                     'email' => $activity->user->email,
                 ],
             ];

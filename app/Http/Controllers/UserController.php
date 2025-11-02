@@ -40,7 +40,8 @@ class UserController extends Controller
     public function store(Request $request)
     {
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'firstname' => 'required|string|max:255',
+            'lastname' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8|confirmed',
         ]);
@@ -52,7 +53,8 @@ class UserController extends Controller
         }
 
         $user = User::create([
-            'name' => $request->name,
+            'firstname' => $request->firstname,
+            'lastname' => $request->lastname,
             'email' => $request->email,
             'password' => Hash::make($request->password),
         ]);
@@ -128,7 +130,8 @@ class UserController extends Controller
         $user = User::findOrFail($id);
         
         $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
+            'firstname' => 'required|string|max:255',
+            'lastname' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users,email,'.$id,
             'password' => 'nullable|string|min:8|confirmed',
         ]);
@@ -139,7 +142,8 @@ class UserController extends Controller
                 ->withInput();
         }
 
-        $user->name = $request->name;
+        $user->firstname = $request->firstname;
+        $user->lastname = $request->lastname;
         $user->email = $request->email;
         
         if ($request->filled('password')) {
@@ -191,7 +195,7 @@ class UserController extends Controller
         $user = \App\Models\User::findOrFail($id);
         return response()->json([
             'id' => $user->id,
-            'name' => $user->name,
+            'name' => trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')),
             'email' => $user->email,
             'is_premium' => $user->is_premium,
         ]);

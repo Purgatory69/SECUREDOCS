@@ -366,10 +366,10 @@ class SecurityViolation extends Model
         $array['formatted_description'] = $this->getFormattedDescription();
         $array['risk_score'] = $this->getRiskScore();
         $array['location_string'] = $this->getLocationString();
-        $array['user_name'] = $this->user?->name;
+        $array['user_name'] = $this->user ? trim(($this->user->firstname ?? '') . ' ' . ($this->user->lastname ?? '')) : null;
         $array['file_name'] = $this->file?->file_name;
         $array['policy_name'] = $this->policy?->name;
-        $array['resolved_by_name'] = $this->resolvedBy?->name;
+        $array['resolved_by_name'] = $this->resolvedBy ? trim(($this->resolvedBy->firstname ?? '') . ' ' . ($this->resolvedBy->lastname ?? '')) : null;
         
         return $array;
     }

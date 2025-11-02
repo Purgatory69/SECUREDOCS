@@ -46,7 +46,6 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
      * @var array<int, string>
      */
     protected $fillable = [
-        'name',
         'firstname',
         'lastname',
         'birthday',

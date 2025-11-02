@@ -178,6 +178,7 @@ class SystemActivity extends Model
                 'file_name' => $file->file_name,
                 'file_size' => $file->file_size,
                 'is_folder' => $file->is_folder,
+                'user_name' => trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')),
             ], $metadata),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -211,7 +212,7 @@ class SystemActivity extends Model
             'description' => $description,
             'metadata' => array_merge([
                 'file_name' => $file->file_name,
-                'target_user_name' => $targetUser?->name,
+                'target_user_name' => $targetUser ? trim(($targetUser->firstname ?? '') . ' ' . ($targetUser->lastname ?? '')) : null,
                 'target_user_email' => $targetUser?->email,
             ], $metadata),
             'ip_address' => request()->ip(),
@@ -298,7 +299,7 @@ class SystemActivity extends Model
             'entity_id' => $user->id,
             'description' => $description,
             'metadata' => array_merge([
-                'user_name' => $user->name,
+                'user_name' => trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')),
                 'user_email' => $user->email,
             ], $metadata),
             'ip_address' => request()->ip(),
@@ -333,36 +334,39 @@ class SystemActivity extends Model
     private static function generateFileDescription(string $action, File $file, User $user): string
     {
         $entityType = $file->is_folder ? 'folder' : 'file';
+        $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
         
         return match($action) {
-            self::ACTION_CREATED => "{$user->name} created {$entityType} '{$file->file_name}'",
-            self::ACTION_UPDATED => "{$user->name} updated {$entityType} '{$file->file_name}'",
-            self::ACTION_DELETED => "{$user->name} deleted {$entityType} '{$file->file_name}'",
-            self::ACTION_ACCESSED => "{$user->name} accessed {$entityType} '{$file->file_name}'",
-            self::ACTION_DOWNLOADED => "{$user->name} downloaded {$entityType} '{$file->file_name}'",
-            self::ACTION_UPLOADED => "{$user->name} uploaded {$entityType} '{$file->file_name}'",
-            self::ACTION_RESTORED => "{$user->name} restored {$entityType} '{$file->file_name}' from trash",
-            default => "{$user->name} performed '{$action}' on {$entityType} '{$file->file_name}'",
+            self::ACTION_CREATED => "{$userName} created {$entityType} '{$file->file_name}'",
+            self::ACTION_UPDATED => "{$userName} updated {$entityType} '{$file->file_name}'",
+            self::ACTION_DELETED => "{$userName} deleted {$entityType} '{$file->file_name}'",
+            self::ACTION_ACCESSED => "{$userName} accessed {$entityType} '{$file->file_name}'",
+            self::ACTION_DOWNLOADED => "{$userName} downloaded {$entityType} '{$file->file_name}'",
+            self::ACTION_UPLOADED => "{$userName} uploaded {$entityType} '{$file->file_name}'",
+            self::ACTION_RESTORED => "{$userName} restored {$entityType} '{$file->file_name}' from trash",
+            default => "{$userName} performed '{$action}' on {$entityType} '{$file->file_name}'",
         };
     }
 
     private static function generateSharingDescription(string $action, File $file, User $user, ?User $targetUser): string
     {
         $entityType = $file->is_folder ? 'folder' : 'file';
+        $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
         
         if ($targetUser) {
+            $targetUserName = trim(($targetUser->firstname ?? '') . ' ' . ($targetUser->lastname ?? ''));
             return match($action) {
-                'shared' => "{$user->name} shared {$entityType} '{$file->file_name}' with {$targetUser->name}",
-                'unshared' => "{$user->name} removed sharing of {$entityType} '{$file->file_name}' from {$targetUser->name}",
-                'link_created' => "{$user->name} created a share link for {$entityType} '{$file->file_name}'",
-                'link_removed' => "{$user->name} removed share link for {$entityType} '{$file->file_name}'",
-                default => "{$user->name} performed '{$action}' sharing action on {$entityType} '{$file->file_name}'",
+                'shared' => "{$userName} shared {$entityType} '{$file->file_name}' with {$targetUserName}",
+                'unshared' => "{$userName} removed sharing of {$entityType} '{$file->file_name}' from {$targetUserName}",
+                'link_created' => "{$userName} created a share link for {$entityType} '{$file->file_name}'",
+                'link_removed' => "{$userName} removed share link for {$entityType} '{$file->file_name}'",
+                default => "{$userName} performed '{$action}' sharing action on {$entityType} '{$file->file_name}'",
             };
         } else {
             return match($action) {
-                'link_created' => "{$user->name} created a public share link for {$entityType} '{$file->file_name}'",
-                'link_removed' => "{$user->name} removed public share link for {$entityType} '{$file->file_name}'",
-                default => "{$user->name} performed '{$action}' sharing action on {$entityType} '{$file->file_name}'",
+                'link_created' => "{$userName} created a public share link for {$entityType} '{$file->file_name}'",
+                'link_removed' => "{$userName} removed public share link for {$entityType} '{$file->file_name}'",
+                default => "{$userName} performed '{$action}' sharing action on {$entityType} '{$file->file_name}'",
             };
         }
     }
@@ -387,7 +391,7 @@ class SystemActivity extends Model
 
     private static function generateAuthDescription(string $action, ?User $user): string
     {
-        $userName = $user?->name ?? 'Unknown user';
+        $userName = $user ? trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')) : 'Unknown user';
         
         return match($action) {
             self::ACTION_LOGIN => "{$userName} logged in",

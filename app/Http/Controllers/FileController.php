@@ -106,18 +106,22 @@ class FileController extends Controller
             }
         } else {
             // Apply parent filter robustly when browsing (not searching)
-            if ($request->has('parent_id')) {
-                if ($parentRaw === null || $parentRaw === '' || $parentRaw === 'null') {
-                    $query->whereNull('parent_id');
+            // BUT: Skip parent filter if requesting all folders for move modal
+            if ($request->query('type') !== 'folders') {
+                if ($request->has('parent_id')) {
+                    if ($parentRaw === null || $parentRaw === '' || $parentRaw === 'null') {
+                        $query->whereNull('parent_id');
+                    } else {
+                        $query->where('parent_id', (int) $parentRaw);
+                    }
                 } else {
-                    $query->where('parent_id', (int) $parentRaw);
+                    $query->whereNull('parent_id');
                 }
-            } else {
-                $query->whereNull('parent_id');
             }
         }
 
         // Filter by type if specified (for move modal folder selection)
+        // When type=folders, return ALL folders (including nested ones) for tree building
         if ($request->query('type') === 'folders') {
             $query->where('is_folder', DB::raw('true'));
         }
@@ -2387,6 +2391,14 @@ class FileController extends Controller
             $user = Auth::user();
             $file = $user->files()->findOrFail($id);
 
+            // Validation: Cannot move trashed items
+            if ($file->deleted_at !== null) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cannot move trashed items. Restore the item first.'
+                ], 422);
+            }
+
             $newParentId = $validated['parent_id'];
 
             // Validation: Cannot move a folder into itself or its descendants
@@ -2427,6 +2439,27 @@ class FileController extends Controller
                         'message' => 'Destination folder not found or is not a folder'
                     ], 404);
                 }
+            }
+
+            // Check for name conflicts in destination
+            $conflictingFile = $user->files()
+                ->where('parent_id', $newParentId)
+                ->where('file_name', $file->file_name)
+                ->where('is_folder', DB::raw($file->is_folder ? 'true' : 'false'))
+                ->where('id', '!=', $file->id)
+                ->first();
+
+            if ($conflictingFile) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Name conflict: An item with this name already exists in the destination',
+                    'conflict' => true,
+                    'conflict_item' => [
+                        'id' => $conflictingFile->id,
+                        'file_name' => $conflictingFile->file_name,
+                        'is_folder' => $conflictingFile->is_folder
+                    ]
+                ], 409);
             }
 
             // Update the parent_id
@@ -2474,6 +2507,161 @@ class FileController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Failed to move item'
+            ], 500);
+        }
+    }
+
+    /**
+     * Move multiple files/folders in a batch (transactional)
+     */
+    public function moveBatch(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'item_ids' => 'required|array|min:1|max:50',
+                'item_ids.*' => 'integer|exists:files,id',
+                'parent_id' => 'nullable|integer|exists:files,id'
+            ]);
+
+            $user = Auth::user();
+            $itemIds = $validated['item_ids'];
+            $newParentId = $validated['parent_id'];
+
+            // Validation: If new parent is specified, ensure it exists and belongs to the user
+            if ($newParentId) {
+                $newParent = $user->files()->where('id', $newParentId)->where('is_folder', DB::raw('true'))->first();
+                if (!$newParent) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Destination folder not found or is not a folder'
+                    ], 404);
+                }
+            }
+
+            // Pre-validate all items before moving any
+            $validationErrors = [];
+            $itemsToMove = [];
+
+            foreach ($itemIds as $itemId) {
+                $file = $user->files()->find($itemId);
+
+                if (!$file) {
+                    $validationErrors[] = [
+                        'item_id' => $itemId,
+                        'error' => 'Item not found'
+                    ];
+                    continue;
+                }
+
+                // Check if item is trashed
+                if ($file->deleted_at !== null) {
+                    $validationErrors[] = [
+                        'item_id' => $itemId,
+                        'file_name' => $file->file_name,
+                        'error' => 'Cannot move trashed items'
+                    ];
+                    continue;
+                }
+
+                // Check if folder is being moved into itself or its descendants
+                if ($file->is_folder && $newParentId) {
+                    $newParent = $user->files()->find($newParentId);
+                    if ($newParent->id === $file->id) {
+                        $validationErrors[] = [
+                            'item_id' => $itemId,
+                            'file_name' => $file->file_name,
+                            'error' => 'Cannot move a folder into itself'
+                        ];
+                        continue;
+                    }
+
+                    if ($this->isDescendant($newParent, $file)) {
+                        $validationErrors[] = [
+                            'item_id' => $itemId,
+                            'file_name' => $file->file_name,
+                            'error' => 'Cannot move a folder into its own subfolder'
+                        ];
+                        continue;
+                    }
+                }
+
+                // Check for name conflicts
+                $conflictingFile = $user->files()
+                    ->where('parent_id', $newParentId)
+                    ->where('file_name', $file->file_name)
+                    ->where('is_folder', DB::raw($file->is_folder ? 'true' : 'false'))
+                    ->where('id', '!=', $file->id)
+                    ->first();
+
+                if ($conflictingFile) {
+                    $validationErrors[] = [
+                        'item_id' => $itemId,
+                        'file_name' => $file->file_name,
+                        'error' => 'Name conflict in destination',
+                        'conflict_item' => [
+                            'id' => $conflictingFile->id,
+                            'file_name' => $conflictingFile->file_name
+                        ]
+                    ];
+                    continue;
+                }
+
+                $itemsToMove[] = $file;
+            }
+
+            // If there are validation errors, return them without moving anything (all-or-nothing)
+            if (!empty($validationErrors)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Validation failed for some items. No items were moved.',
+                    'validation_errors' => $validationErrors,
+                    'error_count' => count($validationErrors),
+                    'total_items' => count($itemIds)
+                ], 422);
+            }
+
+            // All items validated, now move them in a transaction
+            DB::transaction(function () use ($itemsToMove, $newParentId, $user) {
+                foreach ($itemsToMove as $file) {
+                    $file->parent_id = $newParentId;
+                    $file->save();
+
+                    Log::info('File moved in batch', [
+                        'file_id' => $file->id,
+                        'file_name' => $file->file_name,
+                        'new_parent_id' => $newParentId,
+                        'user_id' => $user->id
+                    ]);
+                }
+            });
+
+            return response()->json([
+                'success' => true,
+                'message' => count($itemsToMove) . ' item(s) moved successfully',
+                'moved_count' => count($itemsToMove),
+                'data' => array_map(fn ($file) => [
+                    'id' => $file->id,
+                    'file_name' => $file->file_name,
+                    'parent_id' => $file->parent_id
+                ], $itemsToMove)
+            ]);
+
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to move batch', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to move items'
             ], 500);
         }
     }

@@ -123,7 +123,7 @@ export function initializeN8nChat() {
                             img.style.display = isClosed ? 'block' : 'none';
                             svg.style.display = isClosed ? 'none' : 'block';
                             
-                            console.log('Chat display:', computedStyle.display, '| Closed:', isClosed, '| Custom:', img.style.display, '| SVG:', svg.style.display);
+                            // console.log('Chat display:', computedStyle.display, '| Closed:', isClosed, '| Custom:', img.style.display, '| SVG:', svg.style.display);
                         }
                     };
                     

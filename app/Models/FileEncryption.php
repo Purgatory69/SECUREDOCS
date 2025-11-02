@@ -116,7 +116,7 @@ class FileEncryption extends Model
         $auditEntry = [
             'action' => 'decrypted',
             'user_id' => $user->id,
-            'user_name' => $user->name,
+            'user_name' => trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')),
             'timestamp' => now()->toISOString(),
             'ip_address' => request()->ip(),
             'user_agent' => request()->userAgent(),
@@ -258,7 +258,7 @@ class FileEncryption extends Model
             'audit_trail' => [[
                 'action' => 'encrypted',
                 'user_id' => $user->id,
-                'user_name' => $user->name,
+                'user_name' => trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')),
                 'timestamp' => now()->toISOString(),
                 'ip_address' => request()->ip(),
                 'algorithm' => $algorithm,
@@ -303,10 +303,12 @@ class FileEncryption extends Model
 
     private function logKeyRotation(): void
     {
+        $authUser = auth()->user();
+        $userName = $authUser ? trim(($authUser->firstname ?? '') . ' ' . ($authUser->lastname ?? '')) : 'System';
         $auditEntry = [
             'action' => 'key_rotated',
             'user_id' => auth()->id(),
-            'user_name' => auth()->user()?->name ?? 'System',
+            'user_name' => $userName,
             'timestamp' => now()->toISOString(),
             'rotation_count' => $this->key_rotation_count,
             'next_rotation' => $this->next_key_rotation->toISOString(),
@@ -347,8 +349,8 @@ class FileEncryption extends Model
         $array['needs_key_rotation'] = $this->needsKeyRotation();
         $array['is_high_security'] = $this->isHighSecurity();
         $array['recent_audit_entries'] = $this->getRecentAuditEntries(5);
-        $array['encrypted_by_name'] = $this->encryptedBy?->name;
-        $array['last_decrypted_by_name'] = $this->lastDecryptedBy?->name;
+        $array['encrypted_by_name'] = $this->encryptedBy ? trim(($this->encryptedBy->firstname ?? '') . ' ' . ($this->encryptedBy->lastname ?? '')) : null;
+        $array['last_decrypted_by_name'] = $this->lastDecryptedBy ? trim(($this->lastDecryptedBy->firstname ?? '') . ' ' . ($this->lastDecryptedBy->lastname ?? '')) : null;
         $array['file_name'] = $this->file?->file_name;
         
         return $array;

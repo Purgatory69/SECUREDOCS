@@ -103,7 +103,7 @@
                         </div>
                         <div>
                             <h1 class="text-lg font-semibold">{{ $file->file_name }}</h1>
-                            <p class="text-gray-300 text-sm">shared by "{{ $share->user->name }}"</p>
+                            <p class="text-gray-300 text-sm">shared by "{{ trim(($share->user->firstname ?? '') . ' ' . ($share->user->lastname ?? '')) }}"</p>
                         </div>
                     </div>
                     <div class="flex items-center space-x-2">

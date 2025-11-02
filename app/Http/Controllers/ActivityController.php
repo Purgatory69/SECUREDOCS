@@ -302,6 +302,9 @@ class ActivityController extends Controller
                 ->get();
 
             $exportData = $activities->map(function ($activity) use ($request) {
+                $targetUserName = $activity->targetUser 
+                    ? trim(($activity->targetUser->firstname ?? '') . ' ' . ($activity->targetUser->lastname ?? ''))
+                    : null;
                 $data = [
                     'timestamp' => $activity->created_at->toISOString(),
                     'activity_type' => $activity->activity_type,
@@ -309,7 +312,7 @@ class ActivityController extends Controller
                     'description' => $activity->description,
                     'entity_type' => $activity->entity_type,
                     'file_name' => $activity->file?->file_name,
-                    'target_user' => $activity->targetUser?->name,
+                    'target_user' => $targetUserName,
                     'risk_level' => $activity->risk_level,
                     'ip_address' => $activity->ip_address,
                 ];

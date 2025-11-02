@@ -172,9 +172,10 @@ class UserSessionController extends Controller
         }
 
         // Log this security action
+        $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
         SystemActivity::logAuthActivity(
             'sessions_terminated',
-            "All other sessions terminated by {$user->name}",
+            "All other sessions terminated by {$userName}",
             ['terminated_count' => $terminatedCount],
             SystemActivity::RISK_MEDIUM,
             $user
@@ -208,9 +209,10 @@ class UserSessionController extends Controller
         $session->update(['trusted_device' => true]);
 
         // Log this action
+        $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
         SystemActivity::logAuthActivity(
             'device_trusted',
-            "Device marked as trusted by {$user->name}",
+            "Device marked as trusted by {$userName}",
             [
                 'session_id' => $sessionId,
                 'device_type' => $session->device_type,
@@ -303,9 +305,10 @@ class UserSessionController extends Controller
             ]);
 
             // Log preference changes
+            $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
             SystemActivity::logAuthActivity(
                 'notification_preferences_updated',
-                "Notification preferences updated by {$user->name}",
+                "Notification preferences updated by {$userName}",
                 $validated,
                 SystemActivity::RISK_LOW,
                 $user

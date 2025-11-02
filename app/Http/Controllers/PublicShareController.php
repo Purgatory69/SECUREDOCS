@@ -208,9 +208,10 @@ class PublicShareController extends Controller
             }
 
             // Log activity
+            $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
             $activityMessage = $existingShare 
-                ? "{$user->name} accessed existing share link for " . ($file->is_folder ? 'folder' : 'file') . " '{$file->file_name}'"
-                : "{$user->name} created a public share link for " . ($file->is_folder ? 'folder' : 'file') . " '{$file->file_name}'";
+                ? "{$userName} accessed existing share link for " . ($file->is_folder ? 'folder' : 'file') . " '{$file->file_name}'"
+                : "{$userName} created a public share link for " . ($file->is_folder ? 'folder' : 'file') . " '{$file->file_name}";
                 
             SystemActivity::logFileActivity(
                 SystemActivity::ACTION_SHARED,
@@ -782,12 +783,14 @@ class PublicShareController extends Controller
             SharedFileCopy::createCopy($share, $user, $copiedFile);
 
             // Log activity
+            $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
+            $ownerName = trim(($share->user->firstname ?? '') . ' ' . ($share->user->lastname ?? ''));
             SystemActivity::logFileActivity(
                 SystemActivity::ACTION_COPIED,
                 $copiedFile,
-                "{$user->name} saved shared " . ($originalFile->is_folder ? 'folder' : 'file') . " '{$originalFile->file_name}' to their account",
+                "{$userName} saved shared " . ($originalFile->is_folder ? 'folder' : 'file') . " '{$originalFile->file_name}' to their account",
                 [
-                    'original_owner' => $share->user->name,
+                    'original_owner' => $ownerName,
                     'share_token' => $share->share_token,
                     'copied_from_public_share' => true
                 ],
@@ -951,7 +954,7 @@ class PublicShareController extends Controller
                         'share_token' => $sharedFile->originalShare->share_token,
                         'user' => [
                             'id' => $sharedFile->originalShare->user->id,
-                            'name' => $sharedFile->originalShare->user->name,
+                            'name' => trim(($sharedFile->originalShare->user->firstname ?? '') . ' ' . ($sharedFile->originalShare->user->lastname ?? '')),
                         ]
                     ],
                     'copied_file' => [

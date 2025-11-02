@@ -25,12 +25,23 @@ class AdminController extends Controller
         if ($q !== '') {
             $needle = mb_strtolower($q);
             $query->where(function ($qq) use ($needle) {
-                $qq->whereRaw('LOWER(name) LIKE ?', ["%{$needle}%"]) 
+                // Search by full name using firstname + lastname
+                $qq->whereRaw("LOWER(TRIM(COALESCE(firstname,'') || ' ' || COALESCE(lastname,''))) LIKE ?", ["%{$needle}%"]) 
                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$needle}%"]);
             });
         }
 
-        $users = $query->orderBy('created_at', 'desc')
+        $users = $query->select([
+                'id',
+                'firstname',
+                'lastname',
+                'email',
+                'created_at',
+                'is_premium',
+                'is_approved',
+                'role',
+            ])
+            ->orderBy('created_at', 'desc')
             ->paginate(15)
             ->withQueryString();
 
@@ -39,8 +50,16 @@ class AdminController extends Controller
         $premiumUsers = User::whereRaw('is_premium IS TRUE')->count();
         $standardUsers = $totalUsers - $premiumUsers;
 
-        // Recent signups
-        $recentUsers = User::orderBy('created_at', 'desc')->take(10)->get(['id','name','email','created_at','is_premium']);
+        // Recent signups (provide computed name alias for views)
+        $recentUsers = User::orderBy('created_at', 'desc')
+            ->take(10)
+            ->select([
+                'id',
+                DB::raw("NULLIF(TRIM(COALESCE(firstname,'') || ' ' || COALESCE(lastname,'')), '') AS name"),
+                'email',
+                'created_at',
+                'is_premium',
+            ])->get();
 
         // Line chart data: daily new users over last 30 days (total, premium, standard)
         $days = 30;
@@ -96,7 +115,7 @@ class AdminController extends Controller
         if ($q !== '') {
             $needle = mb_strtolower($q);
             $query->where(function ($qq) use ($needle) {
-                $qq->whereRaw('LOWER(name) LIKE ?', ["%{$needle}%"]) 
+                $qq->whereRaw("LOWER(TRIM(COALESCE(firstname,'') || ' ' || COALESCE(lastname,''))) LIKE ?", ["%{$needle}%"]) 
                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$needle}%"]);
             });
         }
@@ -329,7 +348,7 @@ class AdminController extends Controller
         if ($q !== '') {
             $needle = mb_strtolower($q);
             $query->where(function ($qq) use ($needle) {
-                $qq->whereRaw('LOWER(name) LIKE ?', ["%{$needle}%"]) 
+                $qq->whereRaw("LOWER(TRIM(COALESCE(firstname,'') || ' ' || COALESCE(lastname,''))) LIKE ?", ["%{$needle}%"]) 
                    ->orWhereRaw('LOWER(email) LIKE ?', ["%{$needle}%"]);
             });
         }
@@ -515,9 +534,13 @@ class AdminController extends Controller
     {
         $user = User::findOrFail($userId);
         
-        // Remove premium status
-        $user->is_premium = false;
-        $user->save();
+        // Remove premium status using DB::raw for PostgreSQL boolean compatibility
+        DB::table('users')
+            ->where('id', $user->id)
+            ->update([
+                'is_premium' => DB::raw('false'),
+                'updated_at' => now()
+            ]);
         
         // Delete all subscriptions and payments for this user
         $user->payments()->delete();

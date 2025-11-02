@@ -83,7 +83,8 @@ def test_open_folder():
         time.sleep(1)
 
         # Click the "Open" button
-        open_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Open']")))
+        time.sleep(1) # allow time for toolbar to appear
+        open_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='selectionToolbar']//button[.//span[text()='Open']]")))
         open_button.click()
         time.sleep(3) # Wait for folder contents to load
 

@@ -74,36 +74,33 @@ function applyPremiumUX() {
 }
 
 function showUploadModal() {
-    console.log('🔵 [UPLOAD] showUploadModal called');
+    // console.log('🔵 [UPLOAD] showUploadModal called');
     
     // Close the "New" dropdown when opening upload modal
     const newDropdown = document.getElementById('newDropdown');
     if (newDropdown) {
         newDropdown.classList.add('opacity-0', 'invisible', 'translate-y-[-10px]', 'scale-95');
         newDropdown.classList.remove('opacity-100', 'visible', 'translate-y-0', 'scale-100');
-        console.log('🔵 [UPLOAD] Closed new dropdown');
+        // console.log('🔵 [UPLOAD] Closed new dropdown');
     }
     
     // Clean up any leftover duplicate resolution modals
     const existingDuplicateModal = document.getElementById('duplicateResolutionModal');
     if (existingDuplicateModal) {
         existingDuplicateModal.remove();
-        console.log('🔵 [UPLOAD] Removed existing duplicate modal');
+         console.log('🔵 [UPLOAD] Removed existing duplicate modal');
     }
     
     const uploadModal = document.getElementById('uploadModal');
-    if (!uploadModal) {
-        console.error('❌ [UPLOAD] Upload modal element not found!');
-        return;
-    }
+
     
-    console.log('🔵 [UPLOAD] Modal element found, current classes:', uploadModal.className);
-    console.log('🔵 [UPLOAD] Modal has hidden class:', uploadModal.classList.contains('hidden'));
+    // console.log('🔵 [UPLOAD] Modal element found, current classes:', uploadModal.className);
+    // console.log('🔵 [UPLOAD] Modal has hidden class:', uploadModal.classList.contains('hidden'));
     
     uploadModal.classList.remove('hidden');
     
-    console.log('🔵 [UPLOAD] After removing hidden, classes:', uploadModal.className);
-    console.log('🔵 [UPLOAD] Modal display style:', window.getComputedStyle(uploadModal).display);
+    // console.log('🔵 [UPLOAD] After removing hidden, classes:', uploadModal.className);
+    // console.log('🔵 [UPLOAD] Modal display style:', window.getComputedStyle(uploadModal).display);
     
     // Ensure upload button is properly reset when modal opens
     const uploadBtn = document.getElementById('uploadBtn');
@@ -112,7 +109,7 @@ function showUploadModal() {
     // If there's already a file selected, enable the button
     if (fileInput && fileInput.files && fileInput.files.length > 0) {
         if (uploadBtn) uploadBtn.disabled = false;
-        console.log('🔵 [UPLOAD] Upload button enabled (files already selected)');
+         console.log('🔵 [UPLOAD] Upload button enabled (files already selected)');
     } else {
         // No file selected, keep button disabled
         if (uploadBtn) uploadBtn.disabled = true;
@@ -123,7 +120,7 @@ function showUploadModal() {
 }
 
 function hideUploadModal() {
-    console.log('🔴 [UPLOAD] hideUploadModal called');
+    // console.log('🔴 [UPLOAD] hideUploadModal called');
     const uploadModal = document.getElementById('uploadModal');
     if (!uploadModal) {
         console.error('❌ [UPLOAD] Upload modal element not found in hideUploadModal!');
