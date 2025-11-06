@@ -314,6 +314,38 @@ async function performWebAuthnLogin(email) {
     }
 }
 
+// Check if user has registered WebAuthn credentials
+async function checkUserCredentials(email) {
+    try {
+        const response = await fetch('/webauthn/check-credentials', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email })
+        });
+        
+        const result = await response.json();
+        
+        if (!result.success && !result.has_credentials) {
+            // User has no registered credentials
+            const registerUrl = result.register_url || '/webauthn/register';
+            const message = result.message || 'No biometric login method found.';
+            alert(message + '\n\nClick OK to register a biometric login method.');
+            window.location.href = registerUrl;
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        console.error('Error checking credentials:', error);
+        // Continue with login attempt anyway
+        return true;
+    }
+}
+
 // Form submission handler
 document.getElementById('webauthnLoginForm').addEventListener('submit', async function(e) {
     e.preventDefault();
@@ -329,8 +361,19 @@ document.getElementById('webauthnLoginForm').addEventListener('submit', async fu
     
     // Disable button and show loading
     button.disabled = true;
-    buttonText.textContent = 'Preparing...';
+    buttonText.textContent = 'Checking credentials...';
     
+    // Check if user has registered credentials
+    const hasCredentials = await checkUserCredentials(email);
+    
+    if (!hasCredentials) {
+        // User was redirected to registration
+        button.disabled = false;
+        buttonText.textContent = 'LOGIN WITH SECURITY KEY';
+        return;
+    }
+    
+    buttonText.textContent = 'Preparing...';
     await performWebAuthnLogin(email);
 });
 

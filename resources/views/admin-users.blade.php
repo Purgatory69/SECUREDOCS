@@ -347,12 +347,6 @@
     [id^="manageAccounts-dropdown-"] button:hover {background-color: #55597C !important; width: 100% !important;}
 </style>
 
-<!--
-        PLS PLS PLS AWAY NI IMALHIN SA LAING JS.
-        IT'S WORKING AS INTENDED. I AINT FIXING IT AGAIN.
-        FOR THE LOVE OF GOD PLS DON'T CHANGE IT. MALUOY INTAWN.
-        IT TAKES ME FOREVERRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRRR
-    -->
 <script>
     // =========================================================================
     // Smart Clear Button Logic

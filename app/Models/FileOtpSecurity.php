@@ -27,6 +27,8 @@ class FileOtpSecurity extends Model
         'total_access_count',
         'require_otp_for_download',
         'require_otp_for_preview',
+        'require_otp_for_arweave_upload',
+        'require_otp_for_ai_share',
         'otp_valid_duration_minutes',
     ];
 
@@ -34,6 +36,8 @@ class FileOtpSecurity extends Model
         'is_otp_enabled' => 'boolean',
         'require_otp_for_download' => 'boolean',
         'require_otp_for_preview' => 'boolean',
+        'require_otp_for_arweave_upload' => 'boolean',
+        'require_otp_for_ai_share' => 'boolean',
         'otp_attempts' => 'integer',
         'max_otp_attempts' => 'integer',
         'total_access_count' => 'integer',
@@ -131,6 +135,8 @@ class FileOtpSecurity extends Model
         return match($action) {
             'download' => $this->require_otp_for_download,
             'preview' => $this->require_otp_for_preview,
+            'arweave_upload' => $this->require_otp_for_arweave_upload,
+            'ai_share' => $this->require_otp_for_ai_share,
             default => true
         };
     }

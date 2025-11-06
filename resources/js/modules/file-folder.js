@@ -1317,7 +1317,7 @@ export function hideTrashBanner() {
     }
 }
 
-function showActionsMenu(button, itemId) {
+async function showActionsMenu(button, itemId) {
     // Close any existing menus first
     closeAllActionsMenus();
 
@@ -1348,7 +1348,11 @@ function showActionsMenu(button, itemId) {
     const isVectorized = asBool(itemData?.is_vectorized) && itemData?.vectorized_at != null;
     const isDeleted = !!itemData?.deleted_at;
     
-    console.debug('[actions-menu] open', { itemId, inTrashView, isVectorized, isBlockchainStored, isFolder, isDeleted });
+    // Get OTP status from item data (already available from file list)
+    // Check both is_confidential (file-folder.js) and has_otp_protection (search.js) for compatibility
+    const isOtpEnabled = asBool(itemData?.is_confidential) || asBool(itemData?.has_otp_protection);
+    
+    console.debug('[actions-menu] open', { itemId, inTrashView, isVectorized, isBlockchainStored, isFolder, isDeleted, isOtpEnabled });
     
     if (inTrashView) {
         menu.innerHTML = `
@@ -1410,16 +1414,18 @@ function showActionsMenu(button, itemId) {
             </button>
         `;
 
-        // Add Share option (for both files and folders)
-        menuItems += `
-            <div class="border-t border-[#4A4D6A] my-1"></div>
-            <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-indigo-400 hover:bg-[#2A2D47] hover:text-indigo-300 flex items-center" data-action="share" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Share publicly" data-tooltip="Share publicly">
-                <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                </svg>
-                Share
-            </button>
-        `;
+        // Add Share option (for both files and folders, but not if OTP is enabled on files)
+        if (!isOtpEnabled || isFolder) {
+            menuItems += `
+                <div class="border-t border-[#4A4D6A] my-1"></div>
+                <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-indigo-400 hover:bg-[#2A2D47] hover:text-indigo-300 flex items-center" data-action="share" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Share publicly" data-tooltip="Share publicly">
+                    <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                    </svg>
+                    Share
+                </button>
+            `;
+        }
 
         // Add OTP Security option for files (not folders)
         if (!isFolder) {
@@ -1486,8 +1492,8 @@ function showActionsMenu(button, itemId) {
                         Remove from Blockchain
                     </button>
                 `;
-            } else if (!inBlockchainView && !isBlockchainStored) {
-                // In main view and file is not on blockchain - add upload to Arweave option
+            } else if (!inBlockchainView && !isBlockchainStored && !isOtpEnabled) {
+                // In main view and file is not on blockchain and OTP is not enabled - add upload to Arweave option
                 menuItems += `
                     <div class="border-t border-[#4A4D6A] my-1"></div>
                     <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-purple-400 hover:bg-[#2A2D47] hover:text-purple-300 flex items-center" data-action="upload-to-arweave" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Upload to Arweave permanently" data-tooltip="Upload to Arweave permanently">
@@ -1504,17 +1510,20 @@ function showActionsMenu(button, itemId) {
         if (!isFolder && window.userIsPremium) {
             if (isVectorized) {
                 console.debug('[DEBUG] Adding vector remove button for item:', itemId, { isVectorized, isFolder });
-                menuItems += `
-                    <div class="border-t border-[#4A4D6A] my-1"></div>
-                    <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-[#2A2D47] hover:text-red-300 flex items-center" data-action="remove-from-vector" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from AI vector database" data-tooltip="Remove from AI vector database">
-                        <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
-                        </svg>
-                        Remove from AI Vector DB
-                    </button>
-                `;
-            } else {
+                if (!isOtpEnabled || isFolder){
+                    menuItems += `
+                        <div class="border-t border-[#4A4D6A] my-1"></div>
+                        <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-[#2A2D47] hover:text-red-300 flex items-center" data-action="remove-from-vector" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Remove from AI vector database" data-tooltip="Remove from AI vector database">
+                            <svg class="w-4 h-4 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" />
+                            </svg>
+                            Remove from AI Vector DB
+                        </button>
+                    `;
+                }
+            } else if (!isOtpEnabled) {
                 console.debug('[DEBUG] Adding vector add button for item:', itemId, { isVectorized, isFolder });
+                
                 menuItems += `
                     <div class="border-t border-[#4A4D6A] my-1"></div>
                     <button class="actions-menu-item w-full text-left px-4 py-2 text-sm text-green-400 hover:bg-[#2A2D47] hover:text-green-300 flex items-center" data-action="add-to-vector" data-item-id="${itemId}" role="menuitem" tabindex="-1" title="Add to AI vector database" data-tooltip="Add to AI vector database">
@@ -1575,6 +1584,7 @@ function showActionsMenu(button, itemId) {
         menu.innerHTML = menuItems;
     }
     
+
     // Async: check processing status to decide whether to show "Restore vectors"
     (async () => {
         try {
@@ -1672,8 +1682,18 @@ function showActionsMenu(button, itemId) {
     // DIAGNOSTIC: Add temporary global click logger
     const globalClickLogger = (e) => {
         const rect = e.target.getBoundingClientRect();
+        // Safely get className - handle SVG elements and other edge cases
+        let classNameStr = '';
+        if (e.target.className) {
+            if (typeof e.target.className === 'string') {
+                classNameStr = e.target.className.split(' ').join('.');
+            } else if (e.target.className.baseVal) {
+                // SVG element with animated class
+                classNameStr = e.target.className.baseVal.split(' ').join('.');
+            }
+        }
         console.debug('[DIAGNOSTIC] Global click received:', {
-            target: e.target.tagName + (e.target.className ? '.' + e.target.className.split(' ').join('.') : ''),
+            target: e.target.tagName + (classNameStr ? '.' + classNameStr : ''),
             action: e.target.dataset?.action,
             position: { x: rect.x, y: rect.y, w: rect.width, h: rect.height },
             clickX: e.clientX,
@@ -1884,6 +1904,14 @@ function showActionsMenu(button, itemId) {
         const directUploadArweave = (ev) => {
             ev.preventDefault();
             ev.stopPropagation();
+            
+            // Check if button is disabled (OTP protected) - check both disabled attribute and class
+            if (uploadToArweaveBtn.disabled || uploadToArweaveBtn.classList.contains('opacity-50')) {
+                showNotification('🔐 This file has OTP protection enabled. Cannot upload OTP-protected files to Arweave.', 'error');
+                cleanup();
+                return;
+            }
+            
             const id = uploadToArweaveBtn.dataset.itemId;
             console.log('🚀 Upload to Arweave clicked for file:', id);
             
@@ -2050,6 +2078,14 @@ function showActionsMenu(button, itemId) {
             ev.preventDefault();
             ev.stopPropagation();
             ev.stopImmediatePropagation?.();
+            
+            // Check if button is disabled (OTP protected) - check both disabled attribute and class
+            if (addVectorBtn.disabled || addVectorBtn.classList.contains('opacity-50')) {
+                showNotification('🔐 This file has OTP protection enabled. Cannot share OTP-protected files with AI.', 'error');
+                cleanup();
+                return;
+            }
+            
             const id = addVectorBtn.dataset.itemId;
             console.debug('[DEBUG] Directly calling addToVectorDatabase for itemId:', id);
             
@@ -2600,7 +2636,6 @@ async function removeFromVectorDatabase(itemId) {
 
 async function addToVectorDatabase(itemId) {
     try {
-        
         const csrfToken = getCsrfToken();
         const url = `/files/${itemId}/add-to-vector`;
         
@@ -4312,61 +4347,162 @@ async function verifyOtpForAccess(fileId, accessType, modal) {
 }
 
 /**
- * Load file content and open Arweave modal with pre-populated file
+ * Load file for Arweave upload with preflight validation and cost calculation
  */
 async function loadFileForArweaveUpload(fileId) {
     try {
-        console.log('📁 Loading file for Arweave upload:', fileId);
+        console.log('🚀 Starting Arweave upload process for file:', fileId);
         
         // Show loading notification
-        showNotification('Loading file for Arweave upload...', 'info');
+        showNotification('Validating file for Arweave upload...', 'info');
         
-        // Fetch file details and content
-        const response = await fetch(`/files/${fileId}/download`, {
-            method: 'GET',
+        // Step 1: Run preflight validation
+        console.log('📋 Running preflight validation...');
+        console.log('📍 Request URL: /arweave-upload/preflight-validation');
+        console.log('📍 File ID:', fileId);
+        console.log('📍 CSRF Token:', getCsrfToken() ? '✅ Present' : '❌ Missing');
+        
+        const validationResponse = await fetch('/arweave-upload/preflight-validation', {
+            method: 'POST',
             headers: {
-                'Accept': 'application/octet-stream',
-                'X-Requested-With': 'XMLHttpRequest',
-                'X-CSRF-TOKEN': getCsrfToken()
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': getCsrfToken(),
+                'X-Requested-With': 'XMLHttpRequest'
             },
-            credentials: 'same-origin'
+            credentials: 'same-origin',
+            body: JSON.stringify({ file_id: fileId })
         });
 
-        if (!response.ok) {
-            throw new Error(`Failed to load file: ${response.status} ${response.statusText}`);
+        console.log('📊 Response Status:', validationResponse.status, validationResponse.statusText);
+        console.log('📊 Response Headers:', {
+            'content-type': validationResponse.headers.get('content-type'),
+            'x-request-id': validationResponse.headers.get('x-request-id')
+        });
+
+        if (!validationResponse.ok) {
+            let errorData = {};
+            try {
+                errorData = await validationResponse.json();
+            } catch (e) {
+                console.error('❌ Failed to parse error response:', e);
+                errorData = { message: `HTTP ${validationResponse.status}: ${validationResponse.statusText}` };
+            }
+            
+            console.error('❌ Validation response not OK:', {
+                status: validationResponse.status,
+                statusText: validationResponse.statusText,
+                errorData: errorData
+            });
+            
+            throw new Error(errorData.message || `Validation failed (HTTP ${validationResponse.status})`);
         }
 
-        // Get file info from response headers
-        const contentDisposition = response.headers.get('Content-Disposition');
-        const fileName = contentDisposition 
-            ? contentDisposition.split('filename=')[1]?.replace(/"/g, '') 
-            : `file_${fileId}`;
-        
-        const contentType = response.headers.get('Content-Type') || 'application/octet-stream';
-        const fileBlob = await response.blob();
-        
-        console.log('✅ File loaded:', fileName, 'Type:', contentType, 'Size:', fileBlob.size);
+        const validationData = await validationResponse.json();
 
-        // Create a File object from the blob
-        const file = new File([fileBlob], fileName, { type: contentType });
+        if (!validationData.success) {
+            const errors = validationData.validation?.errors || ['Validation failed'];
+            console.error('❌ Validation returned success: false', errors);
+            throw new Error(errors[0] || 'File validation failed');
+        }
+
+        console.log('✅ Preflight validation passed:', validationData);
+
+        // Step 2: Check balance and show cost estimate
+        const uploadCost = validationData.upload_cost;
+        console.log('💰 Upload cost:', uploadCost);
+
+        // Check if Bundlr is initialized
+        if (!window.isWalletReady || !window.isWalletReady()) {
+            showNotification('⚠️ Please initialize Bundlr wallet first using the "B" button in navigation', 'warning');
+            return;
+        }
+
+        // Get current balance
+        const currentBalance = window.getCurrentBalance();
+        console.log('💳 Current Bundlr balance:', currentBalance, 'MATIC');
+
+        // Check if balance is sufficient
+        if (currentBalance < uploadCost.matic) {
+            const shortfall = (uploadCost.matic - currentBalance).toFixed(6);
+            showNotification(
+                `❌ Insufficient balance. Need ${uploadCost.matic.toFixed(6)} MATIC but have ${currentBalance.toFixed(6)} MATIC. Short by ${shortfall} MATIC.`,
+                'error'
+            );
+            return;
+        }
+
+        console.log('✅ Sufficient balance for upload');
+
+        // Step 3: Open modal with pre-populated data
+        console.log('🎯 Opening Arweave modal...');
         
-        // Open Arweave modal
         if (typeof window.openClientArweaveModal === 'function') {
+            // Store the file ID and validation data for the modal
+            window.arweaveUploadContext = {
+                fileId: fileId,
+                fileName: validationData.validation.file_info.name,
+                fileSize: validationData.validation.file_info.size,
+                fileSizeHuman: validationData.validation.file_info.size_human,
+                uploadCost: uploadCost,
+                validationData: validationData
+            };
+
+            console.log('📦 Stored upload context:', window.arweaveUploadContext);
+
+            // Open the modal
             window.openClientArweaveModal();
             
-            // Wait a bit for modal to initialize, then pre-populate the file
+            // Update modal with file info
             setTimeout(() => {
-                prePopulateArweaveModal(file);
-            }, 500);
+                updateArweaveModalWithFileInfo(window.arweaveUploadContext);
+            }, 300);
         } else {
             throw new Error('Arweave modal is not available');
         }
         
-        showNotification(`File "${fileName}" loaded for Arweave upload`, 'success');
+        showNotification(`✅ File ready for upload (${uploadCost.formatted})`, 'success');
         
     } catch (error) {
-        console.error('❌ Failed to load file for Arweave upload:', error);
-        showNotification('Failed to load file: ' + error.message, 'error');
+        console.error('❌ Failed to prepare Arweave upload:', error);
+        showNotification('Error: ' + error.message, 'error');
+    }
+}
+
+/**
+ * Update Arweave modal with file information
+ */
+function updateArweaveModalWithFileInfo(context) {
+    try {
+        console.log('🔄 Updating modal with file info:', context);
+        
+        // Update file name display
+        const fileNameEl = document.getElementById('selectedFileInfo');
+        if (fileNameEl) {
+            fileNameEl.textContent = `${context.fileName} (${context.fileSizeHuman})`;
+        }
+
+        // Update upload cost display
+        const costEl = document.getElementById('uploadCostDisplay');
+        if (costEl) {
+            costEl.textContent = context.uploadCost.formatted;
+        }
+
+        // Update file name in upload step
+        const uploadFileNameEl = document.getElementById('uploadFileName');
+        if (uploadFileNameEl) {
+            uploadFileNameEl.textContent = context.fileName;
+        }
+
+        // Update upload cost in final step
+        const uploadCostFinalEl = document.getElementById('uploadCostFinal');
+        if (uploadCostFinalEl) {
+            uploadCostFinalEl.textContent = context.uploadCost.formatted;
+        }
+
+        console.log('✅ Modal updated with file info');
+        
+    } catch (error) {
+        console.error('❌ Failed to update modal:', error);
     }
 }
 

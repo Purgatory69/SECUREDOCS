@@ -131,6 +131,58 @@ class WebAuthnController extends Controller
     }
 
     /**
+     * Check if a user has registered WebAuthn credentials before attempting login.
+     * This helps provide better error messages if no credentials are registered.
+     */
+    public function checkCredentials(Request $request)
+    {
+        try {
+            $email = $request->validate(['email' => 'required|email|string'])['email'];
+            
+            // Find user by email
+            $user = User::where('email', $email)->first();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'has_credentials' => false,
+                    'message' => 'User not found'
+                ], 404);
+            }
+            
+            // Check if user has WebAuthn credentials
+            $credentialCount = $user->webAuthnCredentials()->count();
+            
+            if ($credentialCount === 0) {
+                return response()->json([
+                    'success' => false,
+                    'has_credentials' => false,
+                    'message' => 'No biometric login method found. Please register a biometric login method first.',
+                    'register_url' => url('/webauthn/register')
+                ], 200);
+            }
+            
+            return response()->json([
+                'success' => true,
+                'has_credentials' => true,
+                'credential_count' => $credentialCount,
+                'message' => 'User has registered biometric credentials'
+            ], 200);
+            
+        } catch (\Exception $e) {
+            Log::error('WebAuthn credential check error', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'success' => false,
+                'message' => 'Error checking credentials: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Verify the login assertion and log the user in.
      */
     public function loginVerify(AssertedRequest $request)

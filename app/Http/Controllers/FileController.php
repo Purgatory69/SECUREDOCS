@@ -1248,8 +1248,8 @@ class FileController extends Controller
                 'source' => 'manual_add_to_vector'
             ]);
 
-            // Send to N8N webhook
-            $response = Http::timeout(30)->post($n8nWebhookUrl, $payload);
+            // Send to N8N webhook (disable SSL verification for self-signed certificates)
+            $response = Http::timeout(30)->withoutVerifying()->post($n8nWebhookUrl, $payload);
 
             if ($response->successful()) {
                 Log::info('N8n vectorization webhook call successful', [
@@ -1718,8 +1718,8 @@ class FileController extends Controller
                 'timestamp' => now()->toISOString()
             ]);
 
-            // Make direct HTTP call to n8n webhook
-            $response = Http::timeout(30)->post($n8nWebhookUrl, $payload);
+            // Make direct HTTP call to n8n webhook (disable SSL verification for self-signed certificates)
+            $response = Http::timeout(30)->withoutVerifying()->post($n8nWebhookUrl, $payload);
 
             if ($response->successful()) {
                 // Mark file as vectorized

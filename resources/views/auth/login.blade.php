@@ -118,7 +118,11 @@
         @endif
         @endif
 
-        <x-validation-errors class="mb-4" />
+        @if (session('approval_pending'))
+            <x-approval-notification />
+        @else
+            <x-validation-errors class="mb-4" />
+        @endif
 
         @session('status')
         <div class="mb-4 font-medium text-sm text-green-600 text-center">
@@ -182,7 +186,6 @@
         </p>
     </footer>
 
-    <script src="{{ asset('vendor/webauthn/webauthn.js') }}" defer></script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
     <script>
@@ -206,24 +209,15 @@
             }
         });
 
-        // Biometric Login
+        // Biometric Login Button Handler - Redirect to WebAuthn login page
         document.addEventListener('DOMContentLoaded', function() {
-            const emailInput = document.getElementById('email');
             const biometricButton = document.getElementById('biometric-login-button');
             const statusDisplay = document.getElementById('biometric-login-status');
 
             if (biometricButton) {
-                biometricButton.addEventListener('click', async function() {
-                    if (!emailInput.value.trim()) {
-                        statusDisplay.textContent = 'Please enter your email address first.';
-                        return;
-                    }
-
-                    if (window.handleBiometricLogin) {
-                        window.handleBiometricLogin(emailInput.value, biometricButton, statusDisplay);
-                    } else {
-                        statusDisplay.textContent = 'Biometric login script not loaded correctly.';
-                    }
+                biometricButton.addEventListener('click', function() {
+                    // Redirect to dedicated WebAuthn login page
+                    window.location.href = '{{ route("webauthn.login") }}';
                 });
             }
         });

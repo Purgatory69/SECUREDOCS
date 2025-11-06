@@ -1,7 +1,8 @@
 <?php
 
 use App\Http\Controllers\ArweaveController;
-use App\Http\Controllers\PermanentStorageController;
+use App\Http\Controllers\ArweaveUploadController;
+
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -13,18 +14,29 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware(['auth', 'verified'])->prefix('permanent-storage')->group(function () {
+
+
+// Arweave Upload Routes (Client-side Bundlr integration)
+// Middleware is applied by the parent group in web.php, but we apply it explicitly here for clarity
+Route::middleware(['auth:sanctum', config('jetstream.auth_session'), 'verified'])->prefix('arweave-upload')->group(function () {
     
-    // L2 Bundling Service Routes (Primary)
-    Route::get('/files/{file}/quote', [PermanentStorageController::class, 'getPricingQuote'])->name('permanent.quote');
-    Route::post('/files/{file}/purchase', [PermanentStorageController::class, 'purchasePermanentStorage'])->name('permanent.purchase');
-    Route::get('/pricing-tiers', [PermanentStorageController::class, 'getPricingTiers'])->name('permanent.pricing');
-    Route::get('/history', [PermanentStorageController::class, 'getPermanentStorageHistory'])->name('permanent.history');
+    // Preflight validation before upload
+    Route::post('/preflight-validation', [ArweaveUploadController::class, 'preflightValidation'])->name('arweave.upload.preflight');
+    
+    // Upload existing file to Arweave
+    Route::post('/upload-existing', [ArweaveUploadController::class, 'uploadExistingFile'])->name('arweave.upload.existing');
+    
+    // Get user's Arweave uploads
+    Route::get('/uploads', [ArweaveUploadController::class, 'getUserUploads'])->name('arweave.uploads');
+    
+    // Get upload statistics
+    Route::get('/stats', [ArweaveUploadController::class, 'getUploadStats'])->name('arweave.upload.stats');
     
 });
 
 // Legacy Arweave routes (for advanced users who want direct wallet management)
-Route::middleware(['auth', 'verified'])->prefix('arweave')->group(function () {
+// Note: Middleware is already applied by the parent group in web.php
+Route::prefix('arweave')->group(function () {
     
     // Get Arweave URLs (for blockchain tab display)
     Route::get('/urls', function () {

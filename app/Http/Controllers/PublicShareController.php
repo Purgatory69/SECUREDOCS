@@ -175,9 +175,6 @@ class PublicShareController extends Controller
                     ];
                     
                     // Only include fields that were actually updated
-                    if (array_key_exists('is_one_time', $updatesMade)) {
-                        $updateData['is_one_time'] = $share->is_one_time;
-                    }
                     
                     if (array_key_exists('expires_at', $updatesMade)) {
                         $updateData['expires_at'] = $share->expires_at;

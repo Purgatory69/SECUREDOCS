@@ -116,7 +116,7 @@ function showUploadModal() {
         console.log('🔵 [UPLOAD] Upload button disabled (no files selected)');
     }
     
-    console.log('✅ [UPLOAD] Modal should now be visible');
+    // console.log('✅ [UPLOAD] Modal should now be visible');
 }
 
 function hideUploadModal() {

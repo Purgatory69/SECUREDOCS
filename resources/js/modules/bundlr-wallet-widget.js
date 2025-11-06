@@ -309,14 +309,30 @@ function getSelectedFundAmount() {
     const amountSelect = document.getElementById('fundAmountSelect');
     const customInput = document.getElementById('customAmountInput');
     
-    if (amountSelect.value === 'custom') {
+    if (!amountSelect) {
+        throw new Error('Fund amount select element not found');
+    }
+    
+    const selectedValue = amountSelect.value;
+    console.log('📊 Selected fund amount value:', selectedValue);
+    
+    if (selectedValue === 'custom') {
+        if (!customInput) {
+            throw new Error('Custom amount input not found');
+        }
         const customAmount = parseFloat(customInput.value);
-        if (!customAmount || customAmount < 0.001 || customAmount > 100) {
+        console.log('📊 Custom amount parsed:', customAmount);
+        if (!customAmount || isNaN(customAmount) || customAmount < 0.001 || customAmount > 100) {
             throw new Error('Custom amount must be between 0.001 and 100 MATIC');
         }
         return customAmount;
     } else {
-        return parseFloat(amountSelect.value);
+        const amount = parseFloat(selectedValue);
+        console.log('📊 Preset amount parsed:', amount, 'from value:', selectedValue);
+        if (isNaN(amount) || amount <= 0) {
+            throw new Error('Please enter a valid amount');
+        }
+        return amount;
     }
 }
 

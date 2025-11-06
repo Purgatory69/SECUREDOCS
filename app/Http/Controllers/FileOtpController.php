@@ -31,6 +31,8 @@ class FileOtpController extends Controller
                 'file_id' => 'required|integer',
                 'require_otp_for_download' => 'boolean',
                 'require_otp_for_preview' => 'boolean',
+                'require_otp_for_arweave_upload' => 'boolean',
+                'require_otp_for_ai_share' => 'boolean',
                 'otp_valid_duration_minutes' => 'integer|min:5|max:60'
             ]);
 
@@ -97,6 +99,8 @@ class FileOtpController extends Controller
                 'settings' => [
                     'require_otp_for_download' => $request->get('require_otp_for_download', true),
                     'require_otp_for_preview' => $request->get('require_otp_for_preview', false),
+                    'require_otp_for_arweave_upload' => $request->get('require_otp_for_arweave_upload', false),
+                    'require_otp_for_ai_share' => $request->get('require_otp_for_ai_share', false),
                     'otp_valid_duration_minutes' => $request->get('otp_valid_duration_minutes', 10),
                 ]
             ]);
@@ -111,6 +115,8 @@ class FileOtpController extends Controller
                     'is_otp_enabled' => DB::raw('true'),
                     'require_otp_for_download' => $request->get('require_otp_for_download', true) ? DB::raw('true') : DB::raw('false'),
                     'require_otp_for_preview' => $request->get('require_otp_for_preview', false) ? DB::raw('true') : DB::raw('false'),
+                    'require_otp_for_arweave_upload' => $request->get('require_otp_for_arweave_upload', false) ? DB::raw('true') : DB::raw('false'),
+                    'require_otp_for_ai_share' => $request->get('require_otp_for_ai_share', false) ? DB::raw('true') : DB::raw('false'),
                     'otp_valid_duration_minutes' => $request->get('otp_valid_duration_minutes', 10),
                     'max_otp_attempts' => 3
                 ]
@@ -129,6 +135,8 @@ class FileOtpController extends Controller
                     'is_otp_enabled' => $otpSecurity->is_otp_enabled,
                     'require_otp_for_download' => $otpSecurity->require_otp_for_download,
                     'require_otp_for_preview' => $otpSecurity->require_otp_for_preview,
+                    'require_otp_for_arweave_upload' => $otpSecurity->require_otp_for_arweave_upload,
+                    'require_otp_for_ai_share' => $otpSecurity->require_otp_for_ai_share,
                     'otp_valid_duration_minutes' => $otpSecurity->otp_valid_duration_minutes,
                 ]
             ]);
@@ -386,6 +394,89 @@ class FileOtpController extends Controller
     }
 
     /**
+     * Check if OTP is required for a specific file action
+     */
+    public function checkAccess(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'file_id' => 'required|integer',
+                'action' => 'required|string|in:download,preview,arweave_upload,ai_share'
+            ]);
+
+            $user = Auth::user();
+            $fileId = $request->integer('file_id');
+            $action = $request->string('action')->value();
+
+            // Find the OTP security record for this file
+            $otpSecurity = FileOtpSecurity::where('user_id', $user->id)
+                ->where('file_id', $fileId)
+                ->first();
+
+            // If no OTP security record exists, OTP is not required
+            if (!$otpSecurity || !$otpSecurity->is_otp_enabled) {
+                return response()->json([
+                    'success' => true,
+                    'requires_otp' => false,
+                    'otp_verified' => false,
+                    'message' => 'OTP not required for this file'
+                ]);
+            }
+
+            // Check if OTP is required for this specific action
+            $isOtpRequired = $otpSecurity->isOtpRequiredFor($action);
+
+            if (!$isOtpRequired) {
+                return response()->json([
+                    'success' => true,
+                    'requires_otp' => false,
+                    'otp_verified' => false,
+                    'message' => "OTP not required for {$action}"
+                ]);
+            }
+
+            // Check if OTP has been verified in this session
+            $sessionKey = "otp_verified_file_{$fileId}";
+            $otpVerifiedTime = session($sessionKey);
+
+            if ($otpVerifiedTime) {
+                $verifiedAt = \Carbon\Carbon::parse($otpVerifiedTime);
+                $expiresAt = $verifiedAt->addMinutes($otpSecurity->otp_valid_duration_minutes);
+
+                if (now()->isBefore($expiresAt)) {
+                    // OTP is still valid
+                    return response()->json([
+                        'success' => true,
+                        'requires_otp' => true,
+                        'otp_verified' => true,
+                        'expires_at' => $expiresAt->toISOString(),
+                        'message' => 'OTP already verified'
+                    ]);
+                }
+            }
+
+            // OTP is required but not verified
+            return response()->json([
+                'success' => true,
+                'requires_otp' => true,
+                'otp_verified' => false,
+                'message' => "OTP verification required for {$action}"
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to check OTP access', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to check OTP access'
+            ], 500);
+        }
+    }
+
+    /**
      * Get OTP status for a file
      */
     public function getOtpStatus(Request $request): JsonResponse
@@ -420,6 +511,8 @@ class FileOtpController extends Controller
                 'otp_enabled' => $otpSecurity->is_otp_enabled,
                 'require_otp_for_download' => $otpSecurity->require_otp_for_download,
                 'require_otp_for_preview' => $otpSecurity->require_otp_for_preview,
+                'require_otp_for_arweave_upload' => $otpSecurity->require_otp_for_arweave_upload,
+                'require_otp_for_ai_share' => $otpSecurity->require_otp_for_ai_share,
                 'otp_valid_duration_minutes' => $otpSecurity->otp_valid_duration_minutes,
                 'total_access_count' => $otpSecurity->total_access_count,
                 'last_successful_access_at' => $otpSecurity->last_successful_access_at?->toISOString(),

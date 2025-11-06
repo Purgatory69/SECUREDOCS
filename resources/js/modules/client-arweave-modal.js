@@ -201,9 +201,39 @@ export function openClientArweaveModal() {
         console.log('🎨 Modal display set to:', modal.style.display);
         console.log('🎨 Modal classes:', modal.className);
         
-        // Reset to initial state
-        showStep('fileSelection');
-        resetModalState();
+        // Check if we have pre-populated context from preflight validation
+        if (window.arweaveUploadContext) {
+            console.log('📦 Found pre-populated upload context:', window.arweaveUploadContext);
+            
+            // Set currentFile to a marker object (file already validated by backend)
+            currentFile = {
+                name: window.arweaveUploadContext.fileName,
+                size: window.arweaveUploadContext.fileSize,
+                isPreValidated: true
+            };
+            
+            uploadCost = window.arweaveUploadContext.uploadCost.matic;
+            
+            console.log('✅ File pre-loaded from context:', currentFile.name);
+            
+            // Update UI with file info
+            updateFileInfo(`${currentFile.name} (${formatFileSize(currentFile.size)})`);
+            updateUploadCost(uploadCost.toFixed(6));
+            
+            // Show the continue button
+            const continueBtn = document.getElementById('continueFromFileSelection');
+            if (continueBtn) {
+                continueBtn.classList.remove('hidden');
+            }
+            
+            // Skip to wallet connection step
+            showStep('walletConnection');
+        } else {
+            // No pre-populated context, reset to file selection
+            console.log('⚠️ No pre-populated context, starting from file selection');
+            resetModalState();
+            showStep('fileSelection');
+        }
         
         // Load live balance if Bundlr is ready
         loadLiveBalance();
@@ -402,8 +432,11 @@ async function handleFundBundlr() {
  * Handle upload to Arweave using wallet widget  
  */
 async function handleUploadToArweave() {
-    if (!currentFile) {
-        showError('Please select a file first');
+    // Get context from file-folder.js
+    const context = window.arweaveUploadContext;
+    
+    if (!context || !context.fileId) {
+        showError('No file selected for upload');
         return;
     }
 
@@ -414,18 +447,20 @@ async function handleUploadToArweave() {
     }
 
     try {
-        console.log('🚀 Starting Arweave upload using wallet widget...', currentFile.name);
+        console.log('🚀 Starting Arweave upload for file:', context.fileId);
 
         // Show loading on upload button
-        showLoading('uploadToArweaveBtn', 'Uploading...');
+        showLoading('uploadToArweaveBtn', 'Uploading to Arweave...');
         
-        // Check balance
+        // Check balance one more time
         const balance = window.getCurrentBalance();
-        const uploadCost = 0.005; // Estimated cost in MATIC
+        const uploadCostMatic = context.uploadCost.matic;
         
-        if (balance < uploadCost) {
-            throw new Error(`Insufficient Bundlr balance (${balance.toFixed(6)} MATIC). Please fund your account using the wallet widget.`);
+        if (balance < uploadCostMatic) {
+            throw new Error(`Insufficient Bundlr balance (${balance.toFixed(6)} MATIC). Need ${uploadCostMatic.toFixed(6)} MATIC.`);
         }
+        
+        console.log('💳 Balance check passed. Uploading file to Arweave...');
         
         // Upload using wallet widget
         const result = await window.uploadFileWithBundlr(currentFile);
@@ -434,26 +469,46 @@ async function handleUploadToArweave() {
             throw new Error(result.error || 'Upload failed');
         }
         
-        // Create simple upload data for saving (non-encrypted)
-        const uploadData = {
-            arweave_url: result.url,
-            file_name: currentFile.name,
-            is_encrypted: false, // Non-encrypted upload
-            transaction_id: result.transactionId || null,
-            file_size_bytes: currentFile.size,
-            mime_type: currentFile.type,
-            upload_cost_matic: uploadCost
-        };
+        console.log('✅ File uploaded to Arweave:', result.url);
+        console.log('📝 Saving upload record to database...');
         
-        // Save to database (optional)
-        await saveUploadRecord(uploadData);
+        // Save upload record to backend
+        const saveResponse = await fetch('/arweave-upload/upload-existing', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                file_id: context.fileId,
+                arweave_url: result.url,
+                transaction_id: result.transactionId || null,
+                upload_cost_matic: uploadCostMatic
+            })
+        });
+
+        if (!saveResponse.ok) {
+            const errorData = await saveResponse.json();
+            throw new Error(errorData.message || 'Failed to save upload record');
+        }
+
+        const saveResult = await saveResponse.json();
+        
+        if (!saveResult.success) {
+            throw new Error(saveResult.message || 'Failed to save upload record');
+        }
+
+        console.log('✅ Upload record saved:', saveResult);
         
         // Show success step with URL
-        showUploadSuccess(result.url, result.remainingBalance);
+        const remainingBalance = balance - uploadCostMatic;
+        showUploadSuccess(result.url, remainingBalance);
         
-        console.log('✅ Upload completed successfully via wallet widget');
+        console.log('✅ Upload completed successfully!');
         console.log('🔗 Arweave URL:', result.url);
-        console.log('💰 Remaining balance:', result.remainingBalance, 'MATIC');
+        console.log('💰 Remaining balance:', remainingBalance.toFixed(6), 'MATIC');
         
     } catch (error) {
         console.error('❌ Upload failed:', error);

@@ -28,6 +28,8 @@ def test_move_folder():
         driver.find_element(By.XPATH, "//button[text()='LOGIN']").click()
         WebDriverWait(driver, 10).until(EC.url_contains("/dashboard"))
 
+        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.XPATH, "//div[text()='Loading files...']")))
+
         # --- Create Folder A ---
         folder_a_name = f"FolderA_{int(time.time())}"
         create_folder(driver, folder_a_name)
@@ -37,6 +39,8 @@ def test_move_folder():
         folder_b_name = f"FolderB_{int(time.time())}"
         create_folder(driver, folder_b_name)
         print(f"Folder '{folder_b_name}' created successfully.")
+
+        time.sleep(5)
 
         # --- Move Folder B into Folder A ---
         # Select Folder B
@@ -54,8 +58,9 @@ def test_move_folder():
         destination_folder.click()
         time.sleep(1)
 
+        time.sleep(2)
         # Click the "Move Here" button
-        move_here_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Move Here']")))
+        move_here_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[contains(., 'Move Here')]")))
         move_here_button.click()
         time.sleep(3)
         print(f"Folder '{folder_b_name}' moved into '{folder_a_name}'.")
@@ -83,6 +88,24 @@ def create_folder(driver, folder_name):
             print("Dismissed an unexpected overlay.")
     except:
         pass # No overlay found or clickable, proceed
+
+    # Check for and dismiss any overlay that might be intercepting clicks
+    attempts = 0
+    while attempts < 3:
+        try:
+            overlay = WebDriverWait(driver, 2).until(
+                EC.presence_of_element_located((By.XPATH, "//div[contains(@class, 'fixed inset-0 transition-opacity') and contains(@style, 'opacity: 0.8')]"))
+            )
+            if overlay.is_displayed():
+                driver.execute_script("arguments[0].click();", overlay)
+                WebDriverWait(driver, 5).until(
+                    EC.invisibility_of_element_located((By.XPATH, "//div[contains(@class, 'fixed inset-0 transition-opacity') and contains(@style, 'opacity: 0.8')]"))
+                )
+                print("Dismissed an unexpected overlay.")
+                break
+        except:
+            break # No overlay found
+        attempts += 1
 
     # Click the "Add" button to show the dropdown
     add_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='newBtn']")))

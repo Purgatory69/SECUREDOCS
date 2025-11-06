@@ -51,10 +51,11 @@ class CheckUserApproved
 
             $this->request->session()->regenerateToken();
 
-            // Redirect to login with an error message
-            // Using a general error key that Laravel's default login view might pick up,
-            // or you can customize your login view to display this specific session error.
-            abort(redirect('/login')->withErrors(['email' => 'Your account is pending approval from an administrator. Please wait or contact support.']));
+            // Create user-friendly informational message
+            $message = 'Welcome! Your account has been created successfully and is currently pending approval from our administrators. You will receive access once your account is approved. If you have any questions or need assistance, please contact our support team.';
+
+            // Redirect to login with informational flash message
+            abort(redirect('/login')->with('approval_pending', $message));
         }
     }
 }

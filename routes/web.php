@@ -9,11 +9,9 @@ use App\Livewire\Dashboard;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\SearchController;
 use App\Http\Controllers\FileVersionController;
-use App\Http\Controllers\BlockchainTestController;
 use App\Http\Controllers\BlockchainController;
 use App\Http\Controllers\WebAuthnController;
 use App\Http\Controllers\AdminController;
-use App\Http\Controllers\PermanentStorageController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\SchemaController;
 use App\Http\Controllers\TestArweaveController;
@@ -52,6 +50,7 @@ Route::get('/webauthn/login', function () {
 })->name('webauthn.login');
 Route::post('/webauthn/login/options', [WebAuthnController::class, 'loginOptions'])->name('webauthn.login.options');
 Route::post('/webauthn/login/verify', [WebAuthnController::class, 'loginVerify'])->name('webauthn.login.verify');
+Route::post('/webauthn/check-credentials', [WebAuthnController::class, 'checkCredentials'])->name('webauthn.check-credentials');
 
 // Blockchain Storage Test Routes (Development Only - No Auth Required)
 Route::prefix('blockchain-test')->group(function () {
@@ -158,18 +157,9 @@ Route::middleware([
         Route::post('/unpin-by-hash', [BlockchainController::class, 'unpinByHash'])->name('unpin.hash');
     });
 
-    // Arweave payment routes (authenticated)
-    Route::prefix('arweave')->group(function () {
-        Route::post('/pricing', [App\Http\Controllers\ArweavePaymentController::class, 'getUploadPricing'])->name('arweave.pricing');
-        Route::post('/payment', [App\Http\Controllers\ArweavePaymentController::class, 'processPayment'])->name('arweave.payment');
-        Route::get('/payments', [App\Http\Controllers\ArweavePaymentController::class, 'getPaymentHistory'])->name('arweave.payments');
-        Route::get('/payment/{paymentId}', [App\Http\Controllers\ArweavePaymentController::class, 'getPaymentDetails'])->name('arweave.payment.details');
-        Route::post('/verify-transaction', [App\Http\Controllers\ArweavePaymentController::class, 'verifyTransaction'])->name('arweave.verify');
-    });
     Route::post('/upload-existing', [BlockchainController::class, 'uploadExistingFile'])->name('upload.existing');
     Route::post('/preflight-validation', [BlockchainController::class, 'preflightValidation'])->name('preflight');
     Route::delete('/unpin/{file}', [BlockchainController::class, 'unpinFile'])->name('unpin.file');
-    Route::post('/unpin-by-hash', [BlockchainController::class, 'unpinByHash'])->name('unpin.hash');
 
     // Include Arweave routes
     require __DIR__.'/arweave_routes.php';
@@ -187,6 +177,7 @@ Route::middleware([
     // File OTP Security routes
     Route::prefix('file-otp')->group(function () {
         Route::get('/check-access', [App\Http\Controllers\FileOtpController::class, 'checkOtpAccess'])->name('file-otp.check-access');
+        Route::post('/check-access', [App\Http\Controllers\FileOtpController::class, 'checkAccess'])->name('file-otp.check-access.post');
         Route::post('/enable', [App\Http\Controllers\FileOtpController::class, 'enableOtp'])->name('file-otp.enable');
         Route::post('/disable', [App\Http\Controllers\FileOtpController::class, 'disableOtp'])->name('file-otp.disable');
         Route::post('/send', [App\Http\Controllers\FileOtpController::class, 'sendOtp'])->name('file-otp.send');
@@ -470,10 +461,13 @@ Route::middleware([
     Route::prefix('premium')->group(function () {
         Route::get('/upgrade', [App\Http\Controllers\PaymentController::class, 'showUpgrade'])->name('premium.upgrade');
         Route::post('/create-payment-intent', [App\Http\Controllers\PaymentController::class, 'createPaymentIntent'])->name('premium.create-payment-intent');
-        Route::get('/success', [App\Http\Controllers\PaymentController::class, 'success'])->name('premium.success');
-        Route::get('/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])->name('premium.cancel');
+        Route::get('/success', [App\Http\Controllers\PaymentController::class, 'success'])
+        ->middleware('payment.verify')
+        ->name('premium.success');
+        Route::get('/cancel', [App\Http\Controllers\PaymentController::class, 'cancel'])
+        ->middleware('payment.verify')
+        ->name('premium.cancel');
         Route::get('/payment-history', [App\Http\Controllers\PaymentController::class, 'paymentHistory'])->name('premium.payment-history');
-        
     });
     
     // PayMongo webhook (no auth/CSRF required - external service)
