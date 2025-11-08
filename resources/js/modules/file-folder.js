@@ -442,20 +442,29 @@ function handleSelectionRename() {
 async function handleSelectionRestore() {
     if (state.selectedItems.size === 0) return;
 
-    const confirmed = confirm(`Restore ${state.selectedItems.size} item${state.selectedItems.size > 1 ? 's' : ''}?`);
+    const container = document.getElementById('filesContainer');
+    const inTrashView = container?.dataset.view === 'trash';
+    const isInsideDeletedFolder = inTrashView && state.currentParentId !== null;
+
+    // Show appropriate confirmation message
+    let confirmMessage = `Restore ${state.selectedItems.size} item${state.selectedItems.size > 1 ? 's' : ''}?`;
+    if (isInsideDeletedFolder) {
+        confirmMessage += '\n\nThese items will be restored to the root because their parent folder is deleted.';
+    }
+
+    const confirmed = confirm(confirmMessage);
     if (!confirmed) return;
 
     try {
-        const promises = Array.from(state.selectedItems).map(itemId => restoreItem(itemId));
+        // Pass skipDialog=true to avoid showing dialog for each item
+        const promises = Array.from(state.selectedItems).map(itemId => restoreItem(itemId, true));
         await Promise.all(promises);
 
         showNotification('Items restored successfully', 'success');
         clearSelection();
 
-        const container = document.getElementById('filesContainer');
-        const inTrashView = container?.dataset.view === 'trash';
         if (inTrashView) {
-            await loadTrashItems();
+            await loadTrashItemsInFolder(state.currentParentId);
         } else {
             await loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
         }
@@ -767,27 +776,101 @@ export async function loadTrashItems() {
         const data = await response.json().catch(() => null);
 
         // Support both legacy array response and { success, data } shape
-        let items = [];
+        let allItems = [];
         if (Array.isArray(data)) {
-            items = data;
+            allItems = data;
         } else if (data && Array.isArray(data.data)) {
-            items = data.data;
+            allItems = data.data;
         } else if (data && data.success && Array.isArray(data.data)) {
-            items = data.data;
+            allItems = data.data;
         } else if (data && data.items && Array.isArray(data.items)) {
-            items = data.items;
+            allItems = data.items;
         }
 
+        // Filter to only root-level items (parent_id = null) for trash root view
+        const items = allItems.filter(item => item.parent_id === null || item.parent_id === undefined);
+
+        // Reset breadcrumbs for trash root
+        state.breadcrumbs = [];
+        state.currentParentId = null;
+        
         // Add trash banner at the top if there are items
         renderTrashBanner(items.length);
         
-        // Render using the common files renderer; folder navigation is disabled in Trash via dataset.view
+        // Update breadcrumbs display for trash root
+        updateBreadcrumbsDisplay([], 'trash');
+        
+        // Render using the common files renderer
         renderFiles(items);
     } catch (error) {
         console.error('Error loading trash items:', error);
         itemsContainer.innerHTML = `
             <div class="p-4 text-center text-text-secondary col-span-full">
                 <p class="mb-2">Error loading trash. Please try again.</p>
+                <p class="text-xs text-red-500">${escapeHtml(error.message || '')}</p>
+            </div>
+        `;
+    }
+}
+
+/**
+ * Load trash items filtered by parent folder (for navigation inside deleted folders)
+ */
+async function loadTrashItemsInFolder(parentId) {
+    const itemsContainer = document.getElementById('filesContainer');
+    if (!itemsContainer) {
+        console.error('Items container not found');
+        return;
+    }
+
+    // Treat null/undefined parent as trash root and delegate to loadTrashItems()
+    if (parentId === null || parentId === undefined || parentId === 'null') {
+        state.currentParentId = null;
+        state.breadcrumbs = [];
+        await loadTrashItems();
+        return;
+    }
+
+    try {
+        itemsContainer.dataset.view = 'trash';
+        itemsContainer.innerHTML = '<div class="flex justify-center items-center py-8"><div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div></div>';
+
+        const response = await fetch('/files/trash', {
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+        if (!response.ok) throw new Error('Failed to fetch trash items');
+
+        const data = await response.json().catch(() => null);
+
+        // Support both legacy array response and { success, data } shape
+        let allItems = [];
+        if (Array.isArray(data)) {
+            allItems = data;
+        } else if (data && Array.isArray(data.data)) {
+            allItems = data.data;
+        } else if (data && data.success && Array.isArray(data.data)) {
+            allItems = data.data;
+        } else if (data && data.items && Array.isArray(data.items)) {
+            allItems = data.items;
+        }
+
+        // Filter items by parent_id
+        const items = allItems.filter(item => item.parent_id == parentId);
+
+        // Don't show trash banner when inside a folder
+        renderFiles(items);
+
+        // Ensure breadcrumbs reflect current trash path
+        updateBreadcrumbsDisplay(state.breadcrumbs, 'trash');
+    } catch (error) {
+        console.error('Error loading trash items in folder:', error);
+        itemsContainer.innerHTML = `
+            <div class="p-4 text-center text-text-secondary col-span-full">
+                <p class="mb-2">Error loading trash items. Please try again.</p>
                 <p class="text-xs text-red-500">${escapeHtml(error.message || '')}</p>
             </div>
         `;
@@ -899,6 +982,19 @@ async function handleEmptyTrash() {
 
 
 function navigateToFolder(folderId, folderName) {
+    const container = document.getElementById('filesContainer');
+    const inTrashView = container?.dataset.view === 'trash';
+
+    // Special handling for trash root navigation
+    if (inTrashView && (folderId === 'trash' || folderId === null || folderId === 'null')) {
+        state.currentParentId = null;
+        state.breadcrumbs = [];
+        updateBreadcrumbsDisplay([], 'trash');
+        clearSelection();
+        loadTrashItems();
+        return;
+    }
+
     const existingIndex = state.breadcrumbs.findIndex(crumb => crumb.id == folderId);
 
     if (existingIndex !== -1) {
@@ -924,8 +1020,13 @@ function navigateToFolder(folderId, folderName) {
     state.lastMainSearch = '';
     document.getElementById('mainSearchInput').value = '';
 
-    loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
-    updateBreadcrumbsDisplay(state.breadcrumbs, 'main');
+    // In trash view, load trash items filtered by parent folder
+    if (inTrashView) {
+        loadTrashItemsInFolder(state.currentParentId);
+    } else {
+        loadUserFiles(state.lastMainSearch, state.currentPage, state.currentParentId);
+    }
+    updateBreadcrumbsDisplay(state.breadcrumbs, inTrashView ? 'trash' : 'main');
 }
 
 function getFileIcon(fileName) {
@@ -990,24 +1091,24 @@ function bindDelegatedListeners() {
         }
     });
 
-    // Folder navigation (skip in Trash view)
+    // Folder navigation (enabled in Trash view for browsing deleted folders)
     container.addEventListener('click', (e) => {
         const inTrashView = (container?.dataset.view === 'trash');
         
         // Check if clicking actions menu button - ignore
         if (e.target.closest('.actions-menu-btn')) return;
         
-        // Check for folder navigation
+        // Check for folder navigation (works in both normal and trash views)
         const folder = e.target.closest('[data-folder-nav-id]');
-        if (folder && !inTrashView) {
+        if (folder) {
             const folderId = folder.dataset.folderNavId;
             const folderName = folder.dataset.folderNavName;
-            console.debug('[folder] navigate click', { folderId, folderName });
+            console.debug('[folder] navigate click', { folderId, folderName, inTrashView });
             navigateToFolder(folderId, folderName);
             return;
         }
 
-        // Check for file preview (files only, not folders)
+        // Check for file preview (files only, not folders, skip in Trash view)
         const fileCard = e.target.closest('[data-file-id]');
         if (fileCard && !inTrashView) {
             const fileId = fileCard.dataset.fileId;
@@ -1225,31 +1326,29 @@ export function renderFiles(items) {
         });
     });
 
-    // Attach event listeners for folder navigation (skip in Trash view)
+    // Attach event listeners for folder navigation (enabled in Trash view for browsing deleted folders)
     const inTrashView = (container?.dataset.view === 'trash');
-    if (!inTrashView) {
-        container.querySelectorAll('[data-folder-nav-id]').forEach(folder => {
-            folder.addEventListener('click', e => {
-                // Handle selection first - don't navigate if actions menu button was clicked
-                const selectionHandled = handleItemClick(e, folder.dataset.itemId);
-                if (selectionHandled) return; // Selection handled, don't navigate
-                
-                // If no selection was triggered (e.g., double-click), proceed with navigation
+    container.querySelectorAll('[data-folder-nav-id]').forEach(folder => {
+        folder.addEventListener('click', e => {
+            // Handle selection first (works in both normal and trash views)
+            const selectionHandled = handleItemClick(e, folder.dataset.itemId);
+            if (selectionHandled) return; // Selection handled, don't navigate
+            
+            // If no selection was triggered (e.g., double-click), proceed with navigation
+            const folderId = e.currentTarget.dataset.folderNavId;
+            const folderName = e.currentTarget.dataset.folderNavName;
+            navigateToFolder(folderId, folderName);
+        });
+        // Keyboard navigate into folder
+        folder.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
                 const folderId = e.currentTarget.dataset.folderNavId;
                 const folderName = e.currentTarget.dataset.folderNavName;
                 navigateToFolder(folderId, folderName);
-            });
-            // Keyboard navigate into folder
-            folder.addEventListener('keydown', e => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    const folderId = e.currentTarget.dataset.folderNavId;
-                    const folderName = e.currentTarget.dataset.folderNavName;
-                    navigateToFolder(folderId, folderName);
-                }
-            });
+            }
         });
-    }
+    });
 
     // Attach event listeners for file preview (files only, not folders)
     container.querySelectorAll('[data-file-id]').forEach(fileCard => {
@@ -2210,21 +2309,48 @@ async function deleteItem(itemId) {
     }
 }
 
-async function restoreItem(itemId) {
+async function restoreItem(itemId, skipDialog = false) {
     try {
-        console.debug('[restoreItem] Initiating restore', { itemId });
+        console.debug('[restoreItem] Initiating restore', { itemId, skipDialog });
+        
+        // Check if we're in trash view and inside a deleted folder
+        const container = document.getElementById('filesContainer');
+        const inTrashView = container?.dataset.view === 'trash';
+        const isInsideDeletedFolder = inTrashView && state.currentParentId !== null;
+        
+        // If restoring from inside a deleted folder, show dialog and restore to root
+        let restoreToRoot = false;
+        if (isInsideDeletedFolder && !skipDialog) {
+            const confirmed = window.confirm(
+                'This file will be restored to the root because its parent folder is deleted.\n\nContinue?'
+            );
+            if (!confirmed) {
+                console.debug('[restoreItem] Restore cancelled by user');
+                return;
+            }
+            restoreToRoot = true;
+        } else if (isInsideDeletedFolder && skipDialog) {
+            // When bulk restoring, automatically restore to root
+            restoreToRoot = true;
+        }
+        
+        // Prepare request body
+        const requestBody = restoreToRoot ? { restore_to_root: true } : {};
+        
         const response = await fetch(`/files/${itemId}/restore`, {
             method: 'PATCH',
             headers: {
                 'X-CSRF-TOKEN': getCsrfToken(),
                 'X-XSRF-TOKEN': getCsrfToken(),
                 'Accept': 'application/json',
+                'Content-Type': 'application/json',
                 'X-Requested-With': 'XMLHttpRequest'
             },
-            credentials: 'same-origin'
+            credentials: 'same-origin',
+            body: Object.keys(requestBody).length > 0 ? JSON.stringify(requestBody) : undefined
         });
 
-        console.debug('[restoreItem] Fetch completed', { status: response.status });
+        console.debug('[restoreItem] Fetch completed', { status: response.status, restoreToRoot });
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
             throw new Error(errorData.message || 'Failed to restore item');
@@ -2239,7 +2365,12 @@ async function restoreItem(itemId) {
         
         // Refresh trash view
         if (typeof loadTrashItems === 'function') {
-            await loadTrashItems();
+            if (inTrashView) {
+                // If we're in trash, reload the current folder view
+                await loadTrashItemsInFolder(state.currentParentId);
+            } else {
+                await loadTrashItems();
+            }
         }
     } catch (error) {
         console.error('Error restoring item:', error);

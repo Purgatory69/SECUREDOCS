@@ -91,23 +91,23 @@ class SearchController extends Controller
 
             $filesQuery->where(function($q) use ($query, $matchType, $caseSensitive, $wholeWord) {
                 if ($caseSensitive === 'sensitive') {
-                    // Case-sensitive search
+                    // Case-sensitive search (PostgreSQL uses ~ operator)
                     switch ($matchType) {
                         case 'exact':
                             $q->where('file_name', '=', $query);
                             break;
                         case 'starts_with':
-                            $q->where('file_name', 'LIKE BINARY', $query . '%');
+                            $q->whereRaw('file_name ~ ?', ['^' . preg_quote($query, '/')]);
                             break;
                         case 'ends_with':
-                            $q->where('file_name', 'LIKE BINARY', '%' . $query);
+                            $q->whereRaw('file_name ~ ?', [preg_quote($query, '/') . '$']);
                             break;
                         case 'contains':
                         default:
                             if ($wholeWord) {
-                                $q->where('file_name', 'REGEXP', '[[:<:]]' . preg_quote($query, '/') . '[[:>:]]');
+                                $q->whereRaw('file_name ~ ?', ['\\m' . preg_quote($query, '/') . '\\M']);
                             } else {
-                                $q->where('file_name', 'LIKE BINARY', '%' . $query . '%');
+                                $q->whereRaw('file_name ~ ?', [preg_quote($query, '/')]);
                             }
                             break;
                     }

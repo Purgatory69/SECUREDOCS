@@ -25,7 +25,7 @@ yarn-error.log
 /.vscode
 /.zed
 storage/logs/laravel.log
-
+/.kiro
 # Python Virtual Environments
 test-automation/python/venv/
 test-automation/python/__pycache__/

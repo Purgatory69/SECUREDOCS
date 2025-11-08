@@ -2051,14 +2051,42 @@ class FileController extends Controller
     /**
      * Restore a soft-deleted file or folder from the trash.
      */
-    public function restore($id): JsonResponse
+    public function restore(Request $request, $id): JsonResponse
     {
         try {
             // Use withTrashed to find the file, as it's soft-deleted.
             $file = Auth::user()->files()->withTrashed()->findOrFail($id);
+            
+            // Check if restore_to_root flag is set (for files inside deleted folders)
+            $restoreToRoot = $request->input('restore_to_root', false);
 
-            DB::transaction(function () use ($file) {
-                $this->restoreItem($file);
+            DB::transaction(function () use ($file, $restoreToRoot) {
+                if ($restoreToRoot) {
+                    // Restore to root by setting parent_id to null
+                    $file->parent_id = null;
+                    $file->save();
+                    
+                    // Move file from trash storage if needed
+                    if (!$file->is_folder && !empty($file->file_path)) {
+                        $this->moveFileFromTrashStorage($file);
+                    }
+                    
+                    // Restore vectors if file was vectorized
+                    if (!$file->is_folder && $file->isVectorized()) {
+                        $hasVectors = $this->vectorManager->hasVectors($file->id, $file->user_id);
+                        $hasSoftDeletedVectors = $this->vectorManager->areVectorsSoftDeleted($file->id, $file->user_id);
+                        
+                        if ($hasVectors && $hasSoftDeletedVectors) {
+                            Log::info('File restored to root but vectors remain soft-deleted pending user confirmation', [
+                                'file_id' => $file->id,
+                                'user_id' => $file->user_id
+                            ]);
+                        }
+                    }
+                } else {
+                    // Normal restore (to original location)
+                    $this->restoreItem($file);
+                }
             });
 
             // Log restore activity
@@ -2066,7 +2094,7 @@ class FileController extends Controller
                 SystemActivity::ACTION_RESTORED,
                 $file,
                 null, // Let it auto-generate description
-                ['restored_from_trash' => true],
+                ['restored_from_trash' => true, 'restore_to_root' => $restoreToRoot],
                 SystemActivity::RISK_LOW,
                 Auth::user()
             );
