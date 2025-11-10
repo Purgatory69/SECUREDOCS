@@ -148,7 +148,7 @@ class AdminController extends Controller
                 'action' => 'account_approved',
                 'approved_at' => now()->toDateTimeString(),
                 'admin_id' => auth()->id(),
-                'admin_name' => auth()->user()->name,
+                'admin_name' => trim((auth()->user()->firstname ?? '') . ' ' . (auth()->user()->lastname ?? '')) ?: 'Admin',
             ]
         ]);
 
@@ -192,7 +192,7 @@ class AdminController extends Controller
                 'action' => 'account_revoked',
                 'revoked_at' => now()->toDateTimeString(),
                 'admin_id' => auth()->id(),
-                'admin_name' => auth()->user()->name,
+                'admin_name' => trim((auth()->user()->firstname ?? '') . ' ' . (auth()->user()->lastname ?? '')) ?: 'Admin',
             ]
         ]);
 
@@ -391,6 +391,12 @@ class AdminController extends Controller
     public function togglePremium(Request $request, $userId)
     {
         try {
+            \Log::info('Toggle premium request', [
+                'user_id' => $userId,
+                'admin_id' => auth()->id(),
+                'request_expects_json' => $request->expectsJson()
+            ]);
+            
             $user = User::findOrFail($userId);
             
             if ($user->is_premium) {
@@ -415,7 +421,7 @@ class AdminController extends Controller
                         'action' => 'premium_removed',
                         'removed_at' => now()->toDateTimeString(),
                         'admin_id' => auth()->id(),
-                        'admin_name' => auth()->user()->name,
+                        'admin_name' => trim((auth()->user()->firstname ?? '') . ' ' . (auth()->user()->lastname ?? '')) ?: 'Admin',
                     ]
                 ]);
 
@@ -434,7 +440,7 @@ class AdminController extends Controller
                 
                 $message = [
                     'key' => 'auth.success_premium_removed',
-                    'params' => ['name' => Str::limit($user->name, 28)]
+                    'params' => ['name' => Str::limit(trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')), 28)]
                 ];
             } else {
                 // Grant premium status
@@ -468,7 +474,7 @@ class AdminController extends Controller
                         'expires_at' => $expiresAt->toDateTimeString(),
                         'duration' => '1 year',
                         'admin_id' => auth()->id(),
-                        'admin_name' => auth()->user()->name,
+                        'admin_name' => trim((auth()->user()->firstname ?? '') . ' ' . (auth()->user()->lastname ?? '')) ?: 'Admin',
                     ]
                 ]);
 
@@ -492,7 +498,7 @@ class AdminController extends Controller
                 
                 $message = [
                     'key' => 'auth.success_premium_granted',
-                    'params' => ['name' => Str::limit($user->name, 28)]
+                    'params' => ['name' => Str::limit(trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? '')), 28)]
                 ];
             }
             
