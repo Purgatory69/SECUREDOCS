@@ -119,6 +119,9 @@ function displaySearchResults(data, viewContext) {
     const filesContainer = document.getElementById('filesContainer');
     if (!filesContainer) return;
     
+    // Set the view context on the container so renderFiles knows which view we're in
+    filesContainer.dataset.view = viewContext;
+    
     // Add clear search button to the page (not inside filesContainer)
     addClearSearchButton(data.query, data.files.length);
     

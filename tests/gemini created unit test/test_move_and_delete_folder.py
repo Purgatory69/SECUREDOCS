@@ -1,4 +1,3 @@
-
 import os
 import time
 from selenium import webdriver
@@ -12,6 +11,7 @@ def test_move_and_delete_folder():
     """
     Test case to create two folders, move one into the other, and then delete the parent folder.
     """
+    driver = None
     try:
         # Setup WebDriver
         wdm_path = ChromeDriverManager().install()
@@ -30,52 +30,54 @@ def test_move_and_delete_folder():
 
         # --- Create Folder A ---
         folder_a_name = f"FolderA_{int(time.time())}"
-        create_folder(driver, folder_a_name)
+        add_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='newBtn']")))
+        driver.execute_script("arguments[0].click();", add_button)
+        new_folder_option = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='createFolderOption']")))
+        new_folder_option.click()
+        folder_name_input = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Enter here']")))
+        folder_name_input.send_keys(folder_a_name)
+        create_folder_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Create Folder']")))
+        create_folder_button.click()
+        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-container")))
         print(f"Folder '{folder_a_name}' created successfully.")
 
         # --- Create Folder B ---
         folder_b_name = f"FolderB_{int(time.time())}"
-        create_folder(driver, folder_b_name)
+        add_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='newBtn']")))
+        driver.execute_script("arguments[0].click();", add_button)
+        new_folder_option = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='createFolderOption']")))
+        new_folder_option.click()
+        folder_name_input = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//input[@placeholder='Enter here']")))
+        folder_name_input.send_keys(folder_b_name)
+        create_folder_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Create Folder']")))
+        create_folder_button.click()
+        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-container")))
         print(f"Folder '{folder_b_name}' created successfully.")
+        driver.refresh()
 
         # --- Move Folder B into Folder A ---
-        # Select Folder B
-        folder_b_element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[@data-item-name='{folder_b_name}']")))
+        folder_b_element = WebDriverWait(driver, 20).until(EC.visibility_of_element_located((By.XPATH, f"//div[@data-item-name='{folder_b_name}']")))
         folder_b_element.click()
-        time.sleep(1)
-
-        # Click the "Move" button
         move_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='selectionToolbar']//button[.//span[text()='Move']]")))
         move_button.click()
-        time.sleep(1)
-
-        # Select Folder A as the destination
         destination_folder = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[contains(@class, 'folder-item')]//span[text()='{folder_a_name}']")))
         destination_folder.click()
-        time.sleep(1)
-
-        # Click the "Move Here" button
         move_here_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Move Here']")))
-        move_here_button.click()
-        time.sleep(3)
+        driver.execute_script("arguments[0].click();", move_here_button)
+        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-container")))
         print(f"Folder '{folder_b_name}' moved into '{folder_a_name}'.")
 
         # --- Delete Folder A ---
-        # Select Folder A
         folder_a_element = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, f"//div[@data-item-name='{folder_a_name}']")))
         folder_a_element.click()
-        time.sleep(1)
-
-        # Click the "Delete" button
         delete_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='selectionToolbar']//button[.//span[text()='Delete']]")))
         delete_button.click()
-        time.sleep(1)
-
-        # Confirm the deletion
         confirm_delete_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Delete']")))
         confirm_delete_button.click()
-        time.sleep(3)
+        WebDriverWait(driver, 10).until(EC.invisibility_of_element_located((By.CLASS_NAME, "swal2-container")))
         print(f"Folder '{folder_a_name}' deleted successfully.")
+
+        print("Test passed!")
 
     except Exception as e:
         print(f"Test failed: {e}")
@@ -83,29 +85,8 @@ def test_move_and_delete_folder():
         traceback.print_exc()
 
     finally:
-        if 'driver' in locals():
+        if driver:
             driver.quit()
-
-def create_folder(driver, folder_name):
-    # Click the "Add" button to show the dropdown
-    add_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='newBtn']")))
-    add_button.click()
-    time.sleep(1)
-
-    # Click the "New Folder" option from the dropdown
-    new_folder_option = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//div[@id='createFolderOption']")))
-    new_folder_option.click()
-    time.sleep(1)
-
-    # Enter folder name
-    folder_name_input = WebDriverWait(driver, 10).until(EC.presence_of_element_located((By.XPATH, "//input[@placeholder='Enter here']")))
-    folder_name_input.send_keys(folder_name)
-    time.sleep(1)
-
-    # Click "Create" button
-    create_folder_button = WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, "//button[text()='Create Folder']")))
-    create_folder_button.click()
-    time.sleep(5) # Wait for folder to be created and page to update
 
 if __name__ == "__main__":
     test_move_and_delete_folder()

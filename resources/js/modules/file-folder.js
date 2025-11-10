@@ -500,7 +500,14 @@ export function initializeFileFolderManagement(initialState) {
         const parsed = parseInt(state.currentParentId, 10);
         if (!Number.isNaN(parsed)) state.currentParentId = parsed;
     }
-    state.breadcrumbs = initialState.breadcrumbs;
+    
+    // If at root folder (currentParentId is null), reset breadcrumbs to empty
+    // This prevents stale breadcrumbs from localStorage showing old folder paths
+    if (state.currentParentId === null) {
+        state.breadcrumbs = [];
+    } else {
+        state.breadcrumbs = initialState.breadcrumbs;
+    }
 
     // Attach event listeners that are managed by this module
     const createFolderBtn = document.getElementById('create-folder-btn');
@@ -995,12 +1002,17 @@ function navigateToFolder(folderId, folderName) {
         return;
     }
 
-    const existingIndex = state.breadcrumbs.findIndex(crumb => crumb.id == folderId);
-
-    if (existingIndex !== -1) {
-        state.breadcrumbs = state.breadcrumbs.slice(0, existingIndex + 1);
+    // Special handling for My Documents root navigation (folderId = null)
+    if (folderId === null || folderId === 'null') {
+        state.breadcrumbs = [];
     } else {
-        state.breadcrumbs.push({ id: folderId, name: folderName });
+        const existingIndex = state.breadcrumbs.findIndex(crumb => crumb.id == folderId);
+
+        if (existingIndex !== -1) {
+            state.breadcrumbs = state.breadcrumbs.slice(0, existingIndex + 1);
+        } else {
+            state.breadcrumbs.push({ id: folderId, name: folderName });
+        }
     }
 
     // Clear selection when navigating to a new folder

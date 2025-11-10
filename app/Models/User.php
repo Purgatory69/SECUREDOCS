@@ -19,7 +19,9 @@ use Laragear\WebAuthn\Contracts\WebAuthnAuthenticatable;
 
 /**
  * @property int $id
- * @property string $name
+ * @property string $firstname
+ * @property string $lastname
+ * @property string $name (accessor - computed from firstname + lastname)
  * @property string $email
  * @property string|null $email_verified_at
  * @property string $password
@@ -112,15 +114,18 @@ class User extends Authenticatable implements WebAuthnAuthenticatable
      *
      * @return string
      */
-    public function getNameAttribute($value): string
+    public function getNameAttribute(): string
     {
-        // If name is stored in DB, use it
-        if (!empty($value)) {
-            return $value;
+        // Construct full name from firstname and lastname
+        $firstname = trim($this->attributes['firstname'] ?? '');
+        $lastname = trim($this->attributes['lastname'] ?? '');
+        
+        // Handle cases where names might be null or empty
+        if (empty($firstname) && empty($lastname)) {
+            return 'Unknown User';
         }
         
-        // Otherwise, construct from firstname and lastname
-        return trim(($this->attributes['firstname'] ?? '') . ' ' . ($this->attributes['lastname'] ?? ''));
+        return trim($firstname . ' ' . $lastname);
     }
 
     /**

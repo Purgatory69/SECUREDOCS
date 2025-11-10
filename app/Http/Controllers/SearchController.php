@@ -247,7 +247,7 @@ class SearchController extends Controller
         }
 
         // Include related data
-        $filesQuery->with(['user:id,name,email']);
+        $filesQuery->with(['user:id,firstname,lastname,email']);
 
         return $filesQuery;
     }
