@@ -1,7 +1,7 @@
 @extends('layouts.app')
 
 @section('content')
-<div style="background-color: #24243B;" class="min-h-screen text-white">
+<div style="background-color: #1D1D2F;" class="min-h-screen text-white">
     <!-- Header -->
     <div class="bg-[#141326] px-6 py-6">
         <div class="flex items-center justify-between w-full">

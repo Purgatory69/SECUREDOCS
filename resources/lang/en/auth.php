@@ -1,11 +1,16 @@
 <?php
 return [
-    'hero_mid_1' => 'Effortless Access.<br/>Unwavering Security.',
-    'hero_mid_2' => 'Time to fortify your files.<br/>The future of document trust is here!',
+    'hero_sec_11' => 'Effortless Access.<br/>Unwavering Security.',
+    'hero_sec_12' => 'Time to fortify your files.<br/>The future of document trust is here!',
+    'hero_sec_21' => 'A new way to manage<br/>& protect your files!',
+    'hero_sec_22' => 'Organize, access, and share your documents all in one hub!',
+    'hero_sec_31' => 'Built with reliable security measures!',
+    'hero_sec_32' => 'Account verifications & file encryption for your protection!',
+    'hero_sec_41' => 'Innovative features in an exclusive deal!',
+    'hero_sec_42' => 'Enhance your experience using our AI and blockchain integration!',
     'try_for_free' => 'Try for FREE!',
-    'footer_1' => 'Organize, access, and protect your documents!',
-    'footer_2' => 'Encrypt with blockchain technology!',
-    'footer_3' => 'Need a hand? Use our smart AI assistant!',
+    'use_sd_now' => 'Use SECUREDOCS Now!',
+    'footer_text' => 'SECUREDOCS : The future of document trust!',
     
     'login_header' => 'Login',
     'login_title' => 'Login to your account!',
