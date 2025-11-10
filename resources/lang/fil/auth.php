@@ -1,11 +1,16 @@
 <?php
 return [
-    'hero_mid_1' => 'Madaling Pag-Access.<br/>Matibay na Seguridad.',
-    'hero_mid_2' => 'Ipagtibay mo ang iyong mga files.<br/>Ito ang na makabagong seguridad!',
+    'hero_sec_11' => 'Madaling Pag-Access.<br/>Matibay na Seguridad.',
+    'hero_sec_12' => 'Ipagtibay mo ang iyong mga files.<br/>Ito ang na makabagong seguridad!',
+    'hero_sec_21' => 'Makabagong paraan sa pag-ingat ng mga file!',
+    'hero_sec_22' => 'Ayusin, gamitin, at mamahagi ng mga dokyumento!',
+    'hero_sec_31' => 'Ginawang maaasahan ang iyong seguridad!',
+    'hero_sec_32' => 'Ingatan ang iyong account at files para sa\'yong proteksyon!',
+    'hero_sec_41' => 'Makabagong tampok, eksklusibong alok!',
+    'hero_sec_42' => 'Subukan mo ang aming AI at blockchain integration!',
     'try_for_free' => 'Subukan nang LIBRE!',
-    'footer_1' => 'Ayusin at protektahan ang iyong dokumento!',
-    'footer_2' => 'Mag-encrypt gamit ang blockchain technology!',
-    'footer_3' => 'Gamitin mo ang aming smart AI assistant!',
+    'use_sd_now' => 'Gamitin na ang SECUREDOCS!',
+    'footer_text' => 'SECUREDOCS : Ang makabagong seguridad ng dokyumento!',
     
     'login_header' => 'Mag-log in',
     'login_title' => 'Mag-login sa inyong account!',

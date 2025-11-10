@@ -1,26 +1,103 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <meta content="width=device-width, initial-scale=1" name="viewport"/>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SecureDocs</title>
-  <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
 
-  @vite(['resources/css/app.css'])
-
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet"/>
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet"/>
+  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
   <style>
-    body {
-      font-family: "Poppins", sans-serif;
+    body { 
+      font-family: 'Poppins', sans-serif; 
+    }
+    .unified-section {
+      /* Sets a consistent, large minimum height */
+      min-height: 90vh;
+
+      /* Uses flex to vertically center the content inside */
+      display: flex;
+      align-items: center;
+
+      /* Sets large, uniform padding (top/bottom, left/right) */
+      padding: 6rem 4rem;
     }
   </style>
 </head>
-<body class="bg-gradient-to-b from-[#0f0f23] to-[#1a2a5a] min-h-screen flex flex-col">
+<body class="bg-[#0f0f23] text-white min-h-screen">
 
-<!-- Language Toggle Button - Fixed Position Bottom Right -->
-<div class="fixed bottom-6 right-6 z-50">
-    <div class="relative">
+  <div class="bg-[#141326] px-6 py-6 sticky top-0 z-50">
+      <div class="flex items-center justify-between w-full">
+        <img src="logo-white.png" class="w-10 h-10" alt="Logo" />
+          <div class="flex items-center space-x-3 absolute left-1/2 transform -translate-x-1/2">
+          <h1 class="text-xl font-extrabold">SECURE<span class="text-[#ff9c00]">DOCS</span></h1>          </div>
+          <div class="flex items-center gap-6">
+          <a href="/login" class="text-sm font-medium transition-all duration-200 hover:text-[#ff9c00]">{{ __('auth.login') }}</a>
+          <a href="/register" class="bg-[#ff9c00] text-black px-4 py-2 rounded-full font-bold transition-all duration-200 hover:brightness-110">{{ __('auth.signup') }}</a>
+          </div>
+      </div>
+  </div>
+
+  <section class="bg-[#1D1D2F] unified-section relative overflow-hidden">
+    <div class="w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12 relative z-10">
+      <div class="w-full lg:w-1/2">
+        <h2 class="text-5xl font-extrabold leading-tight mb-4">{!! __('auth.hero_sec_11')!!}</h2>
+        <p class="text-[#ff9c00] text-xl mb-8">{!! __('auth.hero_sec_12')!!}</p>
+        <a href="/register" class="bg-[#ff9c00] text-black font-semibold px-6 py-3 rounded-full transition-all duration-200 hover:brightness-110 inline-block">{{ __('auth.try_for_free') }}</a>
+      </div>
+      <div class="w-full lg:w-1/2 flex justify-center lg:justify-end">
+      </div>
+    </div>
+    <img src="hero-1.png" alt="Hero Illustration" class="absolute bottom-0 right-0 w-[40rem] h-[40rem] z-0 translate-x-[50px] translate-y-[70px]" />
+  </section>
+
+  <section class="bg-[#24243B] unified-section">
+    <div class="w-full max-w-7xl mx-auto flex flex-col lg:flex-row-reverse items-center gap-12">
+      <div class="w-full lg:w-1/2 text-right">
+        <h3 class="text-5xl font-extrabold mb-4">{!! __('auth.hero_sec_21')!!}</h3>
+        <p class="text-[#ff9c00] text-xl">{!! __('auth.hero_sec_22')!!}</p>
+      </div>
+      <div class="w-full lg:w-1/2 flex justify-center lg:justify-start">
+        <img src="hero-2.png" alt="Management icons" class="w-full max-w-md" />
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-[#1D1D2F] unified-section">
+    <div class="w-full max-w-7xl mx-auto flex flex-col lg:flex-row items-center gap-12">
+      <div class="w-full lg:w-1/2">
+        <h3 class="text-5xl font-extrabold mb-4">{!! __('auth.hero_sec_31')!!}</h3>
+        <p class="text-[#ff9c00] text-xl">{!! __('auth.hero_sec_32')!!}</p>
+      </div>
+      <div class="w-full lg:w-1/2 flex justify-center lg:justify-end">
+        <img src="hero-3.png" alt="Security icons" class="w-full max-w-md" />
+      </div>
+    </div>
+  </section>
+
+  <section class="bg-[#ff9c00] text-black unified-section relative overflow-hidden">
+
+      <img src="hero-4.png" 
+          class="absolute inset-0 w-full h-full object-cover z-0" />
+
+      <div class="w-full max-w-7xl mx-auto text-center relative z-10">
+          <h3 class="text-4xl font-extrabold mb-4">{!! __('auth.hero_sec_41')!!}</h3>
+          <p class="text-xl mb-12">{!! __('auth.hero_sec_42')!!}</p>
+          <a href="/register" class="bg-black text-white px-8 py-3 rounded-full font-semibold transition-all duration-200 hover:bg-white hover:text-black">{!! __('auth.use_sd_now')!!}</a>
+      </div>
+  </section>
+
+
+
+  <div class="bg-[#141326] px-6 py-6">
+      <div class="flex items-center justify-between w-full">
+        <img src="logo-white.png" class="w-10 h-10" alt="Logo" />
+          <div class="flex items-center space-x-3 absolute left-1/2 transform -translate-x-1/2">
+            <span class="text-sm text-white">{!! __('auth.footer_text')!!}</span>
+          </div>
+          <!-- Dropdown Menu -->
+          <div class="relative">
         <!-- Toggle Button -->
         <button id="language-toggle" class="bg-[#3c3f58] text-white p-3 rounded-full shadow-lg transition
             style="transition: background-color 0.2s;"
@@ -55,101 +132,19 @@
             </a>
         </div>
     </div>
-</div>
-
-<header class="grid grid-cols-3 items-center px-10 sm:px-20 md:px-32 py-10">
-  <img 
-    alt="SecureDocs logo with stylized SD and stacked documents icon in white" 
-    class="w-12 h-12 justify-self-start" 
-    height="48" 
-    src="logo-white.png" 
-    width="48" 
-  />
-  <h1 class="text-white text-xl sm:text-2xl font-extrabold tracking-tight leading-none justify-self-center">
-      SECURE<span class="text-[#ff9c00]">DOCS</span>
-    </h1>
-    <div class="justify-self-end">
-      <a href="/login">
-        <button class="bg-[#ff9c00] text-black font-extrabold text-sm sm:text-base rounded-full px-6 py-2 hover:brightness-110 transition" type="button">
-        {{ __('auth.login') }}
-        </button>
-      </a>
-    </div>
-  </header>
-
-  <main class="flex flex-col lg:flex-row items-center justify-center lg:justify-start flex-grow px-10 sm:px-20 md:px-32 mt-10 gap-8 lg:gap-16">
-  <section class="w-full lg:w-2/3 mb-16 lg:mb-0 px-6 sm:px-12">
-      <h2 class="text-white text-3xl sm:text-4xl font-extrabold leading-tight mb-6">{!! __('auth.hero_mid_1')!!}
-      </h2>
-      <p class="text-[#ff9c00] text-lg sm:text-xl font-medium mb-12 max-w-md leading-snug">{!! __('auth.hero_mid_2')!!}
-      </p>
-      <div class="flex justify-left">
-        <!-- Replace with your actual register route when converting to Blade -->
-        <a href="/register">
-          <button class="bg-[#ff9c00] text-black font-semibold text-base rounded-full px-8 py-3 hover:brightness-110 transition" type="button">
-            {{ __('auth.try_for_free') }}
-          </button>
-        </a>
       </div>
-    </section>
+  </div>
 
-    <section class="flex-shrink-0 w-[600px] mt-10 lg:mt-0 px-6 sm:px-12">
-      <img 
-        alt="Illustration of people interacting with a secure login screen" 
-        class="w-full h-auto" 
-        height="350" 
-        src="Hero_clipart2.png" 
-        width="600"
-      />
-    </section>
-  </main>
 
-  <footer class="flex flex-col sm:flex-row justify-between items-center px-10 sm:px-20 md:px-32 py-12 gap-8 sm:gap-0 mt-10">
-    <div class="flex items-center gap-6 max-w-xs text-[#ff9c00] text-base sm:text-lg font-medium px-4">
-      <img 
-        alt="Document icon" 
-        class="w-10 h-10 flex-shrink-0" 
-        height="40" 
-        src="hero-clipart-1.png" 
-        width="40"
-      />
-      <p class="max-w-[350px]">{{ __('auth.footer_1') }}</p>
-    </div>
-    <div class="flex items-center gap-6 max-w-xs text-[#ff9c00] text-base sm:text-lg font-medium px-4">
-      <img 
-        alt="Blockchain icon" 
-        class="w-10 h-10 flex-shrink-0" 
-        height="40" 
-        src="hero-clipart-2.png" 
-        width="40"
-      />
-      <p class="max-w-[280px]">{{ __('auth.footer_2') }}</p>
-    </div>
-    <div class="flex items-center gap-6 max-w-xs text-[#ff9c00] text-base sm:text-lg font-medium px-4">
-      <img 
-        alt="AI robot icon" 
-        class="w-10 h-10 flex-shrink-0" 
-        height="40" 
-        src="hero-clipart-3.png" 
-        width="40"
-      />
-      <p class="max-w-[280px]">{{ __('auth.footer_3') }}</p>
-    </div>
-  </footer>
-
-  <!-- Language Dropdown JavaScript -->
   <script>
-    document.addEventListener('DOMContentLoaded', function() {
+// Language Dropdown Toggle
+document.addEventListener('DOMContentLoaded', function() {
         const toggleButton = document.getElementById('language-toggle');
         const dropdown = document.getElementById('language-dropdown');
-        
-        console.log('Toggle button:', toggleButton);
-        console.log('Dropdown:', dropdown);
         
         if (toggleButton && dropdown) {
             toggleButton.addEventListener('click', function(e) {
                 e.stopPropagation();
-                console.log('Toggle clicked');
                 dropdown.classList.toggle('hidden');
             });
             
@@ -159,11 +154,9 @@
                     dropdown.classList.add('hidden');
                 }
             });
-        } else {
-            console.error('Language toggle elements not found');
         }
     });
-  </script>
+</script>
 
 </body>
 </html>
