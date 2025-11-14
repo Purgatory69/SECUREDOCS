@@ -54,11 +54,11 @@
                 </div>
                 <div class="flex-1 min-w-0">
                     <div class="text-base font-medium mb-1">{{ Str::limit(Auth::user()->name, 20) }}</div>
-                    <div style="color: #B6B6B6; font-size: 12px;" class="text-sm text-text-secondary">{{ Str::limit(Auth::user()->email, 25) }}</div>
+                    <div style="font-size: 12px;" class="text-sm text-gray-400">{{ Str::limit(Auth::user()->email, 25) }}</div>
                 </div>
             </div>
             <ul class="list-none">
-                <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+            <li class="h-px my-1 ml-4 mr-4" style="background-color: #55597C;"></li>
                 <li>
                     <a href="{{ route('profile.show') }}"
                     class="p-4 flex items-center cursor-pointer"
@@ -106,7 +106,7 @@
                         </a> 
                     </div>
                 </li>
-                <li class="h-px bg-gray-600 my-1"></li>
+                <li class="h-px my-1 ml-4 mr-4" style="background-color: #55597C;"></li>
             </ul>
             <div class="mb-4 mt-4 border-border-color text-center">
                 <form method="POST" action="{{ route('logout') }}">

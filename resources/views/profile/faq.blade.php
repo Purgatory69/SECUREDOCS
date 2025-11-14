@@ -30,7 +30,7 @@
 
                 <!-- FAQ 1 -->
                 <div class="faq-item mb-2 rounded-lg overflow-hidden">
-                    <button class="faq-toggle flex justify-between items-center w-full py-4 px-4 text-left text-white hover:bg-[#34374f] transition-colors duration-200" data-target="faq-1">
+                    <button class="faq-toggle flex justify-between items-center w-full py-4 px-4 text-left text-white transition-colors duration-200" data-target="faq-1">
                         <span class="font-semibold text-lg">How do I change my email address?</span>
                         <img src="{{ asset('caret-down.png') }}" alt="dropdown arrow" class="chevron mr-4 w-2 h-2 transition-transform duration-300">
                     </button>
