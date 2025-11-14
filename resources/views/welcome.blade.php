@@ -140,6 +140,7 @@
   <script>
 // Language Dropdown Toggle
 document.addEventListener('DOMContentLoaded', function() {
+        history.scrollRestoration = "manual";
         const toggleButton = document.getElementById('language-toggle');
         const dropdown = document.getElementById('language-dropdown');
         

@@ -48,56 +48,59 @@
             </button>
             
             <!-- Bundlr Wallet Dropdown -->
-            <div id="bundlrWalletDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] transition-all duration-200">
-                <div class="px-4 py-3 border-b border-[#4A4D6A]">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="text-sm font-medium">Bundlr Wallet</div>
-                        <button id="initializeBundlrBtn" class="px-3 py-1.5 bg-orange-500 hover:bg-orange-600 rounded text-sm transition-colors">
-                            Initialize
+            <div id="bundlrWalletDropdown" class="absolute p-2 right-0 mt-3 bg-[#3C3F58] text-gray-100 rounded-xl shadow-xl z-50 opacity-0 invisible translate-y-[-10px] transition-all duration-200" style="width: 330px;">
+                <div class="px-4 py-3 pt-4 pb-4">
+                    <div class="flex items-center justify-between"> <div> <div class="text-sm font-medium">Bundlr Wallet</div>
+                        <div class="text-xs text-gray-400" id="walletStatus">Click 'Initialize' to connect</div> </div>
+                        <button id="initializeBundlrBtn" class="px-3 pt-2 pb-2 py-1.5 bg-[#f89c00] hover:brightness-110 text-black font-semibold rounded-full text-sm transition-all duration-200">          
+                        Initialize
                         </button>
                     </div>
-                    <div class="text-xs text-gray-400" id="walletStatus">Click initialize to connect</div>
                 </div>
-                <div class="p-4 space-y-3">
-                    <!-- Balance Display -->
+                <div class="border-b border-[#55597C] ml-4 mr-4"></div>
+                <div class="px-4 py-3 ">
                     <div class="flex items-center justify-between">
-                        <span class="text-sm">Balance:</span>
-                        <span id="walletBalanceDetail" class="text-sm font-medium text-green-400">-- MATIC</span>
+                        <span class="text-sm">Balance :</span>
+                        <span id="walletBalanceDetail" class="text-sm font-semibold" style="color: #4AD991;">-- MATIC</span>
                     </div>
-                    
-                    <!-- Actions -->
+                </div>
+                <div class="border-t border-[#55597C] ml-4 mr-4"></div>
+                <div class="p-4 space-y-3">
                     <div class="space-y-2">
                         <div class="text-xs text-gray-400 mb-2">
                             Need MATIC in your wallet to fund Bundlr
                         </div>
-                        <div class="flex gap-2">
-                            <select id="fundAmountSelect" class="flex-1 px-3 py-2 bg-[#3C3F58] rounded text-sm" onchange="handleFundAmountChange()">
+                        <div class="flex gap-2 mt-1">
+                        <select id="fundAmountSelect" class="flex-1 pl-3 pr-8 py-2 bg-[#55597C] rounded-full text-sm border-none appearance-none bg-no-repeat" onchange="handleFundAmountChange()" style="background-image: url('{{ asset('caret-down.png') }}'); background-position: right 1rem center; background-size: 0.5rem;">
                                 <option value="0.01">0.01 MATIC</option>
                                 <option value="0.05">0.05 MATIC</option>
                                 <option value="0.1">0.1 MATIC</option>
                                 <option value="0.5">0.5 MATIC</option>
                                 <option value="1">1 MATIC</option>
-                                <option value="custom">Custom Amount</option>
+                                <option value="custom">Custom</option>
                             </select>
-                            <button id="fundBundlrBtn" class="px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm transition-colors" disabled>
+                            <button id="fundBundlrBtn" style="background-color: #4AD991; color:black;" class="px-6 py-2 hover:brightness-110 rounded-full text-sm font-semibold transition-all duration-200" disabled>
                                 Fund
                             </button>
                         </div>
-                        <div id="customAmountContainer" class="hidden">
+                        <div id="customAmountContainer" class="hidden pt-2">
+                            <!-- <div class="text-xs text-gray-400 mt-1">
+                                0.0001 - 100 MATIC allowed
+                            </div> -->
                             <input type="number" 
                                    id="customAmountInput" 
-                                   placeholder="Enter MATIC amount (e.g., 0.25)" 
+                                   placeholder="Enter here (0.0001 - 100 MATIC)" 
                                    min="0.001" 
                                    max="100" 
                                    step="0.001"
                                    class="w-full px-3 py-2 bg-[#3C3F58] border border-[#55597C] rounded text-sm text-white placeholder-gray-400 focus:border-blue-500 focus:outline-none">
-                            <div class="text-xs text-gray-400 mt-1">
-                                Minimum: 0.001 MATIC • Maximum: 100 MATIC
-                            </div>
+                            
                         </div>
-                        <button id="refreshBalanceBtn" class="w-full px-3 py-2 bg-gray-600 hover:bg-gray-700 rounded text-sm transition-colors" disabled>
-                            Refresh Balance
-                        </button>
+                        <div class="pt-2 brightness-100 transition-all duration-200">
+                            <button id="refreshBalanceBtn" class="w-full px-3 py-2 bg-[#3C3F58] text-white font-semibold border-2 border-[#55597C] hover:brightness-110 hover:bg-[#55597C] rounded-full text-sm transition-all duration-200">
+                                Refresh Balance
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -147,11 +150,11 @@
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="text-base font-medium mb-1">{{ Str::limit(Auth::user()->name, 20) }}</div>
-                        <div style="color: #B6B6B6; font-size: 12px;" class="text-sm text-text-secondary">{{ Str::limit(Auth::user()->email, 25) }}</div>
+                        <div style="font-size: 12px;" class="text-sm text-gray-400">{{ Str::limit(Auth::user()->email, 25) }}</div>
                     </div>
                 </div>
                 <ul class="list-none">
-                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4" style="background-color: #55597C;"></li>
                     <li>
                         <a href="{{ route('profile.show') }}"
                         class="p-4 flex items-center cursor-pointer"
@@ -182,10 +185,10 @@
                         onmouseover="this.style.backgroundColor='#55597C';"
                         onmouseout="this.style.backgroundColor='';">
                         <img src="/shield.png" class="mr-4 w-4 h-4 ml-1" alt="Account Security">
-                        <span class="text-sm">Account Security</span>
+                        <span class="text-sm">{{ __('auth.db_account_security') }}</span>
                         </a>
                     </li>
-                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    <li class="h-px my-1 ml-4 mr-4" style="background-color: #55597C;"></li>
                     <!-- <li class="h-px bg-border-color my-1"></li> -->
                     <!-- ======================================= -->
                     <!-- OPTION 2: DROPDOWN TO THE LEFT SIDE -->
@@ -247,7 +250,7 @@
                     </li>
                     <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
                     -->
-                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4" style="background-color: #55597C;"></li>
                     <li>
                         <a href="{{ route('premium.upgrade') }}" 
                         class="p-4 flex items-center cursor-pointer"
@@ -258,9 +261,9 @@
                         <span class="text-sm">{{ __('auth.db_buy_premium') }}</span>
                         </a>
                     </li>
-                    <li class="h-px bg-gray-600 my-1 ml-4 mr-4"></li>
+                    <li class="h-px ml-4 mr-4" style="background-color: #55597C;"></li>
                 </ul>
-                <div class="pt-2 mt-2 border-border-color text-center">
+                <div class="pt-2 mt-2 text-center">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit"
@@ -426,11 +429,8 @@
                 onclick="openClientArweaveModal()"
                 onmouseover="this.style.cssText = 'background-color: #55597C;';"
                 onmouseout="this.style.cssText = '';">
-                <span class="mr-4 text-lg">🚀</span>
-                <div class="flex-1">
-                    <div class="font-medium">Arweave Storage </div>
-                </div>
-                <span class="text-xs px-2 py-0.5 rounded-full bg-gradient-to-r from-blue-500 to-green-500 text-white">NEW</span>
+                <img src="{{ asset('link-symbol.png') }}" alt="File" class="mr-4 w-4 h-4">
+                <span class="font-medium">{{ __('auth.db_blockchain_upload') }}</span>
             </div>
             @endif
             
@@ -467,7 +467,10 @@
             <img src="{{ asset('delete.png') }}" alt="Trash" class="mr-4 w-5 h-5">
             <span class="text-sm">{{ __('auth.db_trash') }}</span>
         </li>
-        <li id="blockchain-storage-link" class="py-3 px-8 flex items-center cursor-pointer transition-colors rounded-r-2xl mr-4 hover:bg-bg-light @if(!auth()->user()->is_premium) opacity-60 @endif" onclick="handleBlockchainClick(event)">
+        <li id="blockchain-storage-link"
+            class="py-3 px-8 flex items-center cursor-pointer rounded-r-2xl mr-4
+            bg-[#141326] text-white hover:brightness-110 active:bg-[#2B2C61]
+            @if(!auth()->user()->is_premium) opacity-60 @endif" onclick="handleBlockchainClick(event)">
             <img src="{{ asset('link-symbol.png') }}" alt="Blockchain" class="mr-4 w-5 h-5">
             <span class="text-white text-sm">{{ __('auth.db_blockchain_storage') }}</span>
             
@@ -492,7 +495,7 @@
     </ul>
 
 <!-- Storage Usage Display -->
-    <li id="storage-tile" class="py-3 px-8 flex items-center rounded-r-2xl mr-4 bg-[#141326] text-white">
+    <li id="storage-tile" class="py-3 px-8 mt-8 flex items-center rounded-r-2xl mr-4 bg-[#141326] text-white">
         <img src="{{ asset('cloud.png') }}" alt="Storage" class="mr-4 w-5 h-5">
         <span class="text-sm">Storage</span>
     </li>
@@ -734,7 +737,8 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div>
             <label for="searchMatchType" class="text-opacity-80 block text-sm text-gray-400 font-medium mb-2">Match type</label>
-            <select id="searchMatchType" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white appearance-none bg-no-repeat" style="background-image: url('{{ asset('caret-down.png') }}'); background-position: right 1rem center; background-size: 0.5rem;">                <option value="contains">Contains (default)</option>
+            <select id="searchMatchType" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white appearance-none bg-no-repeat" style="background-image: url('{{ asset('caret-down.png') }}'); background-position: right 1rem center; background-size: 0.5rem;">
+                <option value="contains">Contains (default)</option>
                 <option value="exact">Exact Match</option>
                 <option value="starts_with">Starts With</option>
                 <option value="ends_with">Ends With</option>
@@ -742,14 +746,14 @@
         </div>
         <div>
             <label for="searchCaseSensitive" class="block text-sm text-gray-400 font-medium mb-2">Case Sensitivity</label>
-            <select id="searchCaseSensitive" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white">
+            <select id="searchCaseSensitive" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white appearance-none bg-no-repeat" style="background-image: url('{{ asset('caret-down.png') }}'); background-position: right 1rem center; background-size: 0.5rem;">
                 <option value="insensitive">Case Insensitive (Aa = aa)</option>
                 <option value="sensitive">Case Sensitive (Aa ≠ aa)</option>
             </select>
         </div>
         <div>
             <label for="searchFileType" class="block text-sm font-medium text-gray-400 mb-2">File Types</label>
-            <select id="searchFileType" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white">
+            <select id="searchFileType" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white appearance-none bg-no-repeat" style="background-image: url('{{ asset('caret-down.png') }}'); background-position: right 1rem center; background-size: 0.5rem;">
                 <option value="">All Types</option>
                 <option value="images">Images</option>
                  <option value="documents">Documents</option>
@@ -774,7 +778,7 @@
         </div>
         <div>
             <label for="searchSortBy" class="block text-sm text-gray-400 font-medium mb-2">Sort by</label>
-            <select id="searchSortBy" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white">
+            <select id="searchSortBy" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white appearance-none bg-no-repeat" style="background-image: url('{{ asset('caret-down.png') }}'); background-position: right 1rem center; background-size: 0.5rem;">
                 <option value="updated_at">Last Modified</option>
                 <option value="created_at">Date Created</option>
                 <option value="file_name">Name</option>
@@ -795,7 +799,7 @@
         </div>
         <div>
             <label for="searchSortOrder" class="block text-sm text-gray-400 font-medium mb-2">Sort Order</label>
-            <select id="searchSortOrder" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white">
+            <select id="searchSortOrder" class="w-full py-3 px-4 rounded-lg bg-[#3C3F58] border-none text-white appearance-none bg-no-repeat" style="background-image: url('{{ asset('caret-down.png') }}'); background-position: right 1rem center; background-size: 0.5rem;">
                  <option value="desc">Newest First</option>
                 <option value="asc">Oldest First</option>
             </select>
