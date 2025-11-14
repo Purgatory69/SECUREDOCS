@@ -183,6 +183,7 @@ Route::middleware([
         Route::post('/send', [App\Http\Controllers\FileOtpController::class, 'sendOtp'])->name('file-otp.send');
         Route::post('/verify', [App\Http\Controllers\FileOtpController::class, 'verifyOtp'])->name('file-otp.verify');
         Route::get('/status', [App\Http\Controllers\FileOtpController::class, 'getOtpStatus'])->name('file-otp.status');
+        Route::post('/delete-shared-link', [App\Http\Controllers\FileOtpController::class, 'deleteSharedLink'])->name('file-otp.delete-shared-link');
     });
 
     // Test email routes (remove in production)

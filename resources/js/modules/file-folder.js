@@ -4084,6 +4084,22 @@ function renderOtpSecurityContent(fileId, otpData) {
                 </label>
             </div>
 
+            ${!isEnabled ? `
+                <div class="p-3 bg-yellow-900/20 border border-yellow-500/30 rounded-lg">
+                    <div class="text-yellow-400 text-sm font-medium mb-2">⚠️ Important Notice</div>
+                    <div class="text-yellow-300 text-xs space-y-2">
+                        <p>Enabling OTP protection will:</p>
+                        <ul class="list-disc list-inside ml-1 space-y-1">
+                            <li>Disable the <strong>Share</strong> option for this file</li>
+                            <li>Disable the <strong>Share to AI</strong> option for this file</li>
+                            <li>Disable the <strong>Upload to Arweave</strong> option for this file</li>
+                            <li>Delete any existing shared links for this file</li>
+                        </ul>
+                        <p class="mt-2">this file will not be able to use these features while OTP protection is active.</p>
+                    </div>
+                </div>
+            ` : ''}
+
             ${isEnabled ? `
                 <div class="space-y-3">
                     <div class="grid grid-cols-2 gap-3">
@@ -4095,6 +4111,14 @@ function renderOtpSecurityContent(fileId, otpData) {
                             <input type="checkbox" id="requirePreview" class="mr-2 text-[#f89c00] bg-[#2A2A3E] border-[#3C3F58] rounded focus:ring-[#f89c00]" ${otpData.require_otp_for_preview ? 'checked' : ''}>
                             <span class="text-sm text-gray-300">Require for preview</span>
                         </label>
+                    </div>
+
+                    <div class="p-3 bg-blue-900/20 border border-blue-500/30 rounded-lg">
+                        <div class="text-blue-400 text-sm font-medium mb-2">🔒 Shared Link Management</div>
+                        <div class="text-blue-300 text-xs mb-3">Delete any existing shared links for this file. This action cannot be undone.</div>
+                        <button id="deleteSharedLink" class="w-full px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 transition-colors">
+                            Delete Shared Link
+                        </button>
                     </div>
 
                     <div class="p-3 bg-red-900/20 border border-red-500/30 rounded-lg">
@@ -4159,6 +4183,14 @@ function renderOtpSecurityContent(fileId, otpData) {
         const modal = document.getElementById('otpSecurityModal');
         if (modal) modal.remove();
     });
+    
+    // Add delete shared link event listener if OTP is enabled
+    if (isEnabled) {
+        const deleteSharedLinkBtn = document.getElementById('deleteSharedLink');
+        if (deleteSharedLinkBtn) {
+            deleteSharedLinkBtn.addEventListener('click', () => deleteSharedLink(fileId));
+        }
+    }
     
     // Add disable OTP event listeners if OTP is enabled
     if (isEnabled) {
@@ -4226,6 +4258,39 @@ async function saveOtpSettings(fileId) {
     } catch (error) {
         console.error('Failed to save OTP settings:', error);
         showNotification('Failed to update OTP settings: ' + error.message, 'error');
+    }
+}
+
+async function deleteSharedLink(fileId) {
+    try {
+        const confirmed = window.confirm('Are you sure you want to delete the shared link for this file? This action cannot be undone.');
+        if (!confirmed) return;
+
+        const response = await fetch('/file-otp/delete-shared-link', {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': getCsrfToken()
+            },
+            credentials: 'same-origin',
+            body: JSON.stringify({
+                file_type: 'regular',
+                file_id: parseInt(fileId)
+            })
+        });
+
+        const result = await response.json();
+
+        if (result.success) {
+            showNotification('Shared link deleted successfully', 'success');
+        } else {
+            showNotification(result.message || 'Failed to delete shared link', 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting shared link:', error);
+        showNotification('Failed to delete shared link: ' + error.message, 'error');
     }
 }
 

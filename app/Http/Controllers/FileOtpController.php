@@ -565,6 +565,81 @@ class FileOtpController extends Controller
     }
 
     /**
+     * Delete shared link for a file
+     */
+    public function deleteSharedLink(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'file_type' => 'required|in:regular,permanent',
+                'file_id' => 'required|integer'
+            ]);
+
+            $user = Auth::user();
+
+            if ($request->file_type === 'regular') {
+                $file = File::where('id', $request->file_id)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if (!$file) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'File not found or access denied'
+                    ], 404);
+                }
+
+                // Clear the share_token to disable sharing
+                $file->share_token = null;
+                $file->save();
+
+                Log::info('Shared link deleted for file', [
+                    'user_id' => $user->id,
+                    'file_id' => $file->id,
+                    'file_name' => $file->file_name
+                ]);
+            } else {
+                $permanentFile = PermanentStorage::where('id', $request->file_id)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                if (!$permanentFile) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'File not found or access denied'
+                    ], 404);
+                }
+
+                // Clear the share_token to disable sharing
+                $permanentFile->share_token = null;
+                $permanentFile->save();
+
+                Log::info('Shared link deleted for permanent storage file', [
+                    'user_id' => $user->id,
+                    'permanent_storage_id' => $permanentFile->id,
+                    'file_name' => $permanentFile->file_name
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Shared link deleted successfully'
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to delete shared link', [
+                'error' => $e->getMessage(),
+                'user_id' => Auth::id()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to delete shared link'
+            ], 500);
+        }
+    }
+
+    /**
      * Generate access token for verified OTP
      */
     private function generateAccessToken($otpSecurity): string

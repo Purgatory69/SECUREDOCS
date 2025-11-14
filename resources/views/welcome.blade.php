@@ -5,9 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>SecureDocs</title>
 
-  <link rel="icon" type="image/x-icon" href="favicon.ico" />
+  <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}" />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com"></script>
+  
+  @vite(['resources/css/app.css', 'resources/js/app.js'])
   <style>
     body { 
       font-family: 'Poppins', sans-serif; 
