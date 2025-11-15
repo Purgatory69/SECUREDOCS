@@ -5254,6 +5254,25 @@ function showShareSuccessModal(share) {
  * Render shared files in the container
  */
 function renderSharedFiles(sharedFiles) {
+    // Store data for layout switching
+    window.sharedFilesCurrentData = sharedFiles;
+    
+    // Initialize layout preference
+    if (!window.sharedFilesState) {
+        window.sharedFilesState = {
+            selectedItems: new Set(),
+            lastSelectedIndex: -1,
+            currentView: localStorage.getItem('sharedFilesLayout') || 'list'
+        };
+    }
+    
+    renderSharedFilesWithLayout(sharedFiles, window.sharedFilesState.currentView);
+}
+
+/**
+ * Render shared files with specific layout
+ */
+function renderSharedFilesWithLayout(sharedFiles, layout) {
     const container = document.getElementById('filesContainer');
     if (!container) return;
 
@@ -5280,7 +5299,110 @@ function renderSharedFiles(sharedFiles) {
         return;
     }
 
-    // Render shared files in MediaFire-style table
+    // Render based on layout
+    if (layout === 'grid') {
+        renderSharedFilesGrid(sharedFiles);
+    } else {
+        renderSharedFilesList(sharedFiles);
+    }
+    
+    // Store layout preference
+    localStorage.setItem('sharedFilesLayout', layout);
+    window.sharedFilesState.currentView = layout;
+    
+    // Attach event listeners
+    attachEventListeners(container);
+}
+
+/**
+ * Render shared files in grid layout
+ */
+function renderSharedFilesGrid(sharedFiles) {
+    const container = document.getElementById('filesContainer');
+    if (!container) return;
+
+    const cardsHtml = sharedFiles.map(sharedFile => {
+        const file = sharedFile.copied_file;
+        const originalShare = sharedFile.original_share;
+        const sharedBy = originalShare.user;
+        const fileSize = file.file_size ? formatFileSize(parseInt(file.file_size, 10)) : '';
+        const modifiedDate = new Date(sharedFile.copied_at).toLocaleDateString();
+        
+        return `
+            <div class="file-row bg-[#2A2D47] rounded-lg border border-[#4A4D6A] overflow-hidden hover:border-[#6B7280] transition-all cursor-pointer p-4" 
+                 data-item-id="${file.id}" data-file-id="${file.id}" data-is-folder="${file.is_folder}">
+                <div class="flex items-start justify-between mb-3">
+                    <div class="flex-1 min-w-0">
+                        <div class="w-12 h-12 flex items-center justify-center mb-2">
+                            ${getFileIconSvg(file.file_name, file.is_folder)}
+                        </div>
+                        <div class="text-sm font-medium text-white truncate" title="${escapeHtml(file.file_name)}">${escapeHtml(file.file_name)}</div>
+                    </div>
+                    <button class="actions-menu-btn p-1 hover:bg-[#3C3F58] rounded flex-shrink-0" 
+                            data-item-id="${file.id}" title="More actions">
+                        <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="flex items-center space-x-2 mb-2">
+                    <input type="checkbox" class="file-checkbox rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#1F2235]" 
+                           data-item-id="${file.id}">
+                    <span class="text-xs text-gray-400 truncate">Shared by ${escapeHtml(sharedBy.name)}</span>
+                </div>
+                <div class="text-xs text-gray-400">
+                    ${fileSize ? `<span>${fileSize}</span>` : ''} • ${modifiedDate}
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `
+        <div class="space-y-4">
+            <!-- Header -->
+            <div class="bg-[#2A2D47] border border-[#4A4D6A] rounded-lg px-4 py-3">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-8 h-8 bg-[#f89c00] rounded flex items-center justify-center">
+                            <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                            </svg>
+                        </div>
+                        <div>
+                            <h2 class="text-lg font-semibold text-white">Shared with Me</h2>
+                            <p class="text-sm text-gray-400">${sharedFiles.length} files</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2" data-view-toggle-btns>
+                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded" data-view="list" title="List view">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+                            </svg>
+                        </button>
+                        <button class="p-1.5 text-[#f89c00] bg-[#3C3F58] rounded" data-view="grid" title="Grid view">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+                ${cardsHtml}
+            </div>
+        </div>
+    `;
+}
+
+/**
+ * Render shared files in list layout
+ */
+function renderSharedFilesList(sharedFiles) {
+    const container = document.getElementById('filesContainer');
+    if (!container) return;
+
     const filesHtml = sharedFiles.map(sharedFile => {
         const file = sharedFile.copied_file;
         const originalShare = sharedFile.original_share;
@@ -5337,29 +5459,13 @@ function renderSharedFiles(sharedFiles) {
                             <p class="text-sm text-gray-400">${sharedFiles.length} files</p>
                         </div>
                     </div>
-                    <div class="flex items-center space-x-2">
-                        <button class="px-3 py-1.5 bg-[#f89c00] text-black text-sm font-medium rounded hover:brightness-110">
-                            <svg class="w-4 h-4 inline mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                            DOWNLOAD
-                        </button>
-                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded">
+                    <div class="flex items-center space-x-2" data-view-toggle-btns>
+                        <button class="p-1.5 text-[#f89c00] bg-[#3C3F58] rounded" data-view="list" title="List view">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
                             </svg>
                         </button>
-                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                            </svg>
-                        </button>
-                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16"></path>
-                            </svg>
-                        </button>
-                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded">
+                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded" data-view="grid" title="Grid view">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                             </svg>
@@ -5399,9 +5505,346 @@ function renderSharedFiles(sharedFiles) {
             </div>
         </div>
     `;
+}
 
-    // Attach event listeners
-    attachEventListeners(container);
+/**
+ * Attach event listeners to shared files container
+ */
+function attachEventListeners(container) {
+    // Initialize shared files state
+    if (!window.sharedFilesState) {
+        window.sharedFilesState = {
+            selectedItems: new Set(),
+            lastSelectedIndex: -1,
+            currentView: 'list' // 'list' or 'grid'
+        };
+    }
+
+    // Select all checkbox
+    const selectAllCheckbox = container.querySelector('.select-all-checkbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            const checkboxes = container.querySelectorAll('.file-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+                const fileId = checkbox.dataset.itemId;
+                if (this.checked) {
+                    window.sharedFilesState.selectedItems.add(fileId);
+                } else {
+                    window.sharedFilesState.selectedItems.delete(fileId);
+                }
+            });
+            updateSharedFilesSelectionUI(container);
+        });
+    }
+
+    // File row click handler with selection support
+    const fileRows = container.querySelectorAll('.file-row');
+    fileRows.forEach((row, index) => {
+        row.addEventListener('click', function(e) {
+            // Don't handle if clicking on checkbox or menu button
+            if (e.target.closest('.actions-menu-btn') || e.target.closest('input[type="checkbox"]')) {
+                return;
+            }
+            
+            const fileId = this.dataset.fileId;
+            const isCtrlClick = e.ctrlKey || e.metaKey;
+            const isShiftClick = e.shiftKey;
+            
+            // Handle selection with keyboard modifiers
+            if (isShiftClick && window.sharedFilesState.lastSelectedIndex !== -1) {
+                // Shift+click: Select range
+                selectSharedFilesRange(container, window.sharedFilesState.lastSelectedIndex, index);
+            } else if (isCtrlClick) {
+                // Ctrl+click: Toggle selection
+                toggleSharedFileSelection(fileId, container);
+            } else {
+                // Regular click: Single selection
+                window.sharedFilesState.selectedItems.clear();
+                window.sharedFilesState.selectedItems.add(fileId);
+                window.sharedFilesState.lastSelectedIndex = index;
+                updateSharedFilesSelectionUI(container);
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+        });
+    });
+
+    // Actions menu buttons
+    const actionButtons = container.querySelectorAll('.actions-menu-btn');
+    actionButtons.forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            const fileId = this.dataset.itemId;
+            showSharedFileContextMenu(e, fileId, container);
+        });
+    });
+
+    // File checkboxes with selection tracking
+    const fileCheckboxes = container.querySelectorAll('.file-checkbox');
+    fileCheckboxes.forEach((checkbox, index) => {
+        checkbox.addEventListener('change', function(e) {
+            e.stopPropagation();
+            const fileId = this.dataset.itemId;
+            if (this.checked) {
+                window.sharedFilesState.selectedItems.add(fileId);
+                window.sharedFilesState.lastSelectedIndex = index;
+            } else {
+                window.sharedFilesState.selectedItems.delete(fileId);
+            }
+            updateSharedFilesSelectionUI(container);
+        });
+    });
+
+    // Add keyboard shortcuts for shared files view
+    document.addEventListener('keydown', function(e) {
+        if (container.dataset.view !== 'shared') return;
+        
+        if (e.ctrlKey || e.metaKey) {
+            if (e.key.toLowerCase() === 'a') {
+                // Ctrl+A: Select all
+                e.preventDefault();
+                const checkboxes = container.querySelectorAll('.file-checkbox');
+                checkboxes.forEach(checkbox => {
+                    checkbox.checked = true;
+                    window.sharedFilesState.selectedItems.add(checkbox.dataset.itemId);
+                });
+                updateSharedFilesSelectionUI(container);
+            }
+        } else if (e.key === 'Escape') {
+            // Escape: Clear selection
+            e.preventDefault();
+            clearSharedFilesSelection(container);
+        }
+    });
+
+    // Grid/List view toggle buttons
+    const viewToggleBtns = container.closest('.bg-\\[\\#1F2235\\]')?.querySelector('[data-view-toggle-btns]');
+    if (viewToggleBtns) {
+        const gridBtn = viewToggleBtns.querySelector('[data-view="grid"]');
+        const listBtn = viewToggleBtns.querySelector('[data-view="list"]');
+        
+        if (gridBtn) {
+            gridBtn.addEventListener('click', () => {
+                window.sharedFilesState.currentView = 'grid';
+                renderSharedFilesWithLayout(window.sharedFilesCurrentData, 'grid');
+            });
+        }
+        
+        if (listBtn) {
+            listBtn.addEventListener('click', () => {
+                window.sharedFilesState.currentView = 'list';
+                renderSharedFilesWithLayout(window.sharedFilesCurrentData, 'list');
+            });
+        }
+    }
+}
+
+/**
+ * Toggle selection of a shared file
+ */
+function toggleSharedFileSelection(fileId, container) {
+    if (window.sharedFilesState.selectedItems.has(fileId)) {
+        window.sharedFilesState.selectedItems.delete(fileId);
+    } else {
+        window.sharedFilesState.selectedItems.add(fileId);
+    }
+    updateSharedFilesSelectionUI(container);
+}
+
+/**
+ * Select range of shared files (Shift+click)
+ */
+function selectSharedFilesRange(container, startIndex, endIndex) {
+    const rows = Array.from(container.querySelectorAll('.file-row'));
+    const minIndex = Math.min(startIndex, endIndex);
+    const maxIndex = Math.max(startIndex, endIndex);
+    
+    window.sharedFilesState.selectedItems.clear();
+    
+    for (let i = minIndex; i <= maxIndex; i++) {
+        const row = rows[i];
+        if (row) {
+            window.sharedFilesState.selectedItems.add(row.dataset.fileId);
+        }
+    }
+    
+    window.sharedFilesState.lastSelectedIndex = endIndex;
+    updateSharedFilesSelectionUI(container);
+}
+
+/**
+ * Clear all shared files selection
+ */
+function clearSharedFilesSelection(container) {
+    window.sharedFilesState.selectedItems.clear();
+    window.sharedFilesState.lastSelectedIndex = -1;
+    
+    const checkboxes = container.querySelectorAll('.file-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    
+    const selectAllCheckbox = container.querySelector('.select-all-checkbox');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = false;
+        selectAllCheckbox.indeterminate = false;
+    }
+    
+    updateSharedFilesSelectionUI(container);
+}
+
+/**
+ * Update UI for shared files selection
+ */
+function updateSharedFilesSelectionUI(container) {
+    const count = window.sharedFilesState.selectedItems.size;
+    const selectAllCheckbox = container.querySelector('.select-all-checkbox');
+    const allCheckboxes = container.querySelectorAll('.file-checkbox');
+    
+    // Update select all checkbox state
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = count === allCheckboxes.length && count > 0;
+        selectAllCheckbox.indeterminate = count > 0 && count < allCheckboxes.length;
+    }
+    
+    // Update visual states
+    container.querySelectorAll('.file-row').forEach(row => {
+        if (window.sharedFilesState.selectedItems.has(row.dataset.fileId)) {
+            row.classList.add('bg-[#3C3F58]', 'bg-opacity-50');
+        } else {
+            row.classList.remove('bg-[#3C3F58]', 'bg-opacity-50');
+        }
+    });
+}
+
+/**
+ * Show context menu for shared file
+ */
+function showSharedFileContextMenu(event, fileId, container) {
+    const fileRow = container.querySelector(`[data-file-id="${fileId}"]`);
+    const fileName = fileRow?.querySelector('.text-white.truncate')?.textContent || 'File';
+    const isFolder = fileRow?.dataset.isFolder === 'true';
+    
+    const menu = document.createElement('div');
+    menu.className = 'fixed bg-white rounded-lg shadow-lg z-50 py-1 min-w-[200px]';
+    menu.style.top = (event.clientY + 5) + 'px';
+    menu.style.left = (event.clientX - 100) + 'px';
+    
+    menu.innerHTML = `
+        <button class="copy-btn w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-gray-800" data-file-id="${fileId}">
+            <span>📋</span><span>Copy to My Files</span>
+        </button>
+        ${!isFolder ? `
+            <button class="download-btn w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center space-x-2 text-gray-800" data-file-id="${fileId}">
+                <span>⬇️</span><span>Download</span>
+            </button>
+        ` : ''}
+    `;
+    
+    document.body.appendChild(menu);
+    
+    // Add event listeners to menu buttons
+    const copyBtn = menu.querySelector('.copy-btn');
+    const downloadBtn = menu.querySelector('.download-btn');
+    
+    if (copyBtn) {
+        copyBtn.addEventListener('click', async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            menu.remove();
+            await copySharedFileToMyBucket(fileId);
+        });
+    }
+    
+    if (downloadBtn) {
+        downloadBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            menu.remove();
+            downloadSharedFile(fileId);
+        });
+    }
+    
+    // Close menu when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu(e) {
+            if (!menu.contains(e.target)) {
+                menu.remove();
+                document.removeEventListener('click', closeMenu);
+            }
+        });
+    }, 0);
+}
+
+/**
+ * Copy shared file to user's bucket
+ */
+async function copySharedFileToMyBucket(fileId) {
+    try {
+        // Show loading indicator
+        const loadingId = 'copy-loading-' + fileId;
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = loadingId;
+        loadingDiv.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+        loadingDiv.innerHTML = `
+            <div class="bg-white rounded-lg p-6 flex flex-col items-center space-y-3">
+                <div class="animate-spin">
+                    <svg class="w-8 h-8 text-[#f89c00]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
+                    </svg>
+                </div>
+                <p class="text-gray-800 font-medium">Copying file to your account...</p>
+            </div>
+        `;
+        document.body.appendChild(loadingDiv);
+        
+        const response = await fetch(`/api/shared-files/${fileId}/copy`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            credentials: 'same-origin'
+        });
+        
+        // Remove loading indicator
+        const loadingElement = document.getElementById(loadingId);
+        if (loadingElement) loadingElement.remove();
+        
+        if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || 'Failed to copy file');
+        }
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('✅ File copied to your account successfully!', 'success');
+            // Reload shared files to show updated list
+            setTimeout(() => {
+                loadUserFiles();
+            }, 1000);
+        } else {
+            showNotification('❌ ' + (data.message || 'Failed to copy file'), 'error');
+        }
+    } catch (error) {
+        console.error('Error copying file:', error);
+        showNotification('❌ Error: ' + error.message, 'error');
+        // Remove loading indicator if still present
+        const loadingElement = document.getElementById('copy-loading-' + fileId);
+        if (loadingElement) loadingElement.remove();
+    }
+}
+
+/**
+ * Download shared file
+ */
+function downloadSharedFile(fileId) {
+    // Trigger download via API or direct link
+    window.location.href = `/api/shared-files/${fileId}/download`;
 }
 
 /**

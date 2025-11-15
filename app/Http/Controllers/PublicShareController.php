@@ -771,9 +771,9 @@ class PublicShareController extends Controller
                 'file_type' => $originalFile->file_type,
                 'mime_type' => $originalFile->mime_type,
                 'parent_id' => null, // Root directory
-                'is_folder' => $originalFile->is_folder,
+                'is_folder' => DB::raw($originalFile->is_folder ? 'true' : 'false'),
                 'arweave_url' => $originalFile->arweave_url,
-                'is_arweave' => $originalFile->is_arweave,
+                'is_arweave' => DB::raw($originalFile->is_arweave ? 'true' : 'false'),
             ]);
 
             // Create copy record

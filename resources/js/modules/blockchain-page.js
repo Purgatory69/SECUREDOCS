@@ -272,10 +272,10 @@ function createGridItemHTML(item) {
                          </button>` :
                         `<button onclick="window.open('${item.url}', '_blank')" 
                                  class="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors relative group"
-                                 title="View File">
+                                 title="Open File">
                             🌐 View
                             <div class="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
-                                View File
+                                Open File
                             </div>
                          </button>`
                     }
