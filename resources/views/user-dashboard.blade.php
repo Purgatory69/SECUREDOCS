@@ -113,22 +113,19 @@
             </button>
             <span id="notificationBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] leading-none px-1.5 py-0.5 rounded-full">0</span>
             
-            <div id="notificationDropdown" class="absolute right-0 mt-3 w-80 bg-[#1F2235] text-gray-100 rounded-lg shadow-xl border border-[#4A4D6A] z-50 opacity-0 invisible translate-y-[-10px] transition-all duration-200">
-                <div class="px-4 py-3 border-b border-[#4A4D6A] flex items-center justify-between">
+            <div id="notificationDropdown" class="absolute right-0 mt-3 w-80 bg-[#3C3F58] text-gray-100 rounded-lg shadow-xl z-50 opacity-0 invisible translate-y-[-10px] transition-all duration-200">    
+              <div class="px-4 py-3 border-b border-gray-900/50 flex items-center justify-between">
                     <div class="text-sm font-medium">Notifications</div>
-                    <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#2A2D47] hover:bg-[#3C3F58]">Mark all read</button>
+                    <button id="markAllRead" class="text-xs px-2 py-1 rounded bg-[#3C3F58] hover:brightness-110 transition-transform">Mark all read</button>
                 </div>
                 <div id="notificationsList" class="max-h-80 overflow-auto">
                     <div class="p-4 text-center text-gray-400">Loading...</div>
                 </div>
-                <div class="px-4 py-2 border-t border-[#4A4D6A] flex items-center justify-between">
-                    <button id="deleteAllNotifications" class="flex items-center gap-1 text-xs px-2 py-1 rounded bg-red-600 hover:bg-red-700 text-white transition-colors" title="Delete all notifications">
-                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
-                        </svg>
-                        Delete all
+                <div class="px-4 py-2 border-t border-gray-900/50 flex items-center justify-between">
+                    <button id="deleteAllNotifications" class="text-xs px-3 py-1 rounded-full text-red-400 hover:bg-red-600 hover:text-white transition-all" title="Delete all notifications">
+                         Clear All
                     </button>
-                    <a id="viewAllNotifications" href="#" class="text-xs text-blue-400 hover:text-blue-300">View all</a>
+                    <a id="viewAllNotifications" href="#" class="text-xs px-3 py-1 rounded-lg text-white hover:bg-[#55597C] transition-colors">Expand</a>
                 </div>
             </div>
         </div>

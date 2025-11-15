@@ -144,36 +144,51 @@ class NotificationManager {
             this.updateBadge(data.unread_count);
         } catch (error) {
             console.error('Error loading notifications:', error);
-            this.list.innerHTML = '<div class="p-4 text-center text-red-500">Failed to load notifications</div>';
+            this.list.innerHTML = '<div class="p-4 text-center text-gray-200">Failed to load notifications</div>';
         }
     }
 
     renderNotifications(notifications) {
         if (!notifications || notifications.length === 0) {
-            this.list.innerHTML = '<div class="p-4 text-center text-gray-500">No notifications</div>';
+            this.list.innerHTML = '<div class="p-4 text-center text-gray-400">No notifications</div>';
             return;
         }
 
-        this.list.innerHTML = notifications.map(notification => `
-            <div class="notification-item group border-b border-gray-200 p-3 hover:bg-gray-50 ${notification.read_at ? '' : 'bg-blue-50'}" data-id="${notification.id}">
+        this.list.innerHTML = notifications.map(notification => {
+            // Check if read
+            const isRead = notification.read_at;
+            
+            // Assign colors based on your new style guide
+            const itemBg = isRead ? 'bg-[#3C3F58]' : 'bg-[#55597C]';
+            const titleColor = 'text-white';
+            // Using text-gray-400 for subtext for better contrast against the white title
+            const messageColor = 'text-gray-400'; 
+            const hoverEffect = 'hover:brightness-110';
+            const borderColor = 'border-b border-gray-900/50'; // Dark border
+
+            return `
+            <div class="notification-item group ${itemBg} ${borderColor} p-4 ${hoverEffect} transition-all" data-id="${notification.id}">
                 <div class="flex items-start gap-3">
                     <div class="notification-icon flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${this.getNotificationIconClass(notification.type)}">
-                        ${this.getNotificationIcon(notification.type)}
+                         ${this.getNotificationIcon(notification.type)}
                     </div>
                     <div class="flex-1 min-w-0">
                         <div class="flex items-center justify-between">
-                            <h4 class="text-sm font-medium text-gray-900 group-hover:text-gray-900 truncate">${notification.title}</h4>
-                            <div class="flex items-center gap-2">
-                                <span class="text-xs text-gray-500 group-hover:text-gray-700">${this.formatRelativeTime(notification.created_at)}</span>
-                                <button class="delete-notification-btn text-gray-400 group-hover:text-gray-900 text-lg leading-none" data-id="${notification.id}" title="Delete notification">×</button>
+                            <h4 class="text-sm font-medium ${titleColor} truncate">${notification.title}</h4>
+                            <div class="flex-shrink-0 flex items-center gap-2 ml-2">
+                                <span class="text-xs text-gray-400">${this.formatRelativeTime(notification.created_at)}</span>
+                                <button class="delete-notification-btn text-gray-400 hover:text-white text-xl leading-none" data-id="${notification.id}" title="Delete notification">×</button>
                             </div>
                         </div>
-                        <p class="text-sm text-gray-600 group-hover:text-gray-700 mt-1">${notification.message}</p>
-                        ${!notification.read_at ? '<div class="w-2 h-2 bg-blue-500 rounded-full mt-2"></div>' : ''}
+                        <p class="text-sm ${messageColor} mt-1">${notification.message}</p>
+                        ${!notification.read_at ?
+                        '<div class="w-2 h-2 bg-blue-500 rounded-full mt-2" title="Unread"></div>' : ''}
                     </div>
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
+
 
         // Add click handlers for marking as read and deleting
         this.list.querySelectorAll('.notification-item').forEach(item => {
@@ -197,13 +212,14 @@ class NotificationManager {
     }
 
     getNotificationIcon(type) {
+        // Using SVGs to match your storyboard image
         const icons = {
-            success: '✅',
-            error: '❌',
-            warning: '⚠️',
-            info: 'ℹ️'
+            success: '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>',
+            error: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path></svg>',
+            warning: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>',
+            info: '<svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"></path></svg>'
         };
-        return icons[type] || 'ℹ️';
+        return icons[type] || icons.info; // Default to info icon
     }
 
     getNotificationIconClass(type) {
@@ -415,7 +431,7 @@ class NotificationManager {
     showInfo(title, message, data = null) {
         return this.createNotification('info', title, message, data);
     }
-}
 
+}
 // Export for use in other modules
 export { NotificationManager };
