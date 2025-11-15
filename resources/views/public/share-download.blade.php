@@ -14,7 +14,9 @@
     <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
     @vite(['resources/css/app.css'])
     <style>
+     
         body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             font-family: 'Poppins', sans-serif;
         }
@@ -90,78 +92,115 @@
     </style>
 </head>
 <body>
-    @if($file->is_folder)
-        <!-- Folder View - Dark Theme -->
-        <div class="min-h-screen bg-gray-900">
-            <!-- Header -->
-            <div class="bg-gray-800 text-white p-4">
-                <div class="max-w-7xl mx-auto flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-orange-500 rounded flex items-center justify-center">
-                            <span class="text-white font-bold text-sm">📁</span>
-                        </div>
-                        <div>
-                            <h1 class="text-lg font-semibold max-w-xs truncate">{{ $file->file_name }}</h1>
-                            <p class="text-gray-300 text-sm">shared by "{{ trim(($share->user->firstname ?? '') . ' ' . ($share->user->lastname ?? '')) }}"</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center space-x-2">
-                        <button onclick="shareFolder()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded transition-colors" title="Share">
-                            📤
+@if($file->is_folder)
+    <div class="flex flex-col min-h-screen" id="folder-view-ui"> 
+        
+        <div class="bg-[#141326] px-6 py-6">
+            <div class="flex items-center justify-between w-full">
+                <button id="back-button" style="margin-left: 10px;" class="flex items-center text-white hover:text-gray-300 transition-colors duration-200">
+                    <img src="{{ asset('back-arrow.png') }}" alt="Back" class="w-5 h-5">
+                </button>
+                <div class="flex items-center space-x-3 absolute left-1/2 transform -translate-x-1/2">
+                    <img src="{{ asset('logo-white.png') }}" alt="Logo" class="h-8 w-auto">
+                    <h2 class="font-bold text-xl text-[#f89c00] font-['Poppins']">Folder Sharing</h2>
+                </div>
+                <div class="flex items-center gap-6">
+                    <a href="{{ route('login') }}" class="text-sm font-medium transition-all duration-200 hover:text-[#ff9c00]">{{ __('auth.login') }}</a>
+                    <a href="{{ route('register') }}" class="bg-[#ff9c00] text-black px-4 py-2 rounded-full font-bold transition-all duration-200 hover:brightness-110">{{ __('auth.signup') }}</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="fixed bottom-6 right-6 z-50">
+            <div class="relative">
+                <button id="language-toggle" class="bg-[#3c3f58] text-white p-3 rounded-full shadow-lg transition"
+                    style="transition: background-color 0.2s;"
+                    onmouseover="this.style.backgroundColor='#55597C';"
+                    onmouseout="this.style.backgroundColor='';">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>
+                    </svg>
+                </button>
+                <div id="language-dropdown" style="background-color: #3c3f58; border: 3px solid #1F1F33" class="absolute bottom-full right-0 mb-2 hidden bg-[#3c3f58] rounded-lg shadow-xl overflow-hidden min-w-[140px]">
+                    <a href="#"
+                        class="flex items-center px-4 py-3 text-sm transition-colors bg-[#f89c00] text-black font-bold">
+                        <span class="mr-2">🇺🇸</span>
+                        English
+                    </a>
+                    <a href="#"
+                        class="flex items-center px-4 py-3 text-sm transition-colors text-white"
+                        style="transition: background-color 0.2s;"
+                        onmouseover="this.style.backgroundColor='#55597C';"
+                        onmouseout="this.style.backgroundColor='';">
+                        <span class="mr-2">🇵🇭</span>
+                        Filipino
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="container mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8 flex-1">
+            
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-4">
+                <div>
+                    <h1 class="text-2xl font-semibold text-white">
+                        Folder from <span class="font-bold text-[#ff9c00] inline-block max-w-[30ch] truncate align-bottom">"{{ $share->user->name }}"</span>
+                    </h1>
+                </div>
+
+                <div class="flex items-center gap-4">
+                    <div id="viewToggleBtns" class="flex gap-2">
+                        <button id="btnGridLayout" data-view="grid" title="Grid view" aria-label="Grid view"
+                                class="view-toggle-btn py-2 px-4 border rounded text-sm"> 
+                            <span><img src="{{ asset('grid.png') }}" alt="Grid" class="w-4 h-4"></span>
                         </button>
-                        <button onclick="downloadFolder()" class="bg-white bg-opacity-20 hover:bg-opacity-30 px-3 py-2 rounded transition-colors" title="Download">
-                            ⬇️
+                        <button id="btnListLayout" data-view="list" title="List view" aria-label="List view"
+                                class="view-toggle-btn active py-2 px-4 border rounded text-sm"> 
+                            <span><img src="{{ asset('list.png') }}" alt="List" class="w-4 h-4"></span>
                         </button>
-                        <a href="{{ route('register') }}" class="bg-orange-500 text-white px-4 py-2 rounded text-sm font-medium hover:bg-orange-600 transition-colors">
-                            SIGN UP
-                        </a>
-                        <a href="{{ route('login') }}" class="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded text-sm transition-colors text-white">
-                            LOG IN
-                        </a>
                     </div>
+                    <a href="{{ route('public.share.download', $share->share_token) }}" class="bg-[#ff9c00] text-black px-4 py-2 rounded-full font-bold transition-all duration-200 hover:brightness-110">
+                        Download
+                    </a>
+                </div>
+            </div>
+            
+            <div class="mb-6">
+                <div id="new-breadcrumbs" class="flex items-center text-sm text-gray-400 flex-wrap">
+                    @php
+                        // Logic to build breadcrumbs for the new UI
+                        $allBreadcrumbs = [
+                            (object)['id' => $share->file_id, 'name' => $file->file_name, 'url' => route('public.share.show', $share->share_token)]
+                        ];
+                        if (isset($breadcrumbs) && count($breadcrumbs) > 0) {
+                             // Reset for sub-folders
+                            $allBreadcrumbs = []; 
+                            foreach ($breadcrumbs as $crumb) {
+                                $allBreadcrumbs[] = (object)[
+                                    'id' => $crumb['id'], 
+                                    'name' => $crumb['name'], 
+                                    'url' => $crumb['url'] ?? route('public.share.folder.show', [$share->share_token, $crumb['id']])
+                                ];
+                            }
+                        }
+                    @endphp
+
+                    @foreach ($allBreadcrumbs as $index => $crumb)
+                        @if ($index > 0)
+                            <span class="mx-1.5">/</span>
+                        @endif
+
+                        @if ($index == count($allBreadcrumbs) - 1)
+                            <span class="font-medium text-white px-2 py-1 bg-[#3C3F58] rounded-md truncate">{{ $crumb->name }}</span>
+                        @else
+                            <a href="{{ $crumb->url }}" class="hover:text-white hover:underline truncate">{{ $crumb->name }}</a>
+                        @endif
+                    @endforeach
                 </div>
             </div>
 
-            <!-- Breadcrumb Navigation (SecureDocs Style) -->
-            <div id="breadcrumbsContainer" class="mt-2 mb-8 text-sm text-white flex items-center justify-between bg-gray-800 border-b border-gray-700 px-4 py-3">
-                
-                <!-- Breadcrumbs Dropdown (for collapsed paths) -->
-                <div id="breadcrumbsDropdown" class="relative hidden">
-                    <button id="breadcrumbsMenuBtn" class="flex items-center justify-center w-12 h-12 rounded-full hover:bg-gray-700 transition-colors mr-2">
-                        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zM12 10a2 2 0 11-4 0 2 2 0 014 0zM16 12a2 2 0 100-4 2 2 0 000 4z"></path>
-                        </svg>
-                    </button>
-                    <div id="breadcrumbsDropdownMenu" class="absolute top-full left-0 mt-1 bg-[#1F2235] border border-[#4A4D6A] rounded-lg shadow-lg z-50 min-w-[200px] hidden">
-                        <!-- Dropdown items will be populated by JavaScript -->
-                    </div>
-                </div>
-
-                <!-- Breadcrumbs Path -->
-                <div id="breadcrumbsPath" class="flex items-center">
-                    <!-- Breadcrumb items will be populated by JavaScript -->
-                </div>
-
-                <!-- View Toggle Buttons -->
-                <div id="viewToggleBtns" class="flex gap-2 ml-auto">
-                    <button id="btnGridLayout" data-view="grid" title="Grid view" aria-label="Grid view" 
-                            class="view-toggle-btn py-2 px-4 border border-gray-600 rounded text-sm text-gray-400 hover:text-orange-400 transition-colors cursor-pointer" aria-pressed="false">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                        </svg>
-                    </button>
-                    <button id="btnListLayout" data-view="list" title="List view" aria-label="List view" 
-                            class="view-toggle-btn active py-2 px-4 border border-gray-600 rounded text-sm text-orange-400 bg-gray-700 hover:text-orange-400 transition-colors cursor-pointer" aria-pressed="true">
-                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                            <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
-                        </svg>
-                    </button>
-                </div>
-            </div>
-
-            <!-- OTP Files Warning -->
             @if(isset($otpInfo) && $otpInfo['has_otp_files'])
-            <div class="max-w-7xl mx-auto px-4 mb-4">
+            <div class="max-w-7xl mx-auto mb-4">
                 <div class="bg-yellow-900/50 border border-yellow-600 rounded-lg p-4 flex items-start gap-3">
                     <svg class="w-5 h-5 text-yellow-400 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
                         <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path>
@@ -183,108 +222,61 @@
             </div>
             @endif
 
-            <!-- Main Content -->
-            <div class="max-w-7xl mx-auto p-4">
-                <!-- Files Container (Grid/List Toggle) -->
-                <div id="filesContainer" class="mb-6">
-                <!-- Folder Table -->
-                <div class="folder-table bg-gray-800 border border-gray-700">
-                    <!-- Table Header -->
-                    <div class="bg-gray-700 border-b border-gray-600 px-4 py-3">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center space-x-2">
-                                <input type="checkbox" class="rounded bg-gray-600 border-gray-500">
-                                <span class="text-sm font-medium text-gray-200">NAME</span>
-                                <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                </svg>
+            <div id="file-list-container" class="space-y-2">
+                
+                @forelse($folderFiles as $folderFile)
+                    <div class="bg-[#3C3F58] bg-opacity-40 hover:bg-opacity-80 transition-all duration-200 rounded-lg p-4 flex items-center justify-between cursor-pointer"
+                         onclick="openFile('{{ $folderFile->id }}', '{{ $folderFile->file_name }}', {{ $folderFile->is_folder ? 'true' : 'false' }})">
+                        
+                        <div class="flex items-center space-x-4 min-w-0">
+                            <div class="flex-shrink-0">
+                                @if($folderFile->is_folder)
+                                    <span class="text-3xl">📁</span>
+                                @else
+                                    <div class="relative">
+                                        <div class="w-8 h-8 flex items-center justify-center">
+                                            <svg viewBox="0 0 35 40" height="35" width="30">
+                                                <path d="M34.28 12.14V37.86C34.28 38.141 34.2246 38.4193 34.1171 38.6789C34.0096 38.9386 33.8519 39.1745 33.6532 39.3732C33.4545 39.5719 33.2186 39.7296 32.9589 39.8371C32.6993 39.9446 32.421 40 32.14 40H2.14C1.85897 40 1.58069 39.9446 1.32106 39.8371C1.06142 39.7296 0.825509 39.5719 0.626791 39.3732C0.428074 39.1745 0.270443 38.9386 0.162898 38.6789C0.0553525 38.4193 0 38.141 0 37.86V2.14C0 1.57244 0.225464 1.02812 0.626791 0.626791C1.02812 0.225464 1.57244 0 2.14 0H22.14C23.4969 0.0774993 24.7874 0.613415 25.8 1.52L32.8 8.52C33.6838 9.52751 34.2048 10.8019 34.28 12.14ZM31.42 14.28H22.14C21.5724 14.28 21.0281 14.0545 20.6268 13.6532C20.2255 13.2519 20 12.7076 20 12.14V2.86H2.85V37.14H31.43V14.29L31.42 14.28ZM22.85 11.42H31.24C31.1355 11.0855 30.9693 10.7734 30.75 10.5L23.75 3.5C23.4825 3.28063 23.1776 3.11126 22.85 3V11.39V11.42Z" fill="#9ca3af"></path>
+                                            </svg>
+                                        </div>
+                                        <div class="absolute -bottom-1 -right-1 bg-orange-500 text-white text-xs px-1 rounded">
+                                            {{ strtoupper($folderFile->file_type ?? 'FILE') }}
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
-                            <div class="text-sm font-medium text-gray-200">MODIFIED</div>
+                            <div class="flex-1 min-w-0">
+                                <div class="text-sm font-medium text-white truncate">
+                                    {{ $folderFile->file_name }}
+                                </div>
+                                <div class="text-xs text-gray-400">
+                                    {{ $folderFile->updated_at->format('Y-m-d H:i') }}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex-shrink-0">
+                            <button onclick="event.stopPropagation(); showFileContextMenu(event, '{{ $folderFile->id }}', '{{ $folderFile->file_name }}', {{ $folderFile->is_folder ? 'true' : 'false' }})" 
+                                    class="p-2 text-gray-400 hover:text-white rounded-full hover:bg-white/10 transition-colors" 
+                                    title="More options">
+                                <svg viewBox="0 0 6 16" width="8" height="14">
+                                    <path d="M2 4C3.1 4 4 3.1 4 2C4 0.9 3.1 0 2 0C0.9 0 0 0.9 0 2C0 3.1 0.9 4 2 4ZM2 6C0.9 6 0 6.9 0 8C0 9.1 0.9 10 2 10C3.1 10 4 9.1 4 8C4 6.9 3.1 6 2 6ZM2 12C0.9 12 0 12.9 0 14C0 15.1 0.9 16 2 16C3.1 16 4 15.1 4 14C4 12.9 3.1 12 2 12Z" fill="currentColor"></path>
+                                </svg>
+                            </button>
                         </div>
                     </div>
-
-                    <!-- Files List -->
-                    <div class="divide-y divide-gray-600">
-                        @forelse($folderFiles as $folderFile)
-                            <div class="folder-row px-4 py-3 flex items-center justify-between hover:bg-gray-700 cursor-pointer transition-colors" onclick="openFile('{{ $folderFile->id }}', '{{ $folderFile->file_name }}', {{ $folderFile->is_folder ? 'true' : 'false' }})">
-                                <div class="flex items-center space-x-3 flex-1">
-                                    <input type="checkbox" class="rounded bg-gray-600 border-gray-500" onclick="event.stopPropagation()">
-                                    
-                                    <!-- File Icon with Type Badge -->
-                                    <div class="relative">
-                                        @if($folderFile->is_folder)
-                                            <div class="w-8 h-8 flex items-center justify-center">
-                                                <span class="text-2xl">📁</span>
-                                            </div>
-                                        @else
-                                            <div class="w-8 h-8 flex items-center justify-center">
-                                                <svg viewBox="0 0 35 40" height="35" width="30">
-                                                    <path d="M34.28 12.14V37.86C34.28 38.141 34.2246 38.4193 34.1171 38.6789C34.0096 38.9386 33.8519 39.1745 33.6532 39.3732C33.4545 39.5719 33.2186 39.7296 32.9589 39.8371C32.6993 39.9446 32.421 40 32.14 40H2.14C1.85897 40 1.58069 39.9446 1.32106 39.8371C1.06142 39.7296 0.825509 39.5719 0.626791 39.3732C0.428074 39.1745 0.270443 38.9386 0.162898 38.6789C0.0553525 38.4193 0 38.141 0 37.86V2.14C0 1.57244 0.225464 1.02812 0.626791 0.626791C1.02812 0.225464 1.57244 0 2.14 0H22.14C23.4969 0.0774993 24.7874 0.613415 25.8 1.52L32.8 8.52C33.6838 9.52751 34.2048 10.8019 34.28 12.14ZM31.42 14.28H22.14C21.5724 14.28 21.0281 14.0545 20.6268 13.6532C20.2255 13.2519 20 12.7076 20 12.14V2.86H2.85V37.14H31.43V14.29L31.42 14.28ZM22.85 11.42H31.24C31.1355 11.0855 30.9693 10.7734 30.75 10.5L23.75 3.5C23.4825 3.28063 23.1776 3.11126 22.85 3V11.39V11.42Z" fill="#9ca3af"></path>
-                                                </svg>
-                                            </div>
-                                            <!-- File Type Badge -->
-                                            <div class="absolute -bottom-1 -right-1 bg-orange-500 text-white text-xs px-1 rounded">
-                                                {{ strtoupper($folderFile->file_type ?? 'FILE') }}
-                                            </div>
-                                        @endif
-                                    </div>
-                                    
-                                    <!-- File Details -->
-                                    <div class="flex-1 min-w-0">
-                                        <div class="text-sm font-medium text-orange-400 hover:text-orange-300 truncate">
-                                            {{ $folderFile->file_name }}
-                                        </div>
-                                        <div class="text-xs text-gray-400">
-                                            {{ $folderFile->download_count ?? 0 }} downloads, {{ $folderFile->file_size ?? 'N/A' }}
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <!-- Action Buttons -->
-                                <div class="flex items-center space-x-2">
-                                    <!-- Copy Link Button -->
-                                    <button onclick="event.stopPropagation(); copyFileLink('{{ $folderFile->id }}')" 
-                                            class="p-2 text-gray-400 hover:text-orange-400 transition-colors" 
-                                            title="Copy share link">
-                                        <svg viewBox="0 0 20 8" width="14" height="12">
-                                            <path d="M1.9 5C1.9 3.29 3.29 1.9 5 1.9H9V0H5C2.24 0 0 2.24 0 5C0 7.76 2.24 10 5 10H9V8.1H5C3.29 8.1 1.9 6.71 1.9 5ZM6 6H14V4H6V6ZM15 0H11V1.9H15C16.71 1.9 18.1 3.29 18.1 5C18.1 6.71 16.71 8.1 15 8.1H11V10H15C17.76 10 20 7.76 20 5C20 2.24 17.76 0 15 0Z" fill="currentColor"></path>
-                                        </svg>
-                                    </button>
-                                    
-                                    <!-- Modified Date -->
-                                    <div class="text-sm text-gray-400 min-w-0">
-                                        {{ $folderFile->updated_at->format('Y-m-d H:i') }}
-                                    </div>
-                                    
-                                    <!-- Context Menu Button -->
-                                    <button onclick="event.stopPropagation(); showFileContextMenu(event, '{{ $folderFile->id }}', '{{ $folderFile->file_name }}', {{ $folderFile->is_folder ? 'true' : 'false' }})" 
-                                            class="p-2 text-gray-400 hover:text-orange-400 transition-colors" 
-                                            title="More options">
-                                        <svg viewBox="0 0 6 16" width="8" height="14">
-                                            <path d="M2 4C3.1 4 4 3.1 4 2C4 0.9 3.1 0 2 0C0.9 0 0 0.9 0 2C0 3.1 0.9 4 2 4ZM2 6C0.9 6 0 6.9 0 8C0 9.1 0.9 10 2 10C3.1 10 4 9.1 4 8C4 6.9 3.1 6 2 6ZM2 12C0.9 12 0 12.9 0 14C0 15.1 0.9 16 2 16C3.1 16 4 15.1 4 14C4 12.9 3.1 12 2 12Z" fill="currentColor"></path>
-                                        </svg>
-                                    </button>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="px-4 py-8 text-center text-gray-400">
-                                <div class="text-4xl mb-2">📁</div>
-                                <p>This folder is empty</p>
-                            </div>
-                        @endforelse
+                @empty
+                    <div class="px-4 py-8 text-center text-gray-400">
+                        <div class="text-4xl mb-2">📁</div>
+                        <p>This folder is empty</p>
                     </div>
-                </div>
-                </div>
-
-                <!-- Download Actions -->
-                <div class="mt-6 flex justify-center">
-                    <a href="{{ route('public.share.download', $share->share_token) }}" 
-                       class="bg-orange-500 hover:bg-orange-600 px-8 py-3 text-white font-semibold rounded-lg text-center transition-colors">
-                        📥 DOWNLOAD FOLDER (ZIP)
-                    </a>
-                </div>
+                @endforelse
             </div>
+            
+            <div id="file-grid-view" class="hidden"></div>
+
         </div>
+    </div>
     @else
         <!-- File View - SecureDocs Style -->
         <div style="background-color: #1D1D2F;" class="min-h-screen text-white flex flex-col">
@@ -556,55 +548,65 @@
             window.location.href = '{{ route("public.share.download", $share->share_token) }}';
         }
 
-        let currentView = 'list';
-        
+        // --- MODIFIED FUNCTION ---
+        // --- UPDATED FUNCTION ---
+        // This function now adds/removes the .active class
+        // based on the CSS you provided.
         function toggleListView() {
+            const table = document.getElementById('file-list-container');
+            const listBtn = document.getElementById('btnListLayout');
+            const gridBtn = document.getElementById('btnGridLayout');
+            const gridView = document.getElementById('file-grid-view');
+
+            if (!table || !listBtn || !gridBtn) return; 
             if (currentView === 'list') return;
             
             currentView = 'list';
-            const table = document.querySelector('.folder-table');
-            const listBtn = document.getElementById('btnListLayout');
-            const gridBtn = document.getElementById('btnGridLayout');
             
-            // Update button states
-            listBtn.classList.add('active', 'text-orange-400', 'bg-gray-700');
-            listBtn.classList.remove('text-gray-400');
+            // Update button states using the .active class
+            listBtn.classList.add('active');
             listBtn.setAttribute('aria-pressed', 'true');
             
-            gridBtn.classList.remove('active', 'text-orange-400', 'bg-gray-700');
-            gridBtn.classList.add('text-gray-400');
+            gridBtn.classList.remove('active');
             gridBtn.setAttribute('aria-pressed', 'false');
             
-            // Show table view
-            table.style.display = 'block';
+            // Show list view
+            table.style.display = 'block'; 
             
-            // Hide grid view if it exists
-            const gridView = document.querySelector('.folder-grid');
+            // Hide grid view
             if (gridView) gridView.style.display = 'none';
         }
 
+        // --- MODIFIED FUNCTION ---
+        // --- UPDATED FUNCTION ---
+        // This function now adds/removes the .active class
+        // based on the CSS you provided.
         function toggleGridView() {
+            const table = document.getElementById('file-list-container');
+            const listBtn = document.getElementById('btnListLayout');
+            const gridBtn = document.getElementById('btnGridLayout');
+            let gridView = document.getElementById('file-grid-view');
+
+            if (!table || !listBtn || !gridBtn) return; 
             if (currentView === 'grid') return;
             
             currentView = 'grid';
-            const table = document.querySelector('.folder-table');
-            const listBtn = document.getElementById('btnListLayout');
-            const gridBtn = document.getElementById('btnGridLayout');
             
-            // Update button states
-            gridBtn.classList.add('active', 'text-orange-400', 'bg-gray-700');
-            gridBtn.classList.remove('text-gray-400');
+            // Update button states using the .active class
+            gridBtn.classList.add('active');
             gridBtn.setAttribute('aria-pressed', 'true');
-            
-            listBtn.classList.remove('active', 'text-orange-400', 'bg-gray-700');
-            listBtn.classList.add('text-gray-400');
+
+            listBtn.classList.remove('active');
             listBtn.setAttribute('aria-pressed', 'false');
             
-            // Create grid view if it doesn't exist
-            let gridView = document.querySelector('.folder-grid');
             if (!gridView) {
-                gridView = createGridView();
-                table.parentNode.appendChild(gridView);
+                console.error("Grid view container '#file-grid-view' not found!");
+                return;
+            }
+            
+            // Create grid view content if it's empty
+            if (gridView.innerHTML.trim() === '') {
+                createGridView(gridView); // Pass the container
             }
             
             // Toggle views
@@ -612,51 +614,54 @@
             gridView.style.display = 'grid';
         }
 
-        function createGridView() {
-            const gridView = document.createElement('div');
-            gridView.className = 'folder-grid grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 p-4';
+        // --- MODIFIED FUNCTION ---
+        // Creates static grid view items
+        function createGridView(gridViewContainer) {
+            // Set the grid classes on the container
+            gridViewContainer.className = 'grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4';
             
-            @if(isset($folderFiles) && $folderFiles->count() > 0)
-                @foreach($folderFiles as $index => $folderFile)
-                    const fileCard{{ $index }} = document.createElement('div');
-                    fileCard{{ $index }}.className = 'bg-gray-800 border border-gray-700 rounded-lg p-4 hover:bg-gray-700 transition-colors cursor-pointer';
-                    fileCard{{ $index }}.onclick = () => openFile('{{ $folderFile->id }}', '{{ $folderFile->file_name }}', {{ $folderFile->is_folder ? 'true' : 'false' }});
-                    fileCard{{ $index }}.innerHTML = `
+            // STATIC PLACEHOLDER DATA
+            const staticFiles = [
+                { id: 1, name: 'FILE NAME', is_folder: false, size: 'N/A', icon: '📄' },
+                { id: 2, name: 'Another Folder', is_folder: true, size: 'N/A', icon: '📁' },
+                { id: 3, name: 'report.pdf', is_folder: false, size: '1.2 MB', icon: '📄' },
+                { id: 4, name: 'Photos', is_folder: true, size: 'N/A', icon: '📁' },
+            ];
+            
+            if (staticFiles.length > 0) {
+                staticFiles.forEach(file => {
+                    const fileCard = document.createElement('div');
+                    // Styling for grid cards
+                    fileCard.className = 'bg-[#3C3F58] bg-opacity-40 hover:bg-opacity-80 border border-transparent hover:border-white/10 rounded-lg p-4 transition-all cursor-pointer';
+                    fileCard.innerHTML = `
                         <div class="text-center">
-                            <div class="text-4xl mb-2">{{ $folderFile->is_folder ? '📁' : '📄' }}</div>
-                            <div class="text-sm font-medium text-orange-400 truncate">{{ $folderFile->file_name }}</div>
-                            <div class="text-xs text-gray-400 mt-1">{{ $folderFile->file_size ?? 'N/A' }}</div>
+                            <div class="text-4xl mb-2">${file.icon}</div>
+                            <div class="text-sm font-medium text-white truncate">${file.name}</div>
+                            <div class="text-xs text-gray-400 mt-1">${file.size}</div>
                         </div>
                     `;
-                    gridView.appendChild(fileCard{{ $index }});
-                @endforeach
-            @else
-                gridView.innerHTML = `
-                    <div class="col-span-full text-center py-8 text-gray-500">
+                    gridViewContainer.appendChild(fileCard);
+                });
+            } else {
+                gridViewContainer.innerHTML = `
+                    <div class="col-span-full text-center py-8 text-gray-400">
                         <div class="text-4xl mb-2">📁</div>
                         <p>This folder is empty</p>
                     </div>
                 `;
-            @endif
+            }
             
-            return gridView;
+            return gridViewContainer;
         }
 
         // Initialize list view as active
         document.addEventListener('DOMContentLoaded', function() {
-            toggleListView();
-            initializeBreadcrumbs();
-            
-            // Wire up view toggle buttons
-            const gridBtn = document.getElementById('btnGridLayout');
-            const listBtn = document.getElementById('btnListLayout');
-            
-            if (gridBtn) {
-                gridBtn.addEventListener('click', toggleGridView);
-            }
-            
-            if (listBtn) {
-                listBtn.addEventListener('click', toggleListView);
+            // Only run folder-specific initializers if we are in folder view
+            if (document.getElementById('file-list-container')) {
+                toggleListView(); // Set default
+                // Add click listeners
+                document.getElementById('btnGridLayout')?.addEventListener('click', toggleGridView);
+                document.getElementById('btnListLayout')?.addEventListener('click', toggleListView);
             }
         });
 
@@ -1132,6 +1137,24 @@
                 });
 
                 // Close dropdown when clicking outside
+                document.addEventListener('click', function(e) {
+                    if (!toggleButton.contains(e.target) && !dropdown.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                    }
+                });
+            }
+        });
+
+        // --- Language Toggle Script (from ui-file) ---
+        document.addEventListener('DOMContentLoaded', function() {
+            const toggleButton = document.getElementById('language-toggle');
+            const dropdown = document.getElementById('language-dropdown');
+
+            if (toggleButton && dropdown) {
+                toggleButton.addEventListener('click', function(e) {
+                    e.stopPropagation();
+                    dropdown.classList.toggle('hidden');
+                });
                 document.addEventListener('click', function(e) {
                     if (!toggleButton.contains(e.target) && !dropdown.contains(e.target)) {
                         dropdown.classList.add('hidden');
