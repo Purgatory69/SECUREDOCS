@@ -145,13 +145,13 @@
                 <!-- View Toggle Buttons -->
                 <div id="viewToggleBtns" class="flex gap-2 ml-auto">
                     <button id="btnGridLayout" data-view="grid" title="Grid view" aria-label="Grid view" 
-                            class="view-toggle-btn active py-2 px-4 border border-gray-600 rounded text-sm text-orange-400 bg-gray-700" aria-pressed="true">
+                            class="view-toggle-btn py-2 px-4 border border-gray-600 rounded text-sm text-gray-400 hover:text-orange-400 transition-colors cursor-pointer" aria-pressed="false">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path d="M5 3a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2V5a2 2 0 00-2-2H5zM5 11a2 2 0 00-2 2v2a2 2 0 002 2h2a2 2 0 002-2v-2a2 2 0 00-2-2H5zM11 5a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V5zM11 13a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
                         </svg>
                     </button>
                     <button id="btnListLayout" data-view="list" title="List view" aria-label="List view" 
-                            class="view-toggle-btn py-2 px-4 border border-gray-600 rounded text-sm text-gray-400" aria-pressed="false">
+                            class="view-toggle-btn active py-2 px-4 border border-gray-600 rounded text-sm text-orange-400 bg-gray-700 hover:text-orange-400 transition-colors cursor-pointer" aria-pressed="true">
                         <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clip-rule="evenodd"></path>
                         </svg>
@@ -542,14 +542,17 @@
             
             currentView = 'list';
             const table = document.querySelector('.folder-table');
-            const listBtn = document.querySelector('[onclick="toggleListView()"]');
-            const gridBtn = document.querySelector('[onclick="toggleGridView()"]');
+            const listBtn = document.getElementById('btnListLayout');
+            const gridBtn = document.getElementById('btnGridLayout');
             
             // Update button states
-            listBtn.classList.add('bg-white', 'bg-opacity-40');
-            listBtn.classList.remove('bg-opacity-20');
-            gridBtn.classList.add('bg-opacity-20');
-            gridBtn.classList.remove('bg-white', 'bg-opacity-40');
+            listBtn.classList.add('active', 'text-orange-400', 'bg-gray-700');
+            listBtn.classList.remove('text-gray-400');
+            listBtn.setAttribute('aria-pressed', 'true');
+            
+            gridBtn.classList.remove('active', 'text-orange-400', 'bg-gray-700');
+            gridBtn.classList.add('text-gray-400');
+            gridBtn.setAttribute('aria-pressed', 'false');
             
             // Show table view
             table.style.display = 'block';
@@ -564,14 +567,17 @@
             
             currentView = 'grid';
             const table = document.querySelector('.folder-table');
-            const listBtn = document.querySelector('[onclick="toggleListView()"]');
-            const gridBtn = document.querySelector('[onclick="toggleGridView()"]');
+            const listBtn = document.getElementById('btnListLayout');
+            const gridBtn = document.getElementById('btnGridLayout');
             
             // Update button states
-            gridBtn.classList.add('bg-white', 'bg-opacity-40');
-            gridBtn.classList.remove('bg-opacity-20');
-            listBtn.classList.add('bg-opacity-20');
-            listBtn.classList.remove('bg-white', 'bg-opacity-40');
+            gridBtn.classList.add('active', 'text-orange-400', 'bg-gray-700');
+            gridBtn.classList.remove('text-gray-400');
+            gridBtn.setAttribute('aria-pressed', 'true');
+            
+            listBtn.classList.remove('active', 'text-orange-400', 'bg-gray-700');
+            listBtn.classList.add('text-gray-400');
+            listBtn.setAttribute('aria-pressed', 'false');
             
             // Create grid view if it doesn't exist
             let gridView = document.querySelector('.folder-grid');
@@ -619,6 +625,18 @@
         document.addEventListener('DOMContentLoaded', function() {
             toggleListView();
             initializeBreadcrumbs();
+            
+            // Wire up view toggle buttons
+            const gridBtn = document.getElementById('btnGridLayout');
+            const listBtn = document.getElementById('btnListLayout');
+            
+            if (gridBtn) {
+                gridBtn.addEventListener('click', toggleGridView);
+            }
+            
+            if (listBtn) {
+                listBtn.addEventListener('click', toggleListView);
+            }
         });
 
         // File interaction functions
