@@ -29,6 +29,10 @@ Route::get('/test-folder', function () {
     return view('test-share-folder');
 });
 
+Route::get('/test-file-password', function () {
+    return view('test-share-password');
+});
+
 
 // Lightweight keepalive endpoint to prevent session/CSRF from going stale on public pages like /login
 Route::get('/keepalive', function (Request $request) {
