@@ -1042,6 +1042,10 @@
             const backButton = document.getElementById('back-button');
             if (backButton) {
                 backButton.addEventListener('click', function() {
+                    // Hide button if there's no history to go back to
+                    if (window.history.length <= 1) {
+                        backButton.style.display = 'none';
+                    }
                     // Check if there's a previous page in history
                     if (document.referrer && document.referrer !== window.location.href) {
                         window.history.back();

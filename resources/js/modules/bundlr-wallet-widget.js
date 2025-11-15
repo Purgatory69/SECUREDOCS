@@ -162,12 +162,12 @@ async function handleInitializeBundlr() {
         
         // Show loading
         if (initBtn) {
-            initBtn.textContent = '🔄 Connecting...';
+            initBtn.textContent = 'Connecting...';
             initBtn.disabled = true;
         }
         
         if (statusEl) {
-            statusEl.textContent = 'Connecting to MetaMask...';
+            statusEl.textContent = 'Waiting for MetaMask...';
         }
         
         // Check if required libraries are loaded
@@ -260,7 +260,8 @@ async function handleInitializeBundlr() {
         updateBalanceDisplay();
         
         if (statusEl) {
-            statusEl.textContent = `Connected - ${currentBalance.toFixed(6)} MATIC`;
+            // statusEl.textContent = `Connected - ${currentBalance.toFixed(6)} MATIC`;
+            statusEl.textContent = `Connected`;
         }
         
         // Enable buttons
@@ -280,7 +281,7 @@ async function handleInitializeBundlr() {
     } finally {
         // Reset button
         if (initBtn) {
-            initBtn.textContent = '🚀 Initialize Bundlr';
+            initBtn.textContent = 'Initialize';
             initBtn.disabled = false;
         }
     }
