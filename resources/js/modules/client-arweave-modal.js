@@ -436,18 +436,27 @@ async function handleUploadToArweave() {
     const context = window.arweaveUploadContext;
     
     if (!context || !context.fileId) {
-        showError('No file selected for upload');
+        showError('❌ Error: No file selected for upload. Please select a file and try again.');
+        console.error('Upload context missing:', { context, currentFile });
+        return;
+    }
+
+    // Validate that we have a file to upload
+    if (!currentFile) {
+        showError('❌ Error: File data is missing. Please select a file from your dashboard and try again.');
+        console.error('Current file is null, context:', context);
         return;
     }
 
     // Check if wallet widget is initialized
     if (!window.isWalletReady || !window.isWalletReady()) {
-        showError('Please initialize Bundlr wallet first using the "B" button in the navigation');
+        showError('❌ Error: Bundlr wallet not initialized. Please click the "B" button in the navigation bar to set up your wallet first.');
         return;
     }
 
     try {
         console.log('🚀 Starting Arweave upload for file:', context.fileId);
+        console.log('📦 File details:', { name: currentFile.name, size: currentFile.size, isPreValidated: currentFile.isPreValidated });
 
         // Show loading on upload button
         showLoading('uploadToArweaveBtn', 'Uploading to Arweave...');
@@ -456,17 +465,23 @@ async function handleUploadToArweave() {
         const balance = window.getCurrentBalance();
         const uploadCostMatic = context.uploadCost.matic;
         
+        console.log('💰 Balance check:', { balance, uploadCostMatic, sufficient: balance >= uploadCostMatic });
+        
         if (balance < uploadCostMatic) {
-            throw new Error(`Insufficient Bundlr balance (${balance.toFixed(6)} MATIC). Need ${uploadCostMatic.toFixed(6)} MATIC.`);
+            throw new Error(`Insufficient Bundlr balance (${balance.toFixed(6)} MATIC). You need ${uploadCostMatic.toFixed(6)} MATIC for this upload. Please fund your Bundlr account.`);
         }
         
-        console.log('💳 Balance check passed. Uploading file to Arweave...');
+        console.log('✅ Balance check passed. Uploading file to Arweave...');
         
         // Upload using wallet widget
         const result = await window.uploadFileWithBundlr(currentFile);
         
-        if (!result.success) {
-            throw new Error(result.error || 'Upload failed');
+        if (!result || !result.success) {
+            throw new Error(result?.error || 'Upload failed - no response from Bundlr widget');
+        }
+        
+        if (!result.url) {
+            throw new Error('Upload succeeded but no URL returned from Bundlr');
         }
         
         console.log('✅ File uploaded to Arweave:', result.url);
@@ -490,14 +505,14 @@ async function handleUploadToArweave() {
         });
 
         if (!saveResponse.ok) {
-            const errorData = await saveResponse.json();
-            throw new Error(errorData.message || 'Failed to save upload record');
+            const errorData = await saveResponse.json().catch(() => ({}));
+            throw new Error(errorData.message || `Server error: ${saveResponse.status} ${saveResponse.statusText}`);
         }
 
         const saveResult = await saveResponse.json();
         
         if (!saveResult.success) {
-            throw new Error(saveResult.message || 'Failed to save upload record');
+            throw new Error(saveResult.message || 'Failed to save upload record to database');
         }
 
         console.log('✅ Upload record saved:', saveResult);
@@ -512,7 +527,7 @@ async function handleUploadToArweave() {
         
     } catch (error) {
         console.error('❌ Upload failed:', error);
-        showError(error.message);
+        showError(`❌ Error: ${error.message}`);
     } finally {
         // Reset button
         hideLoading('uploadToArweaveBtn', '🚀 Upload to Arweave');

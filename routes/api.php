@@ -66,4 +66,9 @@ Route::get('/db-schema', [SchemaController::class, 'get'])
     ->middleware(['auth:sanctum', \App\Http\Middleware\RoleMiddleware::class.':admin'])
     ->name('api.db-schema');
 
+// Public share folder breadcrumb API (no auth required)
+Route::prefix('public-share')->group(function () {
+    Route::get('/folder/{folderId}', [FileController::class, 'getPublicShareFolderInfo']);
+});
+
 

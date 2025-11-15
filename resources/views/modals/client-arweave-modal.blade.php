@@ -84,10 +84,17 @@
                                 <input 
                                     type="password" 
                                     id="encryptionPassword" 
-                                    class="w-full px-3 py-2 bg-[#0D0E2F] border border-[#3C3F58] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    class="w-full px-3 py-2 bg-[#0D0E2F] border border-[#3C3F58] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-20"
                                     placeholder="Enter a strong password (min 8 characters)"
                                     autocomplete="new-password"
                                 >
+                                <button 
+                                    type="button" 
+                                    id="toggleEncryptionPasswordBtn"
+                                    class="absolute right-12 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-300 text-sm"
+                                >
+                                    <img id="encryption-password-toggle-icon" src="{{ asset('eye-close.png') }}" alt="Toggle Password Visibility" class="w-5 h-5">
+                                </button>
                                 <button 
                                     type="button" 
                                     id="generatePasswordBtn"
@@ -752,4 +759,25 @@ function toggleAutoCheck() {
         console.log('🔄 Auto-check started (every 30 seconds)');
     }
 }
+
+// Password visibility toggle for encryption password
+document.addEventListener('DOMContentLoaded', function() {
+    const encryptionPasswordInput = document.getElementById('encryptionPassword');
+    const toggleButton = document.getElementById('toggleEncryptionPasswordBtn');
+    const toggleIcon = document.getElementById('encryption-password-toggle-icon');
+
+    if (toggleButton && encryptionPasswordInput) {
+        toggleButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            const type = encryptionPasswordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+            encryptionPasswordInput.setAttribute('type', type);
+
+            if (type === 'text') {
+                toggleIcon.src = "{{ asset('eye-open.png') }}";
+            } else {
+                toggleIcon.src = "{{ asset('eye-close.png') }}";
+            }
+        });
+    }
+});
 </script>

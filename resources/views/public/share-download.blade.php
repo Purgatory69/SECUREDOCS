@@ -101,7 +101,7 @@
                             <span class="text-white font-bold text-sm">📁</span>
                         </div>
                         <div>
-                            <h1 class="text-lg font-semibold">{{ $file->file_name }}</h1>
+                            <h1 class="text-lg font-semibold max-w-xs truncate">{{ $file->file_name }}</h1>
                             <p class="text-gray-300 text-sm">shared by "{{ trim(($share->user->firstname ?? '') . ' ' . ($share->user->lastname ?? '')) }}"</p>
                         </div>
                     </div>
@@ -185,6 +185,8 @@
 
             <!-- Main Content -->
             <div class="max-w-7xl mx-auto p-4">
+                <!-- Files Container (Grid/List Toggle) -->
+                <div id="filesContainer" class="mb-6">
                 <!-- Folder Table -->
                 <div class="folder-table bg-gray-800 border border-gray-700">
                     <!-- Table Header -->
@@ -271,6 +273,7 @@
                             </div>
                         @endforelse
                     </div>
+                </div>
                 </div>
 
                 <!-- Download Actions -->
@@ -460,6 +463,23 @@
         // Save to My Files functionality
         async function saveToMyFiles() {
             try {
+                // Check if user is logged in
+                const loginCheckResponse = await fetch('/api/user', {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json'
+                    }
+                });
+
+                if (loginCheckResponse.status === 401) {
+                    // User not logged in
+                    const shouldLogin = window.confirm('You need to be logged in to save files. Would you like to log in?');
+                    if (shouldLogin) {
+                        window.location.href = '{{ route("login") }}?redirect={{ urlencode(route("public.share.show", $share->share_token)) }}';
+                    }
+                    return;
+                }
+
                 const response = await fetch('{{ route("public.share.save", $share->share_token) }}', {
                     method: 'POST',
                     headers: {
@@ -471,12 +491,13 @@
                 const data = await response.json();
                 
                 if (data.success) {
-                    alert('File saved to your account successfully!');
+                    showToast('✅ File saved to your account successfully!');
                 } else {
-                    alert(data.message || 'Failed to save file');
+                    showToast(data.message || '❌ Failed to save file');
                 }
             } catch (error) {
-                alert('An error occurred while saving the file');
+                console.error('Error saving file:', error);
+                showToast('❌ An error occurred while saving the file');
             }
         }
 
@@ -888,9 +909,15 @@
         function initializeBreadcrumbs() {
             // Build breadcrumbs from PHP data
             const breadcrumbs = @json($breadcrumbs ?? []);
-            const shareUserName = "{{ $share->user->name }}";
+            const currentFolderId = @json($currentFolderId ?? null);
+            const shareUserName = "{{ trim(($share->user->firstname ?? '') . ' ' . ($share->user->lastname ?? '')) }}";
             
-            updateBreadcrumbsDisplay(breadcrumbs, shareUserName);
+            // Fetch breadcrumb path from API if we have a folder ID
+            if (currentFolderId) {
+                fetchBreadcrumbPath(currentFolderId, shareUserName);
+            } else {
+                updateBreadcrumbsDisplay(breadcrumbs, shareUserName);
+            }
             
             // Add dropdown toggle functionality
             const menuBtn = document.getElementById('breadcrumbsMenuBtn');
@@ -927,6 +954,44 @@
                     }
                 }
             });
+        }
+        
+        // Fetch breadcrumb path by traversing parent IDs
+        async function fetchBreadcrumbPath(folderId, shareUserName) {
+            try {
+                const breadcrumbs = [];
+                let currentId = folderId;
+                
+                // Traverse up the folder hierarchy
+                while (currentId) {
+                    const response = await fetch(`/api/public-share/folder/${currentId}`, {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'application/json'
+                        }
+                    });
+                    
+                    if (!response.ok) break;
+                    
+                    const data = await response.json();
+                    if (data.folder) {
+                        breadcrumbs.unshift({
+                            id: data.folder.id,
+                            name: data.folder.file_name,
+                            url: `{{ route("public.share.folder.show", [$share->share_token, "FOLDER_ID"]) }}`.replace('FOLDER_ID', data.folder.id)
+                        });
+                        currentId = data.folder.parent_id; // Move to parent
+                    } else {
+                        break;
+                    }
+                }
+                
+                updateBreadcrumbsDisplay(breadcrumbs, shareUserName);
+            } catch (error) {
+                console.error('Error fetching breadcrumb path:', error);
+                // Fallback to basic breadcrumbs
+                updateBreadcrumbsDisplay([], shareUserName);
+            }
         }
         
         function updateBreadcrumbsDisplay(breadcrumbs, shareUserName) {
@@ -1034,7 +1099,7 @@
         }
         
         function truncateText(text, maxLength) {
-            text.substring(0, maxLength) + '...' : text;
+            return text.length > maxLength ? text.substring(0, maxLength) + '...' : text;
         }
 
         // --- Back Button Script (from new design) ---

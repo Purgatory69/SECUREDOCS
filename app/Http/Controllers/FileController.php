@@ -3201,4 +3201,43 @@ class FileController extends Controller
             'file_id' => $id
         ]);
     }
+
+    /**
+     * Get public share folder info for breadcrumb navigation
+     */
+    public function getPublicShareFolderInfo($folderId): JsonResponse
+    {
+        try {
+            $folder = File::where('id', $folderId)
+                ->where('is_folder', DB::raw('true'))
+                ->select('id', 'file_name', 'parent_id', 'user_id')
+                ->first();
+
+            if (!$folder) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Folder not found'
+                ], 404);
+            }
+
+            return response()->json([
+                'success' => true,
+                'folder' => [
+                    'id' => $folder->id,
+                    'file_name' => $folder->file_name,
+                    'parent_id' => $folder->parent_id
+                ]
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Error fetching public share folder info', [
+                'folder_id' => $folderId,
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error fetching folder information'
+            ], 500);
+        }
+    }
 }
