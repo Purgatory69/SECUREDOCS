@@ -81,25 +81,11 @@
                                 Encryption Password
                             </label>
                             <div class="relative">
-                                <input 
-                                    type="password" 
-                                    id="encryptionPassword" 
-                                    class="w-full px-3 py-2 bg-[#0D0E2F] border border-[#3C3F58] rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 pr-20"
-                                    placeholder="Enter a strong password (min 8 characters)"
-                                    autocomplete="new-password"
-                                >
-                                <button 
-                                    type="button" 
-                                    id="toggleEncryptionPasswordBtn"
-                                    class="absolute right-12 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-300 text-sm"
-                                >
-                                    <img id="encryption-password-toggle-icon" src="{{ asset('eye-close.png') }}" alt="Toggle Password Visibility" class="w-5 h-5">
+                                <input type="text" id="encryptionPassword" class="w-full px-3 py-2 bg-white border border-[#3C3F58] rounded-md text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Enter a strong password (min 8 characters)" autocomplete="new-password" style="padding-right: 110px;">
+                                <button type="button" id="toggleEncryptionPasswordBtn" class="absolute right-14 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-300 text-sm flex items-center justify-center w-6 h-6" title="Toggle password visibility" style="left: 450.556;">
+                                    <img id="encryption-password-toggle-icon" src="https://securedocs.live/eye-open.png" alt="Toggle Password Visibility" class="w-5 h-5">
                                 </button>
-                                <button 
-                                    type="button" 
-                                    id="generatePasswordBtn"
-                                    class="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-300 text-sm"
-                                >
+                                <button type="button" id="generatePasswordBtn" class="absolute right-2 top-1/2 transform -translate-y-1/2 text-blue-400 hover:text-blue-300 text-sm">
                                     Generate
                                 </button>
                             </div>

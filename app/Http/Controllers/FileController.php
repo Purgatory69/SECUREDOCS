@@ -1096,7 +1096,7 @@ class FileController extends Controller
                 'file_type' => $validated['file_type'],
                 'mime_type' => $validated['mime_type'],
                 'parent_id' => $parentId,
-                'is_folder' => false,
+                'is_folder' => DB::raw('FALSE'),
             ]);
 
             // Process with AI vectorization

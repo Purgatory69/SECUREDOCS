@@ -720,18 +720,27 @@ async function validatePremiumProcessing(file, processingType) {
             }
         }
 
-        // Check file type support
-        const supportedTypes = requirements.supported_file_types || [];
+        // Check file type support - supported types for AI vectorization
+        const supportedTypes = [
+            'pdf', 'doc', 'docx', 'txt', 'rtf', 'odt',
+            'xls', 'xlsx', 'csv', 'ods',
+            'ppt', 'pptx', 'odp',
+            'jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp',
+            'mp4', 'avi', 'mov', 'wmv', 'flv', 'webm',
+            'mp3', 'wav', 'flac', 'aac', 'ogg',
+            'json', 'xml', 'html', 'md'
+        ];
         const fileExtension = file.name.split('.').pop()?.toLowerCase();
         
         if (supportedTypes.length > 0 && !supportedTypes.includes(fileExtension)) {
-            results.warnings.push(`File type '.${fileExtension}' may not be fully supported`);
+            results.warnings.push(`File type '.${fileExtension}' may not be fully supported for AI processing`);
         }
 
         results.canProceed = results.errors.length === 0;
         return results;
 
     } catch (error) {
+        console.error('Validation error:', error);
         results.errors.push('Validation service unavailable');
         return results;
     }
