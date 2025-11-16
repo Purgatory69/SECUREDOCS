@@ -6,6 +6,7 @@ use App\Http\Controllers\N8nNotificationController;
 use App\Http\Controllers\WebsiteRefreshController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\SchemaController;
+use App\Http\Controllers\PublicShareController;
 
 
 Route::get('/user', function (Request $request) {
@@ -69,6 +70,17 @@ Route::get('/db-schema', [SchemaController::class, 'get'])
 // Public share folder breadcrumb API (no auth required)
 Route::prefix('public-share')->group(function () {
     Route::get('/folder/{folderId}', [FileController::class, 'getPublicShareFolderInfo']);
+});
+
+// Shared files API (authenticated)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::prefix('shared-files')->group(function () {
+        // Copy shared file to user's bucket
+        Route::post('/{fileId}/copy', [PublicShareController::class, 'copySharedFileToMyBucket']);
+        
+        // Download shared file
+        Route::get('/{fileId}/download', [PublicShareController::class, 'downloadSharedFile']);
+    });
 });
 
 

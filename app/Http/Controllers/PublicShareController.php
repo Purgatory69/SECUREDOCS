@@ -1517,4 +1517,216 @@ class PublicShareController extends Controller
         }
     }
 
+    /**
+     * Copy shared file to user's bucket (API endpoint)
+     */
+    public function copySharedFileToMyBucket(Request $request, int $fileId): JsonResponse
+    {
+        try {
+            if (!Auth::check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please login to copy files to your account',
+                    'requires_login' => true
+                ], 401);
+            }
+
+            $user = Auth::user();
+
+            // Find the shared file copy record
+            $sharedFileCopy = SharedFileCopy::with(['original_share', 'copied_file'])
+                ->where('copied_file_id', $fileId)
+                ->firstOrFail();
+
+            $share = $sharedFileCopy->original_share;
+            $originalFile = $sharedFileCopy->copied_file;
+
+            // Check if share is valid
+            if (!$share->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This share link has expired'
+                ], 410);
+            }
+
+            // Check if user already copied this file
+            if (SharedFileCopy::hasUserCopied($share, $user)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'You have already saved this file to your account'
+                ], 400);
+            }
+
+            // Create copy of the file in user's root directory
+            $copiedFile = File::create([
+                'user_id' => $user->id,
+                'file_name' => $originalFile->file_name,
+                'file_path' => $originalFile->file_path, // Same storage path
+                'file_size' => $originalFile->file_size,
+                'file_type' => $originalFile->file_type,
+                'mime_type' => $originalFile->mime_type,
+                'parent_id' => null, // Root directory
+                'is_folder' => DB::raw($originalFile->is_folder ? 'true' : 'false'),
+                'arweave_url' => $originalFile->arweave_url,
+                'is_arweave' => DB::raw($originalFile->is_arweave ? 'true' : 'false'),
+            ]);
+
+            // Create copy record
+            SharedFileCopy::createCopy($share, $user, $copiedFile);
+
+            // Log activity
+            $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
+            $ownerName = trim(($share->user->firstname ?? '') . ' ' . ($share->user->lastname ?? ''));
+            SystemActivity::logFileActivity(
+                SystemActivity::ACTION_COPIED,
+                $copiedFile,
+                "{$userName} saved shared " . ($originalFile->is_folder ? 'folder' : 'file') . " '{$originalFile->file_name}' to their account",
+                [
+                    'original_owner' => $ownerName,
+                    'share_token' => $share->share_token,
+                    'copied_from_public_share' => true
+                ],
+                SystemActivity::RISK_LOW,
+                $user
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'File saved to your account successfully',
+                'copied_file' => [
+                    'id' => $copiedFile->id,
+                    'name' => $copiedFile->file_name,
+                    'type' => $copiedFile->is_folder ? 'folder' : 'file'
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to copy shared file to user account', [
+                'file_id' => $fileId,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to save file to your account'
+            ], 500);
+        }
+    }
+
+    /**
+     * Download shared file (API endpoint)
+     */
+    public function downloadSharedFile(Request $request, int $fileId)
+    {
+        try {
+            if (!Auth::check()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Please login to download files',
+                    'requires_login' => true
+                ], 401);
+            }
+
+            $user = Auth::user();
+
+            // Find the shared file copy record
+            $sharedFileCopy = SharedFileCopy::with(['original_share', 'copied_file'])
+                ->where('copied_file_id', $fileId)
+                ->firstOrFail();
+
+            $share = $sharedFileCopy->original_share;
+            $file = $sharedFileCopy->copied_file;
+
+            // Check if share is valid
+            if (!$share->isValid()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This share link has expired'
+                ], 410);
+            }
+
+            // Get file content from Supabase
+            $supabaseUrl = env('SUPABASE_URL');
+            $filePath = ltrim($file->file_path, '/');
+
+            if (empty($supabaseUrl) || empty($filePath)) {
+                Log::error('Missing Supabase configuration or file path', [
+                    'file_id' => $fileId,
+                    'has_supabase_url' => !empty($supabaseUrl),
+                    'has_file_path' => !empty($filePath)
+                ]);
+                abort(404, 'File not found in storage');
+            }
+
+            // Handle Arweave files
+            if (!empty($file->arweave_url)) {
+                return redirect()->away($file->arweave_url);
+            }
+
+            // Download from Supabase with proper error handling
+            $fileUrl = "{$supabaseUrl}/storage/v1/object/public/docs/{$filePath}";
+            
+            // Check if file exists and is accessible
+            $headers = @get_headers($fileUrl);
+            if (!$headers || strpos($headers[0], '200') === false) {
+                Log::error('Supabase file not accessible', [
+                    'file_url' => $fileUrl,
+                    'file_id' => $fileId,
+                    'headers' => $headers
+                ]);
+                abort(404, 'File not found or no longer available');
+            }
+
+            // Increment download count
+            $share->incrementDownload();
+
+            // Log activity
+            $userName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
+            $ownerName = trim(($share->user->firstname ?? '') . ' ' . ($share->user->lastname ?? ''));
+            SystemActivity::logFileActivity(
+                SystemActivity::ACTION_DOWNLOADED,
+                $file,
+                "{$userName} downloaded shared file '{$file->file_name}'",
+                [
+                    'original_owner' => $ownerName,
+                    'share_token' => $share->share_token,
+                    'downloaded_from_public_share' => true
+                ],
+                SystemActivity::RISK_LOW,
+                $user
+            );
+
+            // Stream download the file
+            return response()->streamDownload(function () use ($fileUrl) {
+                $context = stream_context_create([
+                    'http' => [
+                        'timeout' => 30,
+                        'method' => 'GET'
+                    ]
+                ]);
+                
+                $stream = fopen($fileUrl, 'r', false, $context);
+                if (!$stream) {
+                    throw new \Exception('Failed to open file stream');
+                }
+                
+                fpassthru($stream);
+                fclose($stream);
+            }, $file->file_name);
+
+        } catch (\Exception $e) {
+            Log::error('Failed to download shared file', [
+                'file_id' => $fileId,
+                'user_id' => Auth::id(),
+                'error' => $e->getMessage()
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to download file'
+            ], 500);
+        }
+    }
+
 }

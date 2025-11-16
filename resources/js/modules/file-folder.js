@@ -5299,16 +5299,8 @@ function renderSharedFilesWithLayout(sharedFiles, layout) {
         return;
     }
 
-    // Render based on layout
-    if (layout === 'grid') {
-        renderSharedFilesGrid(sharedFiles);
-    } else {
-        renderSharedFilesList(sharedFiles);
-    }
-    
-    // Store layout preference
-    localStorage.setItem('sharedFilesLayout', layout);
-    window.sharedFilesState.currentView = layout;
+    // Always render as list view (no grid/list toggle)
+    renderSharedFilesList(sharedFiles);
     
     // Attach event listeners
     attachEventListeners(container);
@@ -5345,10 +5337,8 @@ function renderSharedFilesGrid(sharedFiles) {
                         </svg>
                     </button>
                 </div>
-                <div class="flex items-center space-x-2 mb-2">
-                    <input type="checkbox" class="file-checkbox rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#1F2235]" 
-                           data-item-id="${file.id}">
-                    <span class="text-xs text-gray-400 truncate">Shared by ${escapeHtml(sharedBy.name)}</span>
+                <div class="text-xs text-gray-400">
+                    <span class="text-gray-400">Shared by ${escapeHtml(sharedBy.name)}</span>
                 </div>
                 <div class="text-xs text-gray-400">
                     ${fileSize ? `<span>${fileSize}</span>` : ''} • ${modifiedDate}
@@ -5361,29 +5351,15 @@ function renderSharedFilesGrid(sharedFiles) {
         <div class="space-y-4">
             <!-- Header -->
             <div class="bg-[#2A2D47] border border-[#4A4D6A] rounded-lg px-4 py-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-[#f89c00] rounded flex items-center justify-center">
-                            <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-semibold text-white">Shared with Me</h2>
-                            <p class="text-sm text-gray-400">${sharedFiles.length} files</p>
-                        </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-[#f89c00] rounded flex items-center justify-center">
+                        <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                        </svg>
                     </div>
-                    <div class="flex items-center space-x-2" data-view-toggle-btns>
-                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded" data-view="list" title="List view">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                            </svg>
-                        </button>
-                        <button class="p-1.5 text-[#f89c00] bg-[#3C3F58] rounded" data-view="grid" title="Grid view">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                            </svg>
-                        </button>
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Shared with Me</h2>
+                        <p class="text-sm text-gray-400">${sharedFiles.length} files</p>
                     </div>
                 </div>
             </div>
@@ -5415,8 +5391,6 @@ function renderSharedFilesList(sharedFiles) {
                 data-item-id="${file.id}" data-file-id="${file.id}" data-is-folder="${file.is_folder}">
                 <td class="px-4 py-3">
                     <div class="flex items-center space-x-3">
-                        <input type="checkbox" class="file-checkbox rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]" 
-                               data-item-id="${file.id}">
                         <div class="w-8 h-8 flex items-center justify-center">
                             ${getFileIconSvg(file.file_name, file.is_folder)}
                         </div>
@@ -5447,29 +5421,15 @@ function renderSharedFilesList(sharedFiles) {
         <div class="bg-[#1F2235] rounded-lg border border-[#4A4D6A] overflow-hidden">
             <!-- Header -->
             <div class="bg-[#2A2D47] border-b border-[#4A4D6A] px-4 py-3">
-                <div class="flex items-center justify-between">
-                    <div class="flex items-center space-x-3">
-                        <div class="w-8 h-8 bg-[#f89c00] rounded flex items-center justify-center">
-                            <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
-                            </svg>
-                        </div>
-                        <div>
-                            <h2 class="text-lg font-semibold text-white">Shared with Me</h2>
-                            <p class="text-sm text-gray-400">${sharedFiles.length} files</p>
-                        </div>
+                <div class="flex items-center space-x-3">
+                    <div class="w-8 h-8 bg-[#f89c00] rounded flex items-center justify-center">
+                        <svg class="w-5 h-5 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                        </svg>
                     </div>
-                    <div class="flex items-center space-x-2" data-view-toggle-btns>
-                        <button class="p-1.5 text-[#f89c00] bg-[#3C3F58] rounded" data-view="list" title="List view">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
-                            </svg>
-                        </button>
-                        <button class="p-1.5 text-gray-400 hover:text-gray-300 hover:bg-[#3C3F58] rounded" data-view="grid" title="Grid view">
-                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>
-                            </svg>
-                        </button>
+                    <div>
+                        <h2 class="text-lg font-semibold text-white">Shared with Me</h2>
+                        <p class="text-sm text-gray-400">${sharedFiles.length} files</p>
                     </div>
                 </div>
             </div>
@@ -5477,27 +5437,6 @@ function renderSharedFilesList(sharedFiles) {
             <!-- Table -->
             <div class="overflow-x-auto">
                 <table class="w-full">
-                    <thead class="bg-[#2A2D47] border-b border-[#4A4D6A]">
-                        <tr>
-                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                <div class="flex items-center space-x-2">
-                                    <input type="checkbox" class="select-all-checkbox rounded border-[#4A4D6A] text-[#f89c00] focus:ring-[#f89c00] bg-[#2A2D47]">
-                                    <span>NAME</span>
-                                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
-                                </div>
-                            </th>
-                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">
-                                <div class="flex items-center justify-end space-x-1">
-                                    <span>MODIFIED</span>
-                                    <svg class="w-3 h-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                    </svg>
-                                </div>
-                            </th>
-                        </tr>
-                    </thead>
                     <tbody class="divide-y divide-[#4A4D6A]">
                         ${filesHtml}
                     </tbody>
@@ -5520,52 +5459,16 @@ function attachEventListeners(container) {
         };
     }
 
-    // Select all checkbox
-    const selectAllCheckbox = container.querySelector('.select-all-checkbox');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            const checkboxes = container.querySelectorAll('.file-checkbox');
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-                const fileId = checkbox.dataset.itemId;
-                if (this.checked) {
-                    window.sharedFilesState.selectedItems.add(fileId);
-                } else {
-                    window.sharedFilesState.selectedItems.delete(fileId);
-                }
-            });
-            updateSharedFilesSelectionUI(container);
-        });
-    }
+    // Checkbox listeners removed - no checkboxes in UI
 
-    // File row click handler with selection support
+    // File row click handler - do nothing on click
     const fileRows = container.querySelectorAll('.file-row');
     fileRows.forEach((row, index) => {
         row.addEventListener('click', function(e) {
-            // Don't handle if clicking on checkbox or menu button
-            if (e.target.closest('.actions-menu-btn') || e.target.closest('input[type="checkbox"]')) {
+            // Don't handle file row clicks - only allow actions menu button
+            if (e.target.closest('.actions-menu-btn')) {
                 return;
             }
-            
-            const fileId = this.dataset.fileId;
-            const isCtrlClick = e.ctrlKey || e.metaKey;
-            const isShiftClick = e.shiftKey;
-            
-            // Handle selection with keyboard modifiers
-            if (isShiftClick && window.sharedFilesState.lastSelectedIndex !== -1) {
-                // Shift+click: Select range
-                selectSharedFilesRange(container, window.sharedFilesState.lastSelectedIndex, index);
-            } else if (isCtrlClick) {
-                // Ctrl+click: Toggle selection
-                toggleSharedFileSelection(fileId, container);
-            } else {
-                // Regular click: Single selection
-                window.sharedFilesState.selectedItems.clear();
-                window.sharedFilesState.selectedItems.add(fileId);
-                window.sharedFilesState.lastSelectedIndex = index;
-                updateSharedFilesSelectionUI(container);
-            }
-            
             e.preventDefault();
             e.stopPropagation();
         });
@@ -5581,64 +5484,11 @@ function attachEventListeners(container) {
         });
     });
 
-    // File checkboxes with selection tracking
-    const fileCheckboxes = container.querySelectorAll('.file-checkbox');
-    fileCheckboxes.forEach((checkbox, index) => {
-        checkbox.addEventListener('change', function(e) {
-            e.stopPropagation();
-            const fileId = this.dataset.itemId;
-            if (this.checked) {
-                window.sharedFilesState.selectedItems.add(fileId);
-                window.sharedFilesState.lastSelectedIndex = index;
-            } else {
-                window.sharedFilesState.selectedItems.delete(fileId);
-            }
-            updateSharedFilesSelectionUI(container);
-        });
-    });
+    // File checkbox listeners removed - no checkboxes in UI
 
-    // Add keyboard shortcuts for shared files view
-    document.addEventListener('keydown', function(e) {
-        if (container.dataset.view !== 'shared') return;
-        
-        if (e.ctrlKey || e.metaKey) {
-            if (e.key.toLowerCase() === 'a') {
-                // Ctrl+A: Select all
-                e.preventDefault();
-                const checkboxes = container.querySelectorAll('.file-checkbox');
-                checkboxes.forEach(checkbox => {
-                    checkbox.checked = true;
-                    window.sharedFilesState.selectedItems.add(checkbox.dataset.itemId);
-                });
-                updateSharedFilesSelectionUI(container);
-            }
-        } else if (e.key === 'Escape') {
-            // Escape: Clear selection
-            e.preventDefault();
-            clearSharedFilesSelection(container);
-        }
-    });
+    // Keyboard shortcuts removed - no selection in UI
 
-    // Grid/List view toggle buttons
-    const viewToggleBtns = container.closest('.bg-\\[\\#1F2235\\]')?.querySelector('[data-view-toggle-btns]');
-    if (viewToggleBtns) {
-        const gridBtn = viewToggleBtns.querySelector('[data-view="grid"]');
-        const listBtn = viewToggleBtns.querySelector('[data-view="list"]');
-        
-        if (gridBtn) {
-            gridBtn.addEventListener('click', () => {
-                window.sharedFilesState.currentView = 'grid';
-                renderSharedFilesWithLayout(window.sharedFilesCurrentData, 'grid');
-            });
-        }
-        
-        if (listBtn) {
-            listBtn.addEventListener('click', () => {
-                window.sharedFilesState.currentView = 'list';
-                renderSharedFilesWithLayout(window.sharedFilesCurrentData, 'list');
-            });
-        }
-    }
+    // View toggle removed - only list view available
 }
 
 /**
